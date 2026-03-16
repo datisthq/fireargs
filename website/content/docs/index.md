@@ -15,13 +15,13 @@ hero:
       icon: right-arrow
       variant: primary
     - text: View on GitHub
-      link: https://github.com/nicholasgasior/termway
+      link: https://github.com/datisthq/termway
       icon: external
       variant: minimal
 banner:
   content: |
     <p>
-      This project is in <strong>research preview</strong> phase. Please share your <a href="https://github.com/nicholasgasior/termway/issues/new"><strong>feedback and ideas</strong></a>
+      This project is in <strong>research preview</strong> phase. Please share your <a href="https://github.com/datisthq/termway/issues/new"><strong>feedback and ideas</strong></a>
     </p>
 ---
 

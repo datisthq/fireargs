@@ -5,7 +5,7 @@
   "private": true,
   "title": "Termway",
   "description": "Termway description",
-  "repository": "https://github.com/nicholasgasior/termway",
+  "repository": "https://github.com/datisthq/termway",
   "homepage": "https://termway.dev",
   "scripts": {
     "build": "astro build",
