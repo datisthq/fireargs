@@ -24,6 +24,7 @@
   "devDependencies": {
     "@semantic-release/exec": "7.1.0",
     "@types/node": "24.2.0",
+    "@typescript/native-preview": "7.0.0-dev.20260316.1",
     "@vitest/coverage-v8": "4.0.16",
     "conventional-changelog-conventionalcommits": "9.1.0",
     "husky": "9.1.7",
@@ -32,7 +33,6 @@
     "npm-check-updates": "18.0.1",
     "semantic-release": "24.2.9",
     "tempy": "3.2.0",
-    "typescript": "5.9.2",
     "vite-plus": "0.1.12",
     "vitest-polly": "1.4.0"
   },
