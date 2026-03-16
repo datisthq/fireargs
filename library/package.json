@@ -1,0 +1,21 @@
+{
+  "name": "termway",
+  "type": "module",
+  "version": "0.0.0-dev",
+  "exports": "./build/index.js",
+  "sideEffects": false,
+  "files": [
+    "build"
+  ],
+  "license": "MIT",
+  "author": "Evgeny Karev",
+  "repository": "https://github.com/datisthq/termway",
+  "description": "Termway description",
+  "keywords": [
+    "termway"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type": "tsc --noEmit"
+  }
+}

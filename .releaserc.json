@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
+    [
+      "@semantic-release/release-notes-generator",
+      { "preset": "conventionalcommits" }
+    ],
+    [
+      "@semantic-release/exec",
+      { "prepareCmd": "pnpm setversion ${nextRelease.version}" }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "pnpm build",
+        "publishCmd": "pnpm release"
+      }
+    ],
+    ["@semantic-release/github"]
+  ]
+}

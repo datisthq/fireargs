@@ -1,0 +1,40 @@
+{
+  "private": true,
+  "name": "project",
+  "type": "module",
+  "version": "0.0.0-dev",
+  "engines": {
+    "node": "^24.0.0",
+    "pnpm": "^10.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -F !website build",
+    "bump": "ncu -ws -u",
+    "clean": "rm -rf pnpm-local.yaml node_modules **/node_modules **/build",
+    "format": "vp fmt",
+    "lint": "vp lint",
+    "prepare": "is-ci || lefthook install",
+    "release": "pnpm -r publish --access public --ignore-scripts --no-git-checks",
+    "setversion": "pnpm -r exec pnpm version --no-git-tag-version",
+    "unit": "vp test",
+    "start": "pnpm -F website start",
+    "test": "pnpm lint && pnpm type && pnpm unit",
+    "type": "pnpm -r type"
+  },
+  "devDependencies": {
+    "@semantic-release/exec": "7.1.0",
+    "@types/node": "24.2.0",
+    "@vitest/coverage-v8": "4.0.16",
+    "conventional-changelog-conventionalcommits": "9.1.0",
+    "husky": "9.1.7",
+    "is-ci": "4.1.0",
+    "lefthook": "2.1.1",
+    "npm-check-updates": "18.0.1",
+    "semantic-release": "24.2.9",
+    "tempy": "3.2.0",
+    "typescript": "5.9.2",
+    "vite-plus": "0.1.12",
+    "vitest-polly": "1.4.0"
+  },
+  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+}
