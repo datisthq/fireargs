@@ -1,18 +1,14 @@
 {
-  "private": true,
   "name": "project",
-  "type": "module",
   "version": "0.0.0-dev",
-  "engines": {
-    "node": "^24.0.0",
-    "pnpm": "^10.0.0"
-  },
+  "private": true,
+  "type": "module",
   "scripts": {
     "build": "pnpm -F !website build",
     "bump": "ncu -ws -u",
     "clean": "rm -rf pnpm-local.yaml node_modules **/node_modules **/build",
     "format": "vp fmt",
-    "lint": "vp lint",
+    "lint": "vp fmt --check && vp lint",
     "prepare": "is-ci || lefthook install",
     "release": "pnpm -r publish --access public --ignore-scripts --no-git-checks",
     "setversion": "pnpm -r exec pnpm version --no-git-tag-version",
@@ -35,6 +31,10 @@
     "tempy": "3.2.0",
     "vite-plus": "0.1.12",
     "vitest-polly": "1.4.0"
+  },
+  "engines": {
+    "node": "^24.0.0",
+    "pnpm": "^10.0.0"
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
 }

@@ -1,19 +1,19 @@
 {
   "name": "fireargs",
-  "type": "module",
   "version": "0.0.0-dev",
-  "exports": "./build/index.js",
-  "sideEffects": false,
-  "files": [
-    "build"
-  ],
-  "license": "MIT",
-  "author": "Evgeny Karev",
-  "repository": "https://github.com/datisthq/fireargs",
   "description": "Fireargs description",
   "keywords": [
     "fireargs"
   ],
+  "license": "MIT",
+  "author": "Evgeny Karev",
+  "repository": "https://github.com/datisthq/fireargs",
+  "files": [
+    "build"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": "./build/index.js",
   "scripts": {
     "build": "tsgo",
     "type": "tsgo --noEmit"

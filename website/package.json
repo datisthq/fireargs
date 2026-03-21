@@ -1,12 +1,11 @@
 {
   "name": "website",
-  "type": "module",
   "version": "0.0.0-dev",
   "private": true,
-  "title": "Fireargs",
   "description": "Fireargs description",
-  "repository": "https://github.com/datisthq/fireargs",
   "homepage": "https://fireargs.dev",
+  "repository": "https://github.com/datisthq/fireargs",
+  "type": "module",
   "scripts": {
     "build": "astro build",
     "preview": "astro preview --port 8000",
@@ -21,5 +20,6 @@
     "starlight-github-alerts": "0.2.0",
     "starlight-scroll-to-top": "0.4.0",
     "wrangler": "4.73.0"
-  }
+  },
+  "title": "Fireargs"
 }

@@ -1,14 +1,17 @@
 import { basename, dirname, join } from "node:path"
 import { coverageConfigDefaults, defineConfig } from "vite-plus"
 
+const ignorePatterns = ["**/generated/**"]
+
 export default defineConfig({
   fmt: {
     semi: false,
     printWidth: 80,
     arrowParens: "avoid",
-    sortPackageJson: false,
+    ignorePatterns,
   },
   lint: {
+    ignorePatterns,
     options: {
       typeAware: false,
       typeCheck: false,
