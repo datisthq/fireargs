@@ -33,6 +33,8 @@ export default defineConfig({
         "**/build/**",
         "**/compile/**",
         "**/coverage/**",
+        "**/docs/**",
+        "**/.livemark/**",
         "**/entrypoints/**",
         "**/examples/**",
         "**/messages.js",

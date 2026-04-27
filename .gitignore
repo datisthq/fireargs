@@ -59,9 +59,11 @@ build/
 compile/
 dist/
 .astro/
+.cursor/
 .serena/
 .env.local
 messages.js
 .user/
 tmuxp.yaml
 /.claude/settings.local.json
+.tanstack/

@@ -1,4 +1,1 @@
 dangerouslyAllowAllBuilds: true
-packages:
-  - library
-  - website

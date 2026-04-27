@@ -1,9 +1,11 @@
 {
   "name": "fireargs",
   "$schema": "node_modules/wrangler/config-schema.json",
-  "compatibility_date": "2025-08-15",
+  "compatibility_date": "2026-04-01",
+  "preview_urls": true,
+  "workers_dev": true,
   "assets": {
-    "directory": "./build",
+    "directory": ".livemark/build/client",
   },
   "routes": [
     {

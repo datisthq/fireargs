@@ -3,11 +3,13 @@
 
   "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx"],
   "exclude": [
+    "${configDir}/*.config.ts",
     "${configDir}/**/build/",
     "${configDir}/**/compile/",
-    "${configDir}/**/website/",
     "${configDir}/**/fixtures/",
-    "${configDir}/**/examples/"
+    "${configDir}/**/examples/",
+    "${configDir}/.livemark/",
+    "${configDir}/docs/"
   ],
 
   "compilerOptions": {

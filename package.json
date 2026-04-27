@@ -1,40 +1,60 @@
 {
-  "name": "project",
+  "name": "fireargs",
   "version": "0.0.0-dev",
-  "private": true,
+  "description": "Fireargs description",
+  "keywords": [
+    "fireargs"
+  ],
+  "license": "MIT",
+  "author": "Evgeny Karev",
+  "repository": "https://github.com/datisthq/fireargs",
+  "files": [
+    "build"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "exports": "./build/index.js",
   "scripts": {
-    "build": "pnpm -F !website build",
-    "bump": "ncu -ws -u",
-    "clean": "rm -rf pnpm-local.yaml node_modules **/node_modules **/build",
+    "build": "tsgo",
+    "bump": "ncu -u",
+    "clean": "rm -rf pnpm-lock.yaml node_modules build",
+    "docs:build": "livemark build",
+    "docs:start": "livemark start",
     "format": "vp fmt",
     "lint": "vp fmt --check && vp lint",
-    "prepare": "is-ci || lefthook install",
-    "release": "pnpm -r publish --access public --ignore-scripts --no-git-checks",
-    "setversion": "pnpm -r exec pnpm version --no-git-tag-version",
-    "unit": "vp test",
-    "start": "pnpm -F website start",
+    "prepare": "is-ci || lefthook install --force",
+    "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
+    "setversion": "pnpm version --no-git-tag-version",
     "test": "pnpm lint && pnpm type && pnpm unit",
-    "type": "pnpm -r type"
+    "type": "tsgo --noEmit",
+    "unit": "vp test"
   },
   "devDependencies": {
+    "@plausible-analytics/tracker": "^0.4.4",
     "@semantic-release/exec": "7.1.0",
+    "@tanstack/react-router": "1.168.1",
+    "@tanstack/react-start": "1.167.2",
     "@types/node": "24.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
-    "@vitest/coverage-v8": "4.0.16",
+    "@vitest/coverage-v8": "4.1.5",
     "conventional-changelog-conventionalcommits": "9.1.0",
     "husky": "9.1.7",
     "is-ci": "4.1.0",
     "lefthook": "2.1.1",
+    "livemark": "0.11.4",
+    "lucide-react": "0.577.0",
     "npm-check-updates": "18.0.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "semantic-release": "24.2.9",
     "tempy": "3.2.0",
-    "vite-plus": "0.1.12",
-    "vitest-polly": "1.4.0"
+    "vite-plus": "0.1.19",
+    "vitest-polly": "2.1.0",
+    "wrangler": "4.85.0"
   },
   "engines": {
     "node": "^24.0.0",
     "pnpm": "^10.0.0"
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8"
 }
