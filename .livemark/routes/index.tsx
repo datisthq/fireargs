@@ -47,9 +47,9 @@ function Hero() {
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Describe each command with a zod input/output schema and a handler.
-          Fireargs hands you a fully-wired commander Command — with --help,
-          --json, and --llms baked in.
+          Define each command with typed input and output schemas. Get
+          end-to-end validation, structured JSON I/O, and LLM-ready manifests
+          baked in.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
