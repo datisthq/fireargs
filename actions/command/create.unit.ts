@@ -4,15 +4,28 @@ import { createArgument } from "../argument/create.ts"
 import { createCommand } from "./create.ts"
 
 describe("createCommand", () => {
-  it("builds a command from input + output + handler", async () => {
-    const cmd = createCommand()
+  it("builds a command from config + input + output + handler", async () => {
+    const cmd = createCommand({ name: "greet", description: "Greets the user" })
       .input(z.object({ name: createArgument(z.string()) }))
       .output(z.object({ greeting: z.string() }))
       .handler(input => ({ greeting: `hello ${input.name}` }))
 
+    expect(cmd.config).toEqual({
+      name: "greet",
+      description: "Greets the user",
+    })
     expect(await cmd.handler({ name: "world" })).toEqual({
       greeting: "hello world",
     })
+  })
+
+  it("defaults to an empty config when called without arguments", () => {
+    const cmd = createCommand()
+      .input(z.object({}))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(() => ({ ok: true }))
+
+    expect(cmd.config).toEqual({})
   })
 
   it("preserves z.infer through createArgument", () => {
@@ -68,9 +81,10 @@ describe("createCommand", () => {
       )
   })
 
-  it("requires .input before .handler", () => {
+  it("requires .input before .output", () => {
     const builder = createCommand()
     expectTypeOf(builder).toHaveProperty("input")
+    expectTypeOf(builder).not.toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
 
