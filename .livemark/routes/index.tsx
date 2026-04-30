@@ -36,7 +36,7 @@ function Hero() {
       <BackgroundGrid />
       <div className="relative w-full mx-auto max-w-5xl px-6 py-16 text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ease-out">
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground">
-          Command-line builder{" "}
+          CLI tools builder{" "}
           <span className="relative inline-block">
             <span className="relative z-10">for the new era</span>
             <span
