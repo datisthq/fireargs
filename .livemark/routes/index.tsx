@@ -47,7 +47,7 @@ function Hero() {
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Define each command with typed input and output schemas. Get
+          Define commands with typed input and output schemas. Get
           composability, structured JSON I/O, and LLM-ready manifests baked in.
         </p>
 
