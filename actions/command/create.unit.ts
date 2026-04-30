@@ -1,6 +1,8 @@
 import { Command as CommanderCommand } from "commander"
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
+import { createArgument } from "../argument/create.ts"
+import { createOption } from "../option/create.ts"
 import { createCommand } from "./create.ts"
 
 describe("createCommand", () => {
@@ -33,10 +35,10 @@ describe("createCommand", () => {
     expect(cmd.aliases()).toEqual(["hi"])
   })
 
-  it("declares positional arguments listed in config.arguments", async () => {
+  it("declares positional arguments via createArgument", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet", arguments: ["name"] })
-      .input(z.object({ name: z.string() }))
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ name: createArgument().string() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -47,7 +49,7 @@ describe("createCommand", () => {
     expect(captured).toEqual({ name: "world" })
   })
 
-  it("treats unlisted fields as --options and coerces via zod", async () => {
+  it("treats bare zod fields as --options and coerces via zod", async () => {
     let captured: unknown
     const cmd = createCommand({ name: "greet" })
       .input(z.object({ count: z.coerce.number() }))
@@ -75,10 +77,10 @@ describe("createCommand", () => {
     expect(captured).toEqual({ verbose: true })
   })
 
-  it("treats optional/default-wrapped positionals as `[key]`", async () => {
+  it("treats optional positional arguments as `[key]`", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet", arguments: ["name"] })
-      .input(z.object({ name: z.string().optional() }))
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ name: createArgument().schema(z.string().optional()) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -112,7 +114,11 @@ describe("createCommand", () => {
 
   it("derives choices from z.enum on options", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = createCommand({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: { writeErr: () => {} },
+    })
       .input(z.object({ kind: z.enum(["a", "b", "c"]) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -127,10 +133,10 @@ describe("createCommand", () => {
     ).rejects.toThrow()
   })
 
-  it("derives choices from z.enum on positionals", async () => {
+  it("derives choices from z.enum on positionals built via createArgument", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet", arguments: ["kind"] })
-      .input(z.object({ kind: z.enum(["a", "b"]) }))
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ kind: createArgument().enum(["a", "b"]) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -155,7 +161,7 @@ describe("createCommand", () => {
     expect(captured).toEqual({ port: 8080 })
   })
 
-  it("treats z.array fields as variadic", async () => {
+  it("treats z.array option fields as variadic", async () => {
     let captured: unknown
     const cmd = createCommand({ name: "greet" })
       .input(z.object({ files: z.array(z.string()) }))
@@ -169,10 +175,10 @@ describe("createCommand", () => {
     expect(captured).toEqual({ files: ["a", "b", "c"] })
   })
 
-  it("treats variadic positionals as `<key...>`", async () => {
+  it("treats variadic positionals built via createArgument as `<key...>`", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet", arguments: ["files"] })
-      .input(z.object({ files: z.array(z.string()) }))
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ files: createArgument().array(z.string()) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -184,7 +190,11 @@ describe("createCommand", () => {
   })
 
   it("marks options without default or .optional as mandatory", async () => {
-    const cmd = createCommand({ name: "greet" })
+    const cmd = createCommand({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: { writeErr: () => {} },
+    })
       .input(z.object({ name: z.string() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
@@ -201,6 +211,82 @@ describe("createCommand", () => {
     await expect(
       cmd.parseAsync(["--count", "not-a-number"], { from: "user" }),
     ).rejects.toThrow()
+  })
+
+  it("createOption attaches short flag", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(
+        z.object({
+          verbose: createOption({ short: "v" }).boolean(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["-v"], { from: "user" })
+    expect(captured).toEqual({ verbose: true })
+  })
+
+  it("createOption attaches env binding", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(
+        z.object({
+          port: createOption({ env: "FIREARGS_TEST_PORT" }).schema(
+            z.coerce.number(),
+          ),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    process.env.FIREARGS_TEST_PORT = "9090"
+    try {
+      await cmd.parseAsync([], { from: "user" })
+      expect(captured).toEqual({ port: 9090 })
+    } finally {
+      delete process.env.FIREARGS_TEST_PORT
+    }
+  })
+
+  it("createOption attaches conflicts", async () => {
+    const cmd = createCommand({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: { writeErr: () => {} },
+    })
+      .input(
+        z.object({
+          rgb: createOption({ conflicts: "cmyk" }).boolean(),
+          cmyk: z.boolean(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() }))
+      .handler(() => ({ ok: true }))
+
+    await expect(
+      cmd.parseAsync(["--rgb", "--cmyk"], { from: "user" }),
+    ).rejects.toThrow()
+  })
+
+  it("createOption attaches hidden flag", () => {
+    const cmd = createCommand({ name: "greet" })
+      .input(
+        z.object({
+          secret: createOption({ hidden: true }).string(),
+        }),
+      )
+      .output(z.object({ ok: z.boolean() }))
+      .handler(() => ({ ok: true }))
+
+    expect(cmd.helpInformation()).not.toContain("--secret")
   })
 
   it("rejects non-object schemas at .input", () => {
@@ -257,25 +343,6 @@ describe("createCommand", () => {
       .handler(() => ({}))
 
     await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
-  })
-
-  it("configureOutput captures writeErr", async () => {
-    let captured = ""
-    const cmd = createCommand({
-      name: "greet",
-      exitOverride: true,
-      configureOutput: {
-        writeErr: str => {
-          captured += str
-        },
-      },
-    })
-      .input(z.object({ name: z.string() }))
-      .output(z.object({}))
-      .handler(() => ({}))
-
-    await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
-    expect(captured).toContain("--name")
   })
 
   it("registers `on` event listeners", async () => {

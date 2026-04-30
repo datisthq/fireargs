@@ -12,17 +12,12 @@ import type {
  * Commander-level configuration for a single command. All fields are
  * optional; unset values fall back to commander's defaults when the command
  * is compiled. Per-field concerns (descriptions, defaults, choices) live in
- * the input zod schema; the only field-routing decision that lives here is
- * which keys are positional arguments via `arguments`.
+ * the input zod schema or are attached via `createArgument` / `createOption`
+ * — never on `CommandConfig`.
  */
 export type CommandConfig = {
   /** Command name shown in usage and help. Falls back to the router key. */
   name?: string
-  /**
-   * Input-schema property keys that should be parsed as positional
-   * arguments, in declaration order. Keys not listed become `--options`.
-   */
-  arguments?: string[]
   /** Long-form description shown in `--help`. */
   description?: string
   /** One-line summary shown in subcommand listings; falls back to description. */

@@ -5,14 +5,18 @@ import {
   type AddHelpTextPosition,
 } from "commander"
 import { z } from "zod"
+import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
+import type { OptionConfig } from "../../models/option-config.ts"
+import { readFieldMeta } from "../field/read.ts"
 
 /**
  * Build a fully-wired commander `Command` from the fireargs builder state.
  * Applies config pass-throughs, declares arguments and options derived from
- * the input zod schema (with `config.arguments` selecting the positional
- * set), and wires the `.action(...)` callback to validate input via zod,
- * invoke the handler, and validate the return value via the output schema.
+ * the input zod schema (with each field's `createArgument`/`createOption`
+ * metadata selecting positional vs flag and supplying per-field config), and
+ * wires the `.action(...)` callback to validate input via zod, invoke the
+ * handler, and validate the return value via the output schema.
  */
 export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
   config: CommandConfig,
@@ -22,8 +26,8 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
 ) {
   const cmd = new CommanderCommand(config.name)
   applyConfig(cmd, config)
-  declareFields(cmd, config, input)
-  wireAction(cmd, config, input, output, handler)
+  const argKeys = declareFields(cmd, input)
+  wireAction(cmd, argKeys, input, output, handler)
   return cmd
 }
 
@@ -92,28 +96,39 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
   }
 }
 
-function declareFields(
-  cmd: CommanderCommand,
-  config: CommandConfig,
-  input: z.ZodObject,
-) {
-  const argKeys = config.arguments ?? []
-  const argSet = new Set(argKeys)
+function declareFields(cmd: CommanderCommand, input: z.ZodObject) {
+  const argKeys: string[] = []
+  for (const [key, schema] of Object.entries(input.shape)) {
+    const meta = readFieldMeta(schema)
+    if (meta?.kind === "argument") argKeys.push(key)
+  }
 
   for (const key of argKeys) {
     const schema = input.shape[key]
-    if (schema !== undefined) declareArgument(cmd, key, schema)
+    if (schema === undefined) continue
+    const meta = readFieldMeta(schema)
+    declareArgument(
+      cmd,
+      key,
+      schema,
+      meta?.kind === "argument" ? meta : undefined,
+    )
   }
 
   for (const [key, schema] of Object.entries(input.shape)) {
-    if (!argSet.has(key)) declareOption(cmd, key, schema)
+    const meta = readFieldMeta(schema)
+    if (meta?.kind === "argument") continue
+    declareOption(cmd, key, schema, meta?.kind === "option" ? meta : undefined)
   }
+
+  return argKeys
 }
 
 function declareArgument(
   cmd: CommanderCommand,
   key: string,
   schema: z.ZodType,
+  meta: ArgumentConfig | undefined,
 ) {
   const description = schema.description ?? ""
   const required = !isOptional(schema)
@@ -134,19 +149,26 @@ function declareArgument(
   const spec = required ? `<${key}${suffix}>` : `[${key}${suffix}]`
   const arg = new Argument(spec, description)
   if (choices !== undefined) arg.choices(choices)
-  if (dflt !== undefined) arg.default(dflt)
+  if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
   cmd.addArgument(arg)
 }
 
-function declareOption(cmd: CommanderCommand, key: string, schema: z.ZodType) {
+function declareOption(
+  cmd: CommanderCommand,
+  key: string,
+  schema: z.ZodType,
+  meta: OptionConfig | undefined,
+) {
   const description = schema.description ?? ""
   const required = !isOptional(schema)
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
+  const shortPrefix = meta?.short ? `-${meta.short}, ` : ""
 
   if (inner instanceof z.ZodBoolean) {
-    const opt = new Option(`--${key}`, description)
-    if (dflt !== undefined) opt.default(dflt)
+    const opt = new Option(`${shortPrefix}--${key}`, description)
+    if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
+    applyOptionMeta(opt, meta)
     cmd.addOption(opt)
     return
   }
@@ -162,22 +184,32 @@ function declareOption(cmd: CommanderCommand, key: string, schema: z.ZodType) {
   }
 
   const suffix = variadic ? "..." : ""
-  const flagSpec = `--${key} <value${suffix}>`
+  const flagSpec = `${shortPrefix}--${key} <value${suffix}>`
   const opt = new Option(flagSpec, description)
   if (choices !== undefined) opt.choices(choices)
-  if (dflt !== undefined) opt.default(dflt)
+  if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
   if (required && dflt === undefined) opt.makeOptionMandatory(true)
+  applyOptionMeta(opt, meta)
   cmd.addOption(opt)
+}
+
+function applyOptionMeta(opt: Option, meta: OptionConfig | undefined) {
+  if (meta === undefined) return
+  if (meta.env !== undefined) opt.env(meta.env)
+  if (meta.conflicts !== undefined) opt.conflicts(meta.conflicts)
+  if (meta.implies !== undefined) opt.implies(meta.implies)
+  if (meta.hidden) opt.hideHelp(true)
+  if (meta.preset !== undefined) opt.preset(meta.preset)
+  if (meta.helpGroup !== undefined) opt.helpGroup(meta.helpGroup)
 }
 
 function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
   cmd: CommanderCommand,
-  config: CommandConfig,
+  argKeys: readonly string[],
   input: I,
   output: O,
   handler: (input: z.infer<I>) => z.infer<O> | Promise<z.infer<O>>,
 ) {
-  const argKeys = config.arguments ?? []
   cmd.action(async (...args) => {
     const positionals = args.slice(0, argKeys.length)
     const options = cmd.opts()

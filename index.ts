@@ -1,2 +1,6 @@
+export { createArgument } from "./actions/argument/create.ts"
 export { createCommand } from "./actions/command/create.ts"
+export { createOption } from "./actions/option/create.ts"
+export type { ArgumentConfig } from "./models/argument-config.ts"
 export type { CommandConfig } from "./models/config.ts"
+export type { OptionConfig } from "./models/option-config.ts"
