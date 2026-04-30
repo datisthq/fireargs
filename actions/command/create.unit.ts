@@ -487,6 +487,41 @@ describe("f.command", () => {
     expect(manifest.output.properties.greeting).toBeDefined()
   })
 
+  it("--llms enriches input properties with fireargs metadata", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(
+        z.object({
+          name: f.argument().string().describe("user's name"),
+          verbose: f.option({ short: "v", env: "VERBOSE" }).boolean(),
+          plain: z.string(),
+        }),
+      )
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["--llms"], { from: "user" })
+    const manifest = JSON.parse(captured)
+    expect(manifest.input.properties.name.fireargs).toEqual({
+      kind: "argument",
+    })
+    expect(manifest.input.properties.name.description).toBe("user's name")
+    expect(manifest.input.properties.verbose.fireargs).toEqual({
+      kind: "option",
+      short: "v",
+      env: "VERBOSE",
+    })
+    expect(manifest.input.properties.plain.fireargs).toEqual({ kind: "option" })
+  })
+
   it("--llms exposes the option in help", () => {
     const cmd = f
       .command({ name: "greet" })

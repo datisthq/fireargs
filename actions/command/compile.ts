@@ -8,7 +8,7 @@ import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
-import { readFieldMeta } from "../field/read.ts"
+import { type FieldMeta, readFieldMeta } from "../field/read.ts"
 
 /**
  * Build a fully-wired commander `Command` from the fireargs builder state.
@@ -147,7 +147,6 @@ function declareArgument(
   meta: ArgumentConfig | undefined,
 ) {
   const description = schema.description ?? ""
-  const required = !isOptional(schema)
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
 
@@ -162,7 +161,7 @@ function declareArgument(
   }
 
   const suffix = variadic ? "..." : ""
-  const spec = required ? `<${key}${suffix}>` : `[${key}${suffix}]`
+  const spec = `[${key}${suffix}]`
   const arg = new Argument(spec, description)
   if (choices !== undefined) arg.choices(choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
@@ -282,9 +281,24 @@ function buildManifest(
   if (summary) command.summary = summary
   return {
     command,
-    input: z.toJSONSchema(input),
+    input: enrichInputSchema(input),
     output: z.toJSONSchema(output),
   }
+}
+
+function enrichInputSchema(input: z.ZodObject) {
+  const schema = z.toJSONSchema(input)
+  if (!schema.properties) return schema
+
+  const defaultMeta: FieldMeta = { kind: "option" }
+  for (const [key, fieldSchema] of Object.entries(input.shape)) {
+    const meta = readFieldMeta(fieldSchema) ?? defaultMeta
+    const prop = schema.properties[key]
+    if (typeof prop === "object" && prop !== null) {
+      Object.assign(prop, { fireargs: meta })
+    }
+  }
+  return schema
 }
 
 function unwrap(schema: unknown) {
@@ -297,10 +311,6 @@ function unwrap(schema: unknown) {
     s = s.unwrap()
   }
   return s
-}
-
-function isOptional(schema: unknown) {
-  return schema instanceof z.ZodOptional || schema instanceof z.ZodDefault
 }
 
 function getDefault(schema: unknown) {
