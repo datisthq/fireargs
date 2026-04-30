@@ -282,7 +282,7 @@ function buildManifest(
   if (summary) command.summary = summary
   return {
     readme:
-      "`command` describes the command. Pass input as a JSON string via --json '<value>' matching the input schema; the output is JSON on stdout matching the output schema.",
+      "The `command` field describes the command. Pass input as a JSON string via `--json '<value>'` matching the input schema; the output is JSON on stdout matching the output schema.",
     command,
     input: z.toJSONSchema(input, { override: stripFireargsMeta }),
     output: z.toJSONSchema(output, { override: stripFireargsMeta }),
