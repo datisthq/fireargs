@@ -47,8 +47,8 @@ function Hero() {
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          Define commands with typed input and output schemas. Get
-          composability, structured JSON I/O, and LLM-ready manifests baked in.
+          Define commands with input and output schemas. Get composability,
+          structured JSON I/O, and LLM-ready manifests baked in.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
