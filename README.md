@@ -1,10 +1,6 @@
 # Fireargs
 
-Build CLIs from zod schemas. Fireargs is a thin layer over
-[commander](https://github.com/tj/commander.js): you describe each command
-with a zod input/output schema and a handler, and fireargs hands you a
-fully-wired commander `Command` — with `--help`, `--json` for programmatic
-calls, and `--llms` for LLM tool-use baked in.
+Define each command with typed input and output schemas. Get end-to-end validation, structured JSON I/O, and LLM-ready manifests baked in — for humans, pipelines, and agents alike.
 
 ## Install
 
