@@ -38,7 +38,7 @@ function Hero() {
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground">
           Modern CLI builder{" "}
           <span className="relative inline-block">
-            <span className="relative z-10">for the new era</span>
+            <span className="relative z-10">for the agentic era</span>
             <span
               aria-hidden
               className="absolute left-0 right-0 bottom-1 md:bottom-2 h-3 md:h-4 bg-primary/20 -z-0 rounded"
