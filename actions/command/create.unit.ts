@@ -477,7 +477,7 @@ describe("f.command", () => {
 
     await cmd.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest._meta._readme).toContain("--json")
+    expect(manifest._meta.usage).toContain("--json")
     expect(manifest.tools).toHaveLength(1)
     expect(manifest.tools[0].name).toBe("greet")
     expect(manifest.tools[0].description).toBe("Greet someone")

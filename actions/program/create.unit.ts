@@ -90,7 +90,7 @@ describe("f.program", () => {
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest._meta._readme).toContain("--json")
+    expect(manifest._meta.usage).toContain("--json")
     expect(manifest.tools).toHaveLength(2)
     const greetTool = manifest.tools.find(
       (t: { name: string }) => t.name === "greet",

@@ -17,10 +17,10 @@ export type Tool = {
 
 /**
  * Top-level shape of `--llms` output. Matches MCP's `tools/list` response
- * shape, with our fireargs `_readme` stashed under MCP's free-form `_meta`.
+ * shape, with our fireargs `usage` stashed under MCP's free-form `_meta`.
  */
 export type Manifest = {
-  _meta: { _readme: string }
+  _meta: { usage: string }
   tools: Tool[]
 }
 

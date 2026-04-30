@@ -120,7 +120,7 @@ function declareLlmsOnProgram(
       cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
       _meta: {
-        _readme:
+        usage:
           "Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
       },
       tools: collectTools(commands, ""),
