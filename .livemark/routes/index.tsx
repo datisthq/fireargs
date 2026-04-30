@@ -127,6 +127,12 @@ const features: Feature[] = [
       "Zod validates every input before your handler runs and every output before it ships. One source of truth for types and runtime.",
   },
   {
+    icon: Boxes,
+    title: "Composable",
+    description:
+      "Share common parameters via zod composition (.extend, .merge, shape spread). Group leaves into programs and nest programs in programs — same builder shape at every level.",
+  },
+  {
     icon: FileJson,
     title: "Built-in --json",
     description:
@@ -137,12 +143,6 @@ const features: Feature[] = [
     title: "Built-in --llms",
     description:
       "Each binary publishes an MCP-shaped tools/list manifest. LLM agents read it and call straight back through --json.",
-  },
-  {
-    icon: Boxes,
-    title: "Composable trees",
-    description:
-      "Group leaves into programs, nest programs inside programs. The same builder shape works at every level.",
   },
   {
     icon: Terminal,
