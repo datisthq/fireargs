@@ -81,6 +81,7 @@ An LLM agent reads the manifest, picks a tool, and invokes it with
 - [Commands](/commands/) — the `f.command(...)` chainable builder.
 - [Inputs](/inputs/) — `f.argument()` / `f.option()` and per-field commander config.
 - [Outputs](/outputs/) — the output schema, serialization, and JSON Schema in `--llms`.
+- [Composability](/composability/) — share common params across commands by composing zod schemas.
 - [Programs](/programs/) — subcommand trees, nesting, and program-level config.
 - [JSON mode](/json-mode/) — `--json` for programmatic and pipeline use.
 - [LLMs mode](/llms-mode/) — `--llms` and the MCP-shaped manifest.

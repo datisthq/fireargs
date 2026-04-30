@@ -2,7 +2,7 @@
 title: Programs
 path: /programs/
 icon: folder-tree
-order: 5
+order: 6
 description: f.program() for subcommand trees, including nested programs.
 ---
 

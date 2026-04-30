@@ -2,7 +2,7 @@
 title: LLMs mode
 path: /llms-mode/
 icon: bot
-order: 7
+order: 8
 description: --llms publishes an MCP-shaped tools manifest for agentic use.
 ---
 
