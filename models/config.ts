@@ -32,6 +32,16 @@ export type CommandConfig = {
   helpOption?: { flags?: string; description?: string } | false
   /** Customize the auto-help subcommand. Pass `false` to disable. */
   helpCommand?: { name?: string; description?: string } | false
+  /**
+   * Customize or disable the built-in `--json` option. Pass `false` to
+   * suppress it. Otherwise fireargs auto-adds the flag to every compiled
+   * command; with `--json` set at runtime, fireargs reads the input object
+   * as JSON from stdin (skipping commander's positional/option parsing for
+   * input fields), validates it through the input schema, runs the handler,
+   * and writes the return value as JSON to stdout. Customizing `flags` must
+   * still leave `--json` as the long form so the option key remains `json`.
+   */
+  jsonOption?: { flags?: string; description?: string } | false
   /** Allow unknown `--options` without erroring. */
   allowUnknownOption?: boolean
   /** Allow more positional arguments than declared. */

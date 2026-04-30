@@ -395,6 +395,85 @@ describe("f.command", () => {
     expect(cmd.executableDir()).toBe("/some/path")
   })
 
+  it("exposes --json by default", () => {
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.helpInformation()).toContain("--json")
+  })
+
+  it("--json <value> drives input and writes output JSON", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    await cmd.parseAsync(["--json", '{"name":"world"}'], { from: "user" })
+    expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
+  })
+
+  it("--json without value still uses CLI inputs and writes JSON output", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    await cmd.parseAsync(["world", "--json"], { from: "user" })
+    expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
+  })
+
+  it("--json mode rejects input invalid for the schema", async () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(z.object({ count: z.number() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(
+      cmd.parseAsync(["--json", '{"count":"not-a-number"}'], { from: "user" }),
+    ).rejects.toThrow()
+  })
+
+  it("jsonOption: false suppresses --json", () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        jsonOption: false,
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.helpInformation()).not.toContain("--json")
+  })
+
   it("requires .input before .output", () => {
     const builder = f.command()
     expectTypeOf(builder).toHaveProperty("input")

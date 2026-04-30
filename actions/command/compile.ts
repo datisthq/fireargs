@@ -94,6 +94,14 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
   if (config.on !== undefined) {
     for (const { event, listener } of config.on) cmd.on(event, listener)
   }
+
+  if (config.jsonOption !== false) {
+    const flags = config.jsonOption?.flags ?? "--json [value]"
+    const description =
+      config.jsonOption?.description ??
+      "write output as JSON; pass a JSON string to also drive input"
+    cmd.addOption(new Option(flags, description))
+  }
 }
 
 function declareFields(cmd: CommanderCommand, input: z.ZodObject) {
@@ -160,7 +168,6 @@ function declareOption(
   meta: OptionConfig | undefined,
 ) {
   const description = schema.description ?? ""
-  const required = !isOptional(schema)
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
   const shortPrefix = meta?.short ? `-${meta.short}, ` : ""
@@ -188,7 +195,6 @@ function declareOption(
   const opt = new Option(flagSpec, description)
   if (choices !== undefined) opt.choices(choices)
   if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
-  if (required && dflt === undefined) opt.makeOptionMandatory(true)
   applyOptionMeta(opt, meta)
   cmd.addOption(opt)
 }
@@ -211,17 +217,34 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
   handler: (input: z.infer<I>) => z.infer<O> | Promise<z.infer<O>>,
 ) {
   cmd.action(async (...args) => {
-    const positionals = args.slice(0, argKeys.length)
     const options = cmd.opts()
+    const json = options.json
 
-    const raw: Record<string, unknown> = { ...options }
-    argKeys.forEach((key, i) => {
-      raw[key] = positionals[i]
-    })
+    if (json !== undefined) {
+      const raw =
+        typeof json === "string" ? JSON.parse(json) : buildRawFromCli()
+      const parsed = input.parse(raw)
+      const result = await handler(parsed)
+      const validated = output.parse(result)
+      const writer =
+        cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
+      writer(`${JSON.stringify(validated, null, 2)}\n`)
+      return
+    }
 
-    const parsed = input.parse(raw)
+    const parsed = input.parse(buildRawFromCli())
     const result = await handler(parsed)
     output.parse(result)
+
+    function buildRawFromCli() {
+      const positionals = args.slice(0, argKeys.length)
+      const raw: Record<string, unknown> = { ...options }
+      delete raw.json
+      argKeys.forEach((key, i) => {
+        raw[key] = positionals[i]
+      })
+      return raw
+    }
   })
 }
 
