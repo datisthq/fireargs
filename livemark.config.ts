@@ -3,7 +3,7 @@ import { defineConfig } from "livemark"
 export default defineConfig({
   site: "https://fireargs.dev",
   title: "Fireargs",
-  description: "Build CLIs from zod schemas",
+  description: "Modern CLI tools builder",
   logo: "/logo.svg",
   favicon: "/logo.png",
   include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
