@@ -1,20 +1,26 @@
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { createArgument } from "../argument/create.ts"
 import { createCommand } from "./create.ts"
 
 describe("createCommand", () => {
   it("builds a command from config + input + output + handler", async () => {
-    const cmd = createCommand({ name: "greet", description: "Greets the user" })
-      .input(z.object({ name: createArgument(z.string()) }))
+    const cmd = createCommand({
+      name: "greet",
+      description: "Greets the user",
+      arguments: ["name"],
+    })
+      .input(z.object({ name: z.string(), times: z.number().default(1) }))
       .output(z.object({ greeting: z.string() }))
-      .handler(input => ({ greeting: `hello ${input.name}` }))
+      .handler(input => ({
+        greeting: `hello ${input.name}`.repeat(input.times),
+      }))
 
     expect(cmd.config).toEqual({
       name: "greet",
       description: "Greets the user",
+      arguments: ["name"],
     })
-    expect(await cmd.handler({ name: "world" })).toEqual({
+    expect(await cmd.handler({ name: "world", times: 1 })).toEqual({
       greeting: "hello world",
     })
   })
@@ -28,11 +34,11 @@ describe("createCommand", () => {
     expect(cmd.config).toEqual({})
   })
 
-  it("preserves z.infer through createArgument", () => {
-    createCommand()
+  it("preserves z.infer through bare zod fields", () => {
+    createCommand({ arguments: ["name"] })
       .input(
         z.object({
-          name: createArgument(z.string()),
+          name: z.string(),
           times: z.number().default(1),
           verbose: z.boolean(),
         }),

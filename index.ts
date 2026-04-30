@@ -1,13 +1,10 @@
-import { createArgument } from "./actions/argument/create.ts"
 import { createCommand } from "./actions/command/create.ts"
 
 /**
  * The fireargs builder namespace. Use `f.command(config?)` to start defining
- * a command and `f.argument(schema)` inside an input shape to mark a field
- * as a positional argument; unmarked fields default to `--options`.
+ * a command. Mark positional arguments via `config.arguments`.
  */
 export const f = {
-  argument: createArgument,
   command: createCommand,
 }
 
