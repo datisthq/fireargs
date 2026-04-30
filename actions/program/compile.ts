@@ -2,6 +2,7 @@ import { Command as CommanderCommand, Option } from "commander"
 import type { ProgramConfig } from "../../models/program-config.ts"
 import {
   type Tool,
+  buildUsageTool,
   readManifestBuilder,
   registerManifestBuilder,
 } from "../command/manifest.ts"
@@ -119,11 +120,7 @@ function declareLlmsOnProgram(
     const writer =
       cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
-      _meta: {
-        usage:
-          "Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
-      },
-      tools: collectTools(commands, ""),
+      tools: [buildUsageTool(), ...collectTools(commands, "")],
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })

@@ -16,12 +16,28 @@ export type Tool = {
 }
 
 /**
- * Top-level shape of `--llms` output. Matches MCP's `tools/list` response
- * shape, with our fireargs `usage` stashed under MCP's free-form `_meta`.
+ * Top-level shape of `--llms` output. Matches MCP's `tools/list` response.
+ * The first entry is a reserved `_usage` tool whose `description` carries
+ * the calling convention — descriptions are first-class in MCP and always
+ * surfaced to the model, so this is the most reliable place to put guidance.
  */
 export type Manifest = {
-  _meta: { usage: string }
   tools: Tool[]
+}
+
+/**
+ * Build the reserved `_usage` tool that prefaces every manifest. Its name
+ * starts with an underscore as a hint to LLM clients that it's a docstring,
+ * not a callable; the schemas are empty so accidental invocation is a no-op.
+ */
+export function buildUsageTool(): Tool {
+  return {
+    name: "_usage",
+    description:
+      "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+    inputSchema: { type: "object", properties: {} },
+    outputSchema: { type: "object", properties: {} },
+  }
 }
 
 const builders = new WeakMap<CommanderCommand, (prefix: string) => Tool[]>()

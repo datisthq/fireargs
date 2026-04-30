@@ -11,6 +11,7 @@ import type { OptionConfig } from "../../models/option-config.ts"
 import { readFieldMeta } from "../field/read.ts"
 import {
   buildLeafTool,
+  buildUsageTool,
   readManifestBuilder,
   registerManifestBuilder,
 } from "./manifest.ts"
@@ -239,13 +240,7 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
       const writer =
         cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
       const tools = readManifestBuilder(cmd, "") ?? []
-      const manifest = {
-        _meta: {
-          usage:
-            "Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
-        },
-        tools,
-      }
+      const manifest = { tools: [buildUsageTool(), ...tools] }
       writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return
     }

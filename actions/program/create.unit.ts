@@ -90,8 +90,9 @@ describe("f.program", () => {
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest._meta.usage).toContain("--json")
-    expect(manifest.tools).toHaveLength(2)
+    expect(manifest.tools).toHaveLength(3)
+    expect(manifest.tools[0].name).toBe("_usage")
+    expect(manifest.tools[0].description).toContain("--json")
     const greetTool = manifest.tools.find(
       (t: { name: string }) => t.name === "greet",
     )
@@ -127,10 +128,11 @@ describe("f.program", () => {
 
     await cli.parseAsync(["greet", "--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.tools).toHaveLength(1)
-    expect(manifest.tools[0].name).toBe("greet")
-    expect(manifest.tools[0].inputSchema.properties.name).toBeDefined()
-    expect(manifest.tools[0].outputSchema.properties.greeting).toBeDefined()
+    expect(manifest.tools).toHaveLength(2)
+    expect(manifest.tools[0].name).toBe("_usage")
+    expect(manifest.tools[1].name).toBe("greet")
+    expect(manifest.tools[1].inputSchema.properties.name).toBeDefined()
+    expect(manifest.tools[1].outputSchema.properties.greeting).toBeDefined()
   })
 
   it("composes recursively: nested programs appear in --llms manifest", async () => {
@@ -158,10 +160,11 @@ describe("f.program", () => {
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.tools).toHaveLength(1)
-    expect(manifest.tools[0].name).toBe("api greet")
-    expect(manifest.tools[0].description).toBe("Greets")
-    expect(manifest.tools[0].inputSchema.properties.name).toBeDefined()
+    expect(manifest.tools).toHaveLength(2)
+    expect(manifest.tools[0].name).toBe("_usage")
+    expect(manifest.tools[1].name).toBe("api greet")
+    expect(manifest.tools[1].description).toBe("Greets")
+    expect(manifest.tools[1].inputSchema.properties.name).toBeDefined()
   })
 
   it("dispatches through nested programs", async () => {
