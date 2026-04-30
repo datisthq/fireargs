@@ -29,6 +29,9 @@
     "type": "tsgo --noEmit",
     "unit": "vp test"
   },
+  "dependencies": {
+    "zod": "^4.4.1"
+  },
   "devDependencies": {
     "@plausible-analytics/tracker": "^0.4.4",
     "@semantic-release/exec": "7.1.0",
