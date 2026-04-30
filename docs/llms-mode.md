@@ -1,50 +1,23 @@
 ---
-title: LLM mode
-path: /llm-mode/
+title: LLMs mode
+path: /llms-mode/
 icon: bot
-order: 5
-description: Built-in --json and --llms flags for programmatic and LLM tool-use.
+order: 6
+description: --llms publishes an MCP-shaped tools manifest for agentic use.
 ---
 
-# LLM mode
+# LLMs mode
 
-Every fireargs command (and program) ships with two extra built-in flags:
+`--llms` prints a manifest describing every tool reachable through this
+binary, in the shape of MCP's [`tools/list`](https://modelcontextprotocol.io/)
+response. An LLM agent reads the manifest once and then calls back through
+[`--json`](/json-mode/) to actually invoke a tool.
 
-- **`--json`** — drive the command with structured JSON instead of CLI
-  args/options, and/or get its output as JSON on stdout.
-- **`--llms`** — print an MCP-`tools/list`-shaped manifest describing the
-  command (or every command in a program tree). Designed for an LLM agent
-  to read once, then invoke with `--json`.
+Enabled by default on every command and program. Disable per-command via
+`llmsOption: false`, or customize the flag string/description with
+`llmsOption: { flags?, description? }`.
 
-Both are on by default. Disable per-command via `jsonOption: false` /
-`llmsOption: false` in the config; customize the flag string or description
-by passing `{ flags?, description? }` instead of `false`.
-
-## `--json [value]`
-
-Three modes depending on whether you pass a value:
-
-```bash
-greet world                              # CLI in, no output  (current behavior)
-greet world --json                       # CLI in, JSON out
-greet --json '{"name":"world"}'          # JSON in, JSON out
-```
-
-When `--json` carries a JSON string value, fireargs:
-
-1. `JSON.parse`'s the value.
-2. Validates it through the input zod schema.
-3. Calls the handler with the parsed input.
-4. Validates the return through the output schema.
-5. Writes `JSON.stringify(result, null, 2) + "\n"` to commander's
-   `writeOut` (so `configureOutput.writeOut` can intercept).
-
-When `--json` is passed alone (no value), step 1 is skipped — input comes
-from the regular CLI parse — and the output is still JSON.
-
-## `--llms`
-
-Prints a manifest matching MCP's `tools/list` response shape:
+## Manifest shape
 
 ```json
 {
@@ -65,10 +38,12 @@ Prints a manifest matching MCP's `tools/list` response shape:
 }
 ```
 
-The first entry is always a reserved `help` tool whose `description` carries
-the calling convention. MCP descriptions are first-class and always
-surfaced to the model, so this is the most reliable place to put guidance.
-The schemas are empty so accidental invocation is a no-op.
+## The reserved `help` tool
+
+The first entry is always a `help` tool whose `description` carries the
+calling convention. MCP descriptions are first-class and always surfaced to
+the model, so this is the most reliable place to put guidance. Its schemas
+are empty so an accidental invocation is a no-op.
 
 ## How it composes for programs
 

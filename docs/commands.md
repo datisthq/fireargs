@@ -81,7 +81,7 @@ commander methods. All fields are optional.
 | `configureOutput`                                                                                                            | `cmd.configureOutput({...})` — custom `writeOut`/`writeErr`/etc.                                   |
 | `executableDir`                                                                                                              | `cmd.executableDir(path)`                                                                          |
 | `on`                                                                                                                         | `Array<{ event, listener }>` — each registered via `cmd.on(event, listener)`                       |
-| `jsonOption`, `llmsOption`                                                                                                   | customize or disable the built-in `--json`/`--llms` flags. See [LLM mode](/llm-mode/)              |
+| `jsonOption`, `llmsOption`                                                                                                   | customize or disable the built-in `--json`/`--llms` flags. See [LLMs mode](/llms-mode/)            |
 
 Anything commander supports that fireargs hasn't surfaced (yet) you can call
 directly on the returned `Command` — `.handler(...)` returns a real commander

@@ -441,13 +441,13 @@ function FinalCta() {
               <ArrowRight className="size-4" />
             </Link>
             <Link
-              to="/llm-mode/"
+              to="/llms-mode/"
               className={cn(
                 buttonVariants({ variant: "ghost", size: "lg" }),
                 "px-5 no-underline",
               )}
             >
-              See LLM mode
+              See LLMs mode
             </Link>
           </div>
         </Reveal>

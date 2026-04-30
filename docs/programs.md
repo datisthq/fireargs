@@ -66,7 +66,7 @@ const cli = f.program({ name: "myapp" }).commands({
 ```
 
 `--llms` flattens the tree to space-separated tool names — the inner
-`greet` becomes `"api greet"` in the manifest. See [LLM mode](/llm-mode/).
+`greet` becomes `"api greet"` in the manifest. See [LLMs mode](/llms-mode/).
 
 ## `ProgramConfig`
 
