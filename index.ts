@@ -1,5 +1,5 @@
-import { markArgument } from "./actions/argument/mark.ts"
-import { createCommandBuilder } from "./actions/command/define.ts"
+import { createArgument } from "./actions/argument/create.ts"
+import { createCommand } from "./actions/command/create.ts"
 
 /**
  * The fireargs builder namespace. Use `f.command()` to start defining a
@@ -7,8 +7,8 @@ import { createCommandBuilder } from "./actions/command/define.ts"
  * a positional argument; unmarked fields default to `--options`.
  */
 export const f = {
-  argument: markArgument,
-  command: createCommandBuilder,
+  argument: createArgument,
+  command: createCommand,
 }
 
 export type { Command } from "./models/command.ts"

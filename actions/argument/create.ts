@@ -7,6 +7,6 @@ import { FIREARGS_META_KEY } from "../../settings.ts"
  * schema instance (metadata lives in zod's global registry), so `z.infer`
  * flows through unchanged.
  */
-export function markArgument<T extends z.ZodType>(schema: T) {
+export function createArgument<T extends z.ZodType>(schema: T) {
   return schema.meta({ [FIREARGS_META_KEY]: true })
 }

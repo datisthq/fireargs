@@ -1,12 +1,12 @@
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { markArgument } from "../argument/mark.ts"
-import { createCommandBuilder } from "./define.ts"
+import { createArgument } from "../argument/create.ts"
+import { createCommand } from "./create.ts"
 
-describe("createCommandBuilder", () => {
+describe("createCommand", () => {
   it("builds a command from input + output + handler", async () => {
-    const cmd = createCommandBuilder()
-      .input(z.object({ name: markArgument(z.string()) }))
+    const cmd = createCommand()
+      .input(z.object({ name: createArgument(z.string()) }))
       .output(z.object({ greeting: z.string() }))
       .handler(input => ({ greeting: `hello ${input.name}` }))
 
@@ -15,11 +15,11 @@ describe("createCommandBuilder", () => {
     })
   })
 
-  it("preserves z.infer through markArgument", () => {
-    createCommandBuilder()
+  it("preserves z.infer through createArgument", () => {
+    createCommand()
       .input(
         z.object({
-          name: markArgument(z.string()),
+          name: createArgument(z.string()),
           times: z.number().default(1),
           verbose: z.boolean(),
         }),
@@ -36,7 +36,7 @@ describe("createCommandBuilder", () => {
   })
 
   it("constrains handler return type to the output schema", () => {
-    createCommandBuilder()
+    createCommand()
       .input(z.object({}))
       .output(z.object({ id: z.number() }))
       .handler(() => {
@@ -45,21 +45,21 @@ describe("createCommandBuilder", () => {
   })
 
   it("rejects non-object schemas at .input", () => {
-    createCommandBuilder().input(
+    createCommand().input(
       // @ts-expect-error string is not a ZodObject
       z.string(),
     )
   })
 
   it("rejects non-object schemas at .output", () => {
-    createCommandBuilder().input(z.object({})).output(
+    createCommand().input(z.object({})).output(
       // @ts-expect-error string is not a ZodObject
       z.string(),
     )
   })
 
   it("rejects mismatched handler return type", () => {
-    createCommandBuilder()
+    createCommand()
       .input(z.object({}))
       .output(z.object({ id: z.number() }))
       .handler(
@@ -69,13 +69,13 @@ describe("createCommandBuilder", () => {
   })
 
   it("requires .input before .handler", () => {
-    const builder = createCommandBuilder()
+    const builder = createCommand()
     expectTypeOf(builder).toHaveProperty("input")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
 
   it("requires .output before .handler", () => {
-    const builder = createCommandBuilder().input(z.object({}))
+    const builder = createCommand().input(z.object({}))
     expectTypeOf(builder).toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })

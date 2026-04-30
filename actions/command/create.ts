@@ -6,7 +6,7 @@ import type { Command } from "../../models/command.ts"
  * `.input(z.object)` → `.output(z.object)` → `.handler(...)`; the terminal
  * `.handler` returns a `Command`.
  */
-export function createCommandBuilder() {
+export function createCommand() {
   return {
     input<I extends z.ZodObject>(schema: I) {
       return createInputBuilder(schema)
