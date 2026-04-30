@@ -280,7 +280,21 @@ function buildManifest(
   if (description) command.description = description
   const summary = cmd.summary()
   if (summary) command.summary = summary
+  const invocation = name
+    ? `${name} --json '<value>'`
+    : "<cmd> --json '<value>'"
   return {
+    readme: [
+      "Invoke this command with structured input/output by passing a JSON",
+      "string via --json:",
+      "",
+      `  ${invocation}`,
+      "",
+      "`<value>` must be a JSON object matching the `input` schema below.",
+      "The result is written to stdout as a JSON object matching the",
+      "`output` schema. Validation errors (input or output) and commander",
+      "errors are written to stderr; the process exits non-zero on failure.",
+    ].join("\n"),
     command,
     input: z.toJSONSchema(input, { override: stripFireargsMeta }),
     output: z.toJSONSchema(output, { override: stripFireargsMeta }),
