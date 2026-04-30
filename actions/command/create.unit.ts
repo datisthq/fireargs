@@ -1,13 +1,12 @@
 import { Command as CommanderCommand } from "commander"
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { createArgument } from "../argument/create.ts"
-import { createOption } from "../option/create.ts"
-import { createCommand } from "./create.ts"
+import { f } from "../../index.ts"
 
-describe("createCommand", () => {
+describe("f.command", () => {
   it("returns a commander Command instance", () => {
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
@@ -18,13 +17,14 @@ describe("createCommand", () => {
   })
 
   it("applies identity config to the commander Command", () => {
-    const cmd = createCommand({
-      name: "greet",
-      description: "Greet someone",
-      summary: "greet",
-      aliases: ["hi"],
-      version: "1.0.0",
-    })
+    const cmd = f
+      .command({
+        name: "greet",
+        description: "Greet someone",
+        summary: "greet",
+        aliases: ["hi"],
+        version: "1.0.0",
+      })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
@@ -35,10 +35,11 @@ describe("createCommand", () => {
     expect(cmd.aliases()).toEqual(["hi"])
   })
 
-  it("declares positional arguments via createArgument", async () => {
+  it("declares positional arguments via f.argument", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
-      .input(z.object({ name: createArgument().string() }))
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({ name: f.argument().string() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -51,7 +52,8 @@ describe("createCommand", () => {
 
   it("treats bare zod fields as --options and coerces via zod", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({ count: z.coerce.number() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -65,7 +67,8 @@ describe("createCommand", () => {
 
   it("declares boolean fields as value-less flags", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({ verbose: z.boolean() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -79,8 +82,9 @@ describe("createCommand", () => {
 
   it("treats optional positional arguments as `[key]`", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
-      .input(z.object({ name: createArgument().schema(z.string().optional()) }))
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({ name: f.argument().schema(z.string().optional()) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -94,15 +98,16 @@ describe("createCommand", () => {
   it("invokes hooks", async () => {
     let preCalled = false
     let postCalled = false
-    const cmd = createCommand({
-      name: "greet",
-      preAction: () => {
-        preCalled = true
-      },
-      postAction: () => {
-        postCalled = true
-      },
-    })
+    const cmd = f
+      .command({
+        name: "greet",
+        preAction: () => {
+          preCalled = true
+        },
+        postAction: () => {
+          postCalled = true
+        },
+      })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
@@ -114,11 +119,12 @@ describe("createCommand", () => {
 
   it("derives choices from z.enum on options", async () => {
     let captured: unknown
-    const cmd = createCommand({
-      name: "greet",
-      exitOverride: true,
-      configureOutput: { writeErr: () => {} },
-    })
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
       .input(z.object({ kind: z.enum(["a", "b", "c"]) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -133,10 +139,11 @@ describe("createCommand", () => {
     ).rejects.toThrow()
   })
 
-  it("derives choices from z.enum on positionals built via createArgument", async () => {
+  it("derives choices from z.enum on positionals built via f.argument", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
-      .input(z.object({ kind: createArgument().enum(["a", "b"]) }))
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({ kind: f.argument().enum(["a", "b"]) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -149,7 +156,8 @@ describe("createCommand", () => {
 
   it("forwards z.default values to commander", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({ port: z.coerce.number().default(8080) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -163,7 +171,8 @@ describe("createCommand", () => {
 
   it("treats z.array option fields as variadic", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({ files: z.array(z.string()) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
@@ -175,10 +184,11 @@ describe("createCommand", () => {
     expect(captured).toEqual({ files: ["a", "b", "c"] })
   })
 
-  it("treats variadic positionals built via createArgument as `<key...>`", async () => {
+  it("treats variadic positionals built via f.argument as `<key...>`", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
-      .input(z.object({ files: createArgument().array(z.string()) }))
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({ files: f.argument().array(z.string()) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(input => {
         captured = input
@@ -190,11 +200,12 @@ describe("createCommand", () => {
   })
 
   it("marks options without default or .optional as mandatory", async () => {
-    const cmd = createCommand({
-      name: "greet",
-      exitOverride: true,
-      configureOutput: { writeErr: () => {} },
-    })
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
       .input(z.object({ name: z.string() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
@@ -203,7 +214,8 @@ describe("createCommand", () => {
   })
 
   it("propagates zod validation errors from input", async () => {
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(z.object({ count: z.coerce.number() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
@@ -213,12 +225,13 @@ describe("createCommand", () => {
     ).rejects.toThrow()
   })
 
-  it("createOption attaches short flag", async () => {
+  it("f.option attaches short flag", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(
         z.object({
-          verbose: createOption({ short: "v" }).boolean(),
+          verbose: f.option({ short: "v" }).boolean(),
         }),
       )
       .output(z.object({ ok: z.boolean() }))
@@ -231,14 +244,15 @@ describe("createCommand", () => {
     expect(captured).toEqual({ verbose: true })
   })
 
-  it("createOption attaches env binding", async () => {
+  it("f.option attaches env binding", async () => {
     let captured: unknown
-    const cmd = createCommand({ name: "greet" })
+    const cmd = f
+      .command({ name: "greet" })
       .input(
         z.object({
-          port: createOption({ env: "FIREARGS_TEST_PORT" }).schema(
-            z.coerce.number(),
-          ),
+          port: f
+            .option({ env: "FIREARGS_TEST_PORT" })
+            .schema(z.coerce.number()),
         }),
       )
       .output(z.object({ ok: z.boolean() }))
@@ -256,15 +270,16 @@ describe("createCommand", () => {
     }
   })
 
-  it("createOption attaches conflicts", async () => {
-    const cmd = createCommand({
-      name: "greet",
-      exitOverride: true,
-      configureOutput: { writeErr: () => {} },
-    })
+  it("f.option attaches conflicts", async () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
       .input(
         z.object({
-          rgb: createOption({ conflicts: "cmyk" }).boolean(),
+          rgb: f.option({ conflicts: "cmyk" }).boolean(),
           cmyk: z.boolean(),
         }),
       )
@@ -276,11 +291,12 @@ describe("createCommand", () => {
     ).rejects.toThrow()
   })
 
-  it("createOption attaches hidden flag", () => {
-    const cmd = createCommand({ name: "greet" })
+  it("f.option attaches hidden flag", () => {
+    const cmd = f
+      .command({ name: "greet" })
       .input(
         z.object({
-          secret: createOption({ hidden: true }).string(),
+          secret: f.option({ hidden: true }).string(),
         }),
       )
       .output(z.object({ ok: z.boolean() }))
@@ -290,21 +306,21 @@ describe("createCommand", () => {
   })
 
   it("rejects non-object schemas at .input", () => {
-    createCommand().input(
+    f.command().input(
       // @ts-expect-error string is not a ZodObject
       z.string(),
     )
   })
 
   it("rejects non-object schemas at .output", () => {
-    createCommand().input(z.object({})).output(
+    f.command().input(z.object({})).output(
       // @ts-expect-error string is not a ZodObject
       z.string(),
     )
   })
 
   it("rejects mismatched handler return type", () => {
-    createCommand()
+    f.command()
       .input(z.object({}))
       .output(z.object({ id: z.number() }))
       .handler(
@@ -315,15 +331,16 @@ describe("createCommand", () => {
 
   it("forwards addHelpText paragraphs to commander", () => {
     let captured = ""
-    const cmd = createCommand({
-      name: "greet",
-      addHelpText: { after: "extra footer text" },
-      configureOutput: {
-        writeOut: str => {
-          captured += str
+    const cmd = f
+      .command({
+        name: "greet",
+        addHelpText: { after: "extra footer text" },
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
         },
-      },
-    })
+      })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
@@ -333,11 +350,12 @@ describe("createCommand", () => {
   })
 
   it("exitOverride: true makes commander throw instead of exit", async () => {
-    const cmd = createCommand({
-      name: "greet",
-      exitOverride: true,
-      configureOutput: { writeErr: () => {} },
-    })
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
       .input(z.object({ name: z.string() }))
       .output(z.object({}))
       .handler(() => ({}))
@@ -347,17 +365,18 @@ describe("createCommand", () => {
 
   it("registers `on` event listeners", async () => {
     let received: unknown
-    const cmd = createCommand({
-      name: "greet",
-      on: [
-        {
-          event: "option:port",
-          listener: (...args) => {
-            received = args[0]
+    const cmd = f
+      .command({
+        name: "greet",
+        on: [
+          {
+            event: "option:port",
+            listener: (...args) => {
+              received = args[0]
+            },
           },
-        },
-      ],
-    })
+        ],
+      })
       .input(z.object({ port: z.coerce.number() }))
       .output(z.object({}))
       .handler(() => ({}))
@@ -367,7 +386,8 @@ describe("createCommand", () => {
   })
 
   it("forwards executableDir to commander", () => {
-    const cmd = createCommand({ name: "greet", executableDir: "/some/path" })
+    const cmd = f
+      .command({ name: "greet", executableDir: "/some/path" })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
@@ -376,14 +396,14 @@ describe("createCommand", () => {
   })
 
   it("requires .input before .output", () => {
-    const builder = createCommand()
+    const builder = f.command()
     expectTypeOf(builder).toHaveProperty("input")
     expectTypeOf(builder).not.toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
 
   it("requires .output before .handler", () => {
-    const builder = createCommand().input(z.object({}))
+    const builder = f.command().input(z.object({}))
     expectTypeOf(builder).toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
