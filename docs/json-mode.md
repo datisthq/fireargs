@@ -2,7 +2,7 @@
 title: JSON mode
 path: /json-mode/
 icon: file-json
-order: 5
+order: 6
 description: --json drives a fireargs command with JSON in and JSON out.
 ---
 
