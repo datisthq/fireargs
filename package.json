@@ -1,9 +1,14 @@
 {
   "name": "fireargs",
   "version": "0.0.0-dev",
-  "description": "Fireargs description",
+  "description": "Build CLIs from zod schemas",
   "keywords": [
-    "fireargs"
+    "cli",
+    "commander",
+    "fireargs",
+    "llm",
+    "mcp",
+    "zod"
   ],
   "license": "MIT",
   "author": "Evgeny Karev",
