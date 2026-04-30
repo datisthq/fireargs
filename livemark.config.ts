@@ -5,6 +5,7 @@ export default defineConfig({
   title: "Fireargs",
   description: "Build CLIs from zod schemas",
   logo: "/logo.svg",
+  favicon: "/logo.png",
   include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
   sections: [
     { title: "Docs", prefix: "/" },
