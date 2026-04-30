@@ -1,8 +1,7 @@
 import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
-
-export const FIREARGS_META_KEY = "fireargs"
+import { FIREARGS_META_KEY } from "../../settings.ts"
 
 /**
  * Discriminated metadata fireargs writes onto an input field schema. `kind`

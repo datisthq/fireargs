@@ -1,5 +1,6 @@
 import type { z } from "zod"
-import { FIREARGS_META_KEY, type FieldMeta } from "./read.ts"
+import { FIREARGS_META_KEY } from "../../settings.ts"
+import type { FieldMeta } from "./read.ts"
 
 /**
  * Attach fireargs metadata to a zod schema. Returns the same schema instance

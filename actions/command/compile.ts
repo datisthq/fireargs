@@ -8,6 +8,7 @@ import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
+import { FIREARGS_META_KEY } from "../../settings.ts"
 import { readFieldMeta } from "../field/read.ts"
 
 /**
@@ -287,7 +288,7 @@ function buildManifest(
 }
 
 function stripFireargsMeta(ctx: { jsonSchema: object }) {
-  Reflect.deleteProperty(ctx.jsonSchema, "fireargs")
+  Reflect.deleteProperty(ctx.jsonSchema, FIREARGS_META_KEY)
 }
 
 function unwrap(schema: unknown) {
