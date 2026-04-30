@@ -1,4 +1,4 @@
-import { Command as CommanderCommand } from "commander"
+import { Argument, Command as CommanderCommand, Option } from "commander"
 import { z } from "zod"
 import type { CommandConfig } from "../../models/config.ts"
 
@@ -82,16 +82,57 @@ function declareArgument(
 ) {
   const description = schema.description ?? ""
   const required = !isOptional(schema)
-  cmd.argument(required ? `<${key}>` : `[${key}]`, description)
+  const dflt = getDefault(schema)
+  const inner = unwrap(schema)
+
+  let variadic = false
+  let choices: readonly string[] | undefined
+  if (inner instanceof z.ZodArray) {
+    variadic = true
+    const element = unwrap(inner.element)
+    if (element instanceof z.ZodEnum) choices = stringChoices(element.options)
+  } else if (inner instanceof z.ZodEnum) {
+    choices = stringChoices(inner.options)
+  }
+
+  const suffix = variadic ? "..." : ""
+  const spec = required ? `<${key}${suffix}>` : `[${key}${suffix}]`
+  const arg = new Argument(spec, description)
+  if (choices !== undefined) arg.choices(choices)
+  if (dflt !== undefined) arg.default(dflt)
+  cmd.addArgument(arg)
 }
 
 function declareOption(cmd: CommanderCommand, key: string, schema: z.ZodType) {
   const description = schema.description ?? ""
-  if (isBoolean(schema)) {
-    cmd.option(`--${key}`, description)
-  } else {
-    cmd.option(`--${key} <value>`, description)
+  const required = !isOptional(schema)
+  const dflt = getDefault(schema)
+  const inner = unwrap(schema)
+
+  if (inner instanceof z.ZodBoolean) {
+    const opt = new Option(`--${key}`, description)
+    if (dflt !== undefined) opt.default(dflt)
+    cmd.addOption(opt)
+    return
   }
+
+  let variadic = false
+  let choices: readonly string[] | undefined
+  if (inner instanceof z.ZodArray) {
+    variadic = true
+    const element = unwrap(inner.element)
+    if (element instanceof z.ZodEnum) choices = stringChoices(element.options)
+  } else if (inner instanceof z.ZodEnum) {
+    choices = stringChoices(inner.options)
+  }
+
+  const suffix = variadic ? "..." : ""
+  const flagSpec = `--${key} <value${suffix}>`
+  const opt = new Option(flagSpec, description)
+  if (choices !== undefined) opt.choices(choices)
+  if (dflt !== undefined) opt.default(dflt)
+  if (required && dflt === undefined) opt.makeOptionMandatory(true)
+  cmd.addOption(opt)
 }
 
 function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
@@ -117,14 +158,34 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
   })
 }
 
+function stringChoices(options: readonly unknown[]) {
+  return options.filter((o): o is string => typeof o === "string")
+}
+
+function unwrap(schema: unknown) {
+  let s = schema
+  while (
+    s instanceof z.ZodOptional ||
+    s instanceof z.ZodDefault ||
+    s instanceof z.ZodNullable
+  ) {
+    s = s.unwrap()
+  }
+  return s
+}
+
 function isOptional(schema: unknown) {
   return schema instanceof z.ZodOptional || schema instanceof z.ZodDefault
 }
 
-function isBoolean(schema: unknown) {
-  if (schema instanceof z.ZodBoolean) return true
-  if (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
-    return isBoolean(schema.unwrap())
+function getDefault(schema: unknown) {
+  let s = schema
+  while (s instanceof z.ZodOptional || s instanceof z.ZodNullable) {
+    s = s.unwrap()
   }
-  return false
+  if (s instanceof z.ZodDefault) {
+    const dv = s._def.defaultValue
+    return typeof dv === "function" ? dv() : dv
+  }
+  return undefined
 }

@@ -110,6 +110,88 @@ describe("createCommand", () => {
     expect(postCalled).toBe(true)
   })
 
+  it("derives choices from z.enum on options", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ kind: z.enum(["a", "b", "c"]) }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["--kind", "b"], { from: "user" })
+    expect(captured).toEqual({ kind: "b" })
+    await expect(
+      cmd.parseAsync(["--kind", "z"], { from: "user" }),
+    ).rejects.toThrow()
+  })
+
+  it("derives choices from z.enum on positionals", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet", arguments: ["kind"] })
+      .input(z.object({ kind: z.enum(["a", "b"]) }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["a"], { from: "user" })
+    expect(captured).toEqual({ kind: "a" })
+  })
+
+  it("forwards z.default values to commander", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ port: z.coerce.number().default(8080) }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync([], { from: "user" })
+    expect(captured).toEqual({ port: 8080 })
+  })
+
+  it("treats z.array fields as variadic", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ files: z.array(z.string()) }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["--files", "a", "b", "c"], { from: "user" })
+    expect(captured).toEqual({ files: ["a", "b", "c"] })
+  })
+
+  it("treats variadic positionals as `<key...>`", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet", arguments: ["files"] })
+      .input(z.object({ files: z.array(z.string()) }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["a", "b"], { from: "user" })
+    expect(captured).toEqual({ files: ["a", "b"] })
+  })
+
+  it("marks options without default or .optional as mandatory", async () => {
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(() => ({ ok: true }))
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
+  })
+
   it("propagates zod validation errors from input", async () => {
     const cmd = createCommand({ name: "greet" })
       .input(z.object({ count: z.coerce.number() }))
