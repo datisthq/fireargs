@@ -94,6 +94,7 @@ describe("f.program", () => {
     expect(manifest.program).toEqual({
       name: "myapp",
       description: "My CLI",
+      version: "1.0.0",
     })
     expect(Object.keys(manifest.commands)).toEqual(["greet", "deploy"])
     expect(manifest.commands.greet.command.description).toBe("Greets the user")
@@ -129,6 +130,64 @@ describe("f.program", () => {
     expect(manifest.command.name).toBe("greet")
     expect(manifest.input.properties.name).toBeDefined()
     expect(manifest.output.properties.greeting).toBeDefined()
+  })
+
+  it("composes recursively: nested programs appear in --llms manifest", async () => {
+    let captured = ""
+    const greet = f
+      .command({ name: "greet", description: "Greets" })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    const apiCli = f
+      .program({ name: "api", description: "API subtree" })
+      .commands({ greet })
+
+    const cli = f
+      .program({
+        name: "myapp",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .commands({ api: apiCli })
+
+    await cli.parseAsync(["--llms"], { from: "user" })
+    const manifest = JSON.parse(captured)
+    expect(manifest.commands.api.program.description).toBe("API subtree")
+    expect(manifest.commands.api.commands.greet.command.description).toBe(
+      "Greets",
+    )
+    expect(
+      manifest.commands.api.commands.greet.input.properties.name,
+    ).toBeDefined()
+  })
+
+  it("dispatches through nested programs", async () => {
+    let captured = ""
+    const greet = f
+      .command({
+        name: "greet",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    const apiCli = f.program({ name: "api" }).commands({ greet })
+    const cli = f.program({ name: "myapp" }).commands({ api: apiCli })
+
+    await cli.parseAsync(["api", "greet", "--json", '{"name":"world"}'], {
+      from: "user",
+    })
+    expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
   })
 
   it("llmsOption: false suppresses --llms on the program only", async () => {

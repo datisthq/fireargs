@@ -3,9 +3,8 @@ import { z } from "zod"
 import { FIREARGS_META_KEY } from "../../settings.ts"
 
 /**
- * The per-command portion of the `--llms` manifest. The same shape is used
- * both as a standalone leaf manifest (with a wrapping `readme`) and as each
- * entry inside a program's `commands` map.
+ * Per-leaf manifest. Standalone leaves emit this directly; programs emit it
+ * inside `commands[key]` for each leaf subcommand.
  */
 export type CommandManifest = {
   command: { name?: string; description?: string; summary?: string }
@@ -13,35 +12,56 @@ export type CommandManifest = {
   output: unknown
 }
 
-const builders = new WeakMap<CommanderCommand, () => CommandManifest>()
+/**
+ * Per-program manifest. Recursive: `commands[key]` may itself be a
+ * `ProgramManifest` when subcommand trees are nested, or a `CommandManifest`
+ * for leaves.
+ */
+export type ProgramManifest = {
+  program: {
+    name?: string
+    description?: string
+    summary?: string
+    version?: string
+  }
+  commands: Record<string, CommandManifest | ProgramManifest>
+}
+
+export type Manifest = CommandManifest | ProgramManifest
+
+const builders = new WeakMap<CommanderCommand, () => Manifest>()
 
 /**
- * Register the manifest builder for a leaf commander Command. Called by
- * `compileCommand` after wiring; consumed by program-level compilers that
- * need each subcommand's full schema for their own `--llms` output.
+ * Register a manifest builder for a commander Command produced by fireargs.
+ * Both `compileCommand` (leaf) and `compileProgram` (subtree) call this so
+ * `--llms` manifests compose recursively across nested programs.
  */
-export function registerCommandManifest(
+export function registerManifest(
   cmd: CommanderCommand,
-  input: z.ZodObject,
-  output: z.ZodObject,
+  builder: () => Manifest,
 ) {
-  builders.set(cmd, () => buildCommandManifest(cmd, input, output))
+  builders.set(cmd, builder)
 }
 
 /**
- * Read the manifest for a previously-registered leaf. Returns `undefined`
+ * Read the manifest for a previously-registered Command. Returns `undefined`
  * for commander Commands that weren't built via fireargs.
  */
-export function readCommandManifest(cmd: CommanderCommand) {
+export function readManifest(cmd: CommanderCommand) {
   return builders.get(cmd)?.()
 }
 
-function buildCommandManifest(
+/**
+ * Build a leaf `CommandManifest` from a compiled commander Command and its
+ * input/output zod schemas. The JSON Schemas are emitted via
+ * `z.toJSONSchema` with fireargs metadata stripped.
+ */
+export function buildCommandManifest(
   cmd: CommanderCommand,
   input: z.ZodObject,
   output: z.ZodObject,
 ): CommandManifest {
-  const command: { name?: string; description?: string; summary?: string } = {}
+  const command: CommandManifest["command"] = {}
   const name = cmd.name()
   if (name) command.name = name
   const description = cmd.description()

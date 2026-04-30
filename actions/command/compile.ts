@@ -9,7 +9,11 @@ import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
 import { readFieldMeta } from "../field/read.ts"
-import { readCommandManifest, registerCommandManifest } from "./manifest.ts"
+import {
+  buildCommandManifest,
+  readManifest,
+  registerManifest,
+} from "./manifest.ts"
 
 /**
  * Build a fully-wired commander `Command` from the fireargs builder state.
@@ -29,7 +33,7 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
   applyConfig(cmd, config)
   const argKeys = declareFields(cmd, input)
   wireAction(cmd, argKeys, input, output, handler)
-  registerCommandManifest(cmd, input, output)
+  registerManifest(cmd, () => buildCommandManifest(cmd, input, output))
   return cmd
 }
 
@@ -235,7 +239,7 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
       const manifest = {
         readme:
           "The `command` field describes the command. Pass input as a JSON string via `--json '<value>'` matching the input schema; the output is JSON on stdout matching the output schema.",
-        ...readCommandManifest(cmd),
+        ...readManifest(cmd),
       }
       writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return

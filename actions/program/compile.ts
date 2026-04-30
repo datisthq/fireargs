@@ -1,6 +1,10 @@
 import { Command as CommanderCommand, Option } from "commander"
 import type { ProgramConfig } from "../../models/program-config.ts"
-import { readCommandManifest } from "../command/manifest.ts"
+import {
+  type ProgramManifest,
+  readManifest,
+  registerManifest,
+} from "../command/manifest.ts"
 
 /**
  * Build a fully-wired commander root `Command` from a program config and a
@@ -20,6 +24,7 @@ export function compileProgram(
     sub.name(key)
     cmd.addCommand(sub)
   }
+  registerManifest(cmd, () => buildProgramManifest(cmd, commands))
   return cmd
 }
 
@@ -100,32 +105,34 @@ function declareLlmsOnProgram(
     if (options.llms !== true) return
     const writer =
       cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
-    writer(`${JSON.stringify(buildProgramManifest(cmd, commands), null, 2)}\n`)
+    const manifest = {
+      readme:
+        "Each subcommand is invoked via `<cmd> <subcommand> --json '<value>'` matching that subcommand's `input` schema; output is JSON on stdout matching its `output` schema. Nested subcommand trees compose recursively under `commands`.",
+      ...buildProgramManifest(cmd, commands),
+    }
+    writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })
 }
 
 function buildProgramManifest(
   cmd: CommanderCommand,
   commands: Record<string, CommanderCommand>,
-) {
-  const program: Record<string, unknown> = {}
+): ProgramManifest {
+  const program: ProgramManifest["program"] = {}
   const name = cmd.name()
   if (name) program.name = name
   const description = cmd.description()
   if (description) program.description = description
   const summary = cmd.summary()
   if (summary) program.summary = summary
+  const version = cmd.version()
+  if (version) program.version = version
 
-  const commandsManifest: Record<string, unknown> = {}
+  const commandsManifest: ProgramManifest["commands"] = {}
   for (const [key, sub] of Object.entries(commands)) {
-    const manifest = readCommandManifest(sub)
+    const manifest = readManifest(sub)
     if (manifest !== undefined) commandsManifest[key] = manifest
   }
 
-  return {
-    readme:
-      "Each subcommand is invoked via `<cmd> <subcommand> --json '<value>'` matching that subcommand's `input` schema; output is JSON on stdout matching its `output` schema.",
-    program,
-    commands: commandsManifest,
-  }
+  return { program, commands: commandsManifest }
 }
