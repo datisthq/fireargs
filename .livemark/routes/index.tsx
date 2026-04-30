@@ -128,7 +128,7 @@ const features: Feature[] = [
   },
   {
     icon: Boxes,
-    title: "Composable",
+    title: "Fully composable",
     description:
       "Share common parameters via zod composition (.extend, .merge, shape spread). Group leaves into programs and nest programs in programs — same builder shape at every level.",
   },
