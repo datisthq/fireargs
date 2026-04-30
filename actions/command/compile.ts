@@ -281,17 +281,8 @@ function buildManifest(
   const summary = cmd.summary()
   if (summary) command.summary = summary
   return {
-    readme: [
-      "Invoke this command with structured input/output by passing a JSON",
-      "string via --json:",
-      "",
-      "  <cmd> --json '<value>'",
-      "",
-      "`<value>` must be a JSON object matching the `input` schema below.",
-      "The result is written to stdout as a JSON object matching the",
-      "`output` schema. Validation errors (input or output) and commander",
-      "errors are written to stderr; the process exits non-zero on failure.",
-    ].join("\n"),
+    readme:
+      "Pass input as a JSON string via --json '<value>' matching the input schema; the output is JSON on stdout matching the output schema.",
     command,
     input: z.toJSONSchema(input, { override: stripFireargsMeta }),
     output: z.toJSONSchema(output, { override: stripFireargsMeta }),
