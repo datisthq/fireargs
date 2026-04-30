@@ -102,6 +102,14 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
       "write output as JSON; pass a JSON string to also drive input"
     cmd.addOption(new Option(flags, description))
   }
+
+  if (config.llmsOption !== false) {
+    const flags = config.llmsOption?.flags ?? "--llms"
+    const description =
+      config.llmsOption?.description ??
+      "print this command's schema (name, input, output) as JSON for LLM tool-use"
+    cmd.addOption(new Option(flags, description))
+  }
 }
 
 function declareFields(cmd: CommanderCommand, input: z.ZodObject) {
@@ -220,6 +228,13 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
     const options = cmd.opts()
     const json = options.json
 
+    if (options.llms === true) {
+      const writer =
+        cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
+      writer(`${JSON.stringify(buildManifest(cmd, input, output), null, 2)}\n`)
+      return
+    }
+
     if (json !== undefined) {
       const raw =
         typeof json === "string" ? JSON.parse(json) : buildRawFromCli()
@@ -240,6 +255,7 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
       const positionals = args.slice(0, argKeys.length)
       const raw: Record<string, unknown> = { ...options }
       delete raw.json
+      delete raw.llms
       argKeys.forEach((key, i) => {
         raw[key] = positionals[i]
       })
@@ -250,6 +266,25 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
 
 function stringChoices(options: readonly unknown[]) {
   return options.filter((o): o is string => typeof o === "string")
+}
+
+function buildManifest(
+  cmd: CommanderCommand,
+  input: z.ZodObject,
+  output: z.ZodObject,
+) {
+  const command: Record<string, unknown> = {}
+  const name = cmd.name()
+  if (name) command.name = name
+  const description = cmd.description()
+  if (description) command.description = description
+  const summary = cmd.summary()
+  if (summary) command.summary = summary
+  return {
+    command,
+    input: z.toJSONSchema(input),
+    output: z.toJSONSchema(output),
+  }
 }
 
 function unwrap(schema: unknown) {

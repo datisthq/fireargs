@@ -42,6 +42,16 @@ export type CommandConfig = {
    * still leave `--json` as the long form so the option key remains `json`.
    */
   jsonOption?: { flags?: string; description?: string } | false
+  /**
+   * Customize or disable the built-in `--llms` option. Pass `false` to
+   * suppress it. Otherwise fireargs auto-adds the flag; with `--llms` set
+   * at runtime, the command writes a single JSON manifest to stdout
+   * describing itself — `{ command, input, output }`, where `input` and
+   * `output` are JSON Schemas — and exits without invoking the handler.
+   * Designed for LLM tool-use: read the manifest, then call back with
+   * `--json '<value>'`.
+   */
+  llmsOption?: { flags?: string; description?: string } | false
   /** Allow unknown `--options` without erroring. */
   allowUnknownOption?: boolean
   /** Allow more positional arguments than declared. */

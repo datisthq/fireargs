@@ -459,6 +459,54 @@ describe("f.command", () => {
     ).rejects.toThrow()
   })
 
+  it("--llms prints the command manifest as JSON", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        description: "Greet someone",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    await cmd.parseAsync(["--llms"], { from: "user" })
+    const manifest = JSON.parse(captured)
+    expect(manifest.command).toEqual({
+      name: "greet",
+      description: "Greet someone",
+    })
+    expect(manifest.input.type).toBe("object")
+    expect(manifest.input.properties.name).toBeDefined()
+    expect(manifest.output.type).toBe("object")
+    expect(manifest.output.properties.greeting).toBeDefined()
+  })
+
+  it("--llms exposes the option in help", () => {
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.helpInformation()).toContain("--llms")
+  })
+
+  it("llmsOption: false suppresses --llms", () => {
+    const cmd = f
+      .command({ name: "greet", llmsOption: false })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.helpInformation()).not.toContain("--llms")
+  })
+
   it("jsonOption: false suppresses --json", () => {
     const cmd = f
       .command({
