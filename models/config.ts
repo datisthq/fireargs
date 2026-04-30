@@ -1,4 +1,12 @@
-import type { Command as CommanderCommand, HelpConfiguration } from "commander"
+import type {
+  AddHelpTextContext,
+  AddHelpTextPosition,
+  Command as CommanderCommand,
+  CommanderError,
+  HelpConfiguration,
+  Option,
+  OutputConfiguration,
+} from "commander"
 
 /**
  * Commander-level configuration for a single command. All fields are
@@ -65,4 +73,29 @@ export type CommandConfig = {
    * `sortOptions`, `optionTerm`, `formatHelp`).
    */
   configureHelp?: HelpConfiguration
+  /** Extra help paragraphs by position. Forwarded to `cmd.addHelpText(...)`. */
+  addHelpText?: Partial<
+    Record<
+      AddHelpTextPosition,
+      string | ((context: AddHelpTextContext) => string)
+    >
+  >
+  /** Replace commander's auto-generated help subcommand with a pre-built one. */
+  addHelpCommand?: CommanderCommand
+  /** Replace commander's auto-generated `--help` option with a pre-built one. */
+  addHelpOption?: Option
+  /**
+   * Throw `CommanderError` instead of calling `process.exit`. Pass `true` for
+   * the bare-throw form, or a callback to handle the error yourself.
+   */
+  exitOverride?: boolean | ((err: CommanderError) => void)
+  /** Custom output streams / formatters. Forwarded to `cmd.configureOutput(...)`. */
+  configureOutput?: OutputConfiguration
+  /** Directory used to resolve stand-alone subcommand executables. */
+  executableDir?: string
+  /**
+   * Non-lifecycle event listeners (e.g. `option:port`, `command:*`). Each
+   * entry is registered via `cmd.on(event, listener)`.
+   */
+  on?: Array<{ event: string; listener: (...args: unknown[]) => void }>
 }

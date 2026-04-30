@@ -1,4 +1,9 @@
-import { Argument, Command as CommanderCommand, Option } from "commander"
+import {
+  Argument,
+  Command as CommanderCommand,
+  Option,
+  type AddHelpTextPosition,
+} from "commander"
 import { z } from "zod"
 import type { CommandConfig } from "../../models/config.ts"
 
@@ -55,6 +60,36 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
 
   if (config.configureHelp !== undefined)
     cmd.configureHelp(config.configureHelp)
+
+  if (config.addHelpText !== undefined) {
+    const positions: AddHelpTextPosition[] = [
+      "beforeAll",
+      "before",
+      "after",
+      "afterAll",
+    ]
+    for (const position of positions) {
+      const text = config.addHelpText[position]
+      if (typeof text === "string") cmd.addHelpText(position, text)
+      else if (text !== undefined) cmd.addHelpText(position, text)
+    }
+  }
+  if (config.addHelpCommand !== undefined)
+    cmd.addHelpCommand(config.addHelpCommand)
+  if (config.addHelpOption !== undefined)
+    cmd.addHelpOption(config.addHelpOption)
+  if (config.exitOverride === true) cmd.exitOverride()
+  else if (typeof config.exitOverride === "function") {
+    cmd.exitOverride(config.exitOverride)
+  }
+  if (config.configureOutput !== undefined) {
+    cmd.configureOutput(config.configureOutput)
+  }
+  if (config.executableDir !== undefined)
+    cmd.executableDir(config.executableDir)
+  if (config.on !== undefined) {
+    for (const { event, listener } of config.on) cmd.on(event, listener)
+  }
 }
 
 function declareFields(

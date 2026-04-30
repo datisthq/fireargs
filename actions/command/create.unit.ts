@@ -227,6 +227,87 @@ describe("createCommand", () => {
       )
   })
 
+  it("forwards addHelpText paragraphs to commander", () => {
+    let captured = ""
+    const cmd = createCommand({
+      name: "greet",
+      addHelpText: { after: "extra footer text" },
+      configureOutput: {
+        writeOut: str => {
+          captured += str
+        },
+      },
+    })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    cmd.outputHelp()
+    expect(captured).toContain("extra footer text")
+  })
+
+  it("exitOverride: true makes commander throw instead of exit", async () => {
+    const cmd = createCommand({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: { writeErr: () => {} },
+    })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
+  })
+
+  it("configureOutput captures writeErr", async () => {
+    let captured = ""
+    const cmd = createCommand({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: {
+        writeErr: str => {
+          captured += str
+        },
+      },
+    })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
+    expect(captured).toContain("--name")
+  })
+
+  it("registers `on` event listeners", async () => {
+    let received: unknown
+    const cmd = createCommand({
+      name: "greet",
+      on: [
+        {
+          event: "option:port",
+          listener: (...args) => {
+            received = args[0]
+          },
+        },
+      ],
+    })
+      .input(z.object({ port: z.coerce.number() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["--port", "42"], { from: "user" })
+    expect(received).toBe("42")
+  })
+
+  it("forwards executableDir to commander", () => {
+    const cmd = createCommand({ name: "greet", executableDir: "/some/path" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.executableDir()).toBe("/some/path")
+  })
+
   it("requires .input before .output", () => {
     const builder = createCommand()
     expectTypeOf(builder).toHaveProperty("input")
