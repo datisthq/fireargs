@@ -5,7 +5,7 @@ export default defineConfig({
   title: "Fireargs",
   description: "Fireargs description",
   logo: "/logo.svg",
-  include: ["docs/**/*.md", "README.md"],
+  include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
   sections: [
     { title: "Docs", prefix: "/" },
     {
@@ -32,6 +32,17 @@ export default defineConfig({
         icon: "rocket",
         order: 1,
         path: "/introduction/",
+      },
+    },
+    {
+      file: "CONTRIBUTING.md",
+      article: {
+        title: "Contributing",
+        description:
+          "How to set up fireargs locally, propose changes, and ship a release.",
+        icon: "heart-handshake",
+        order: -1,
+        path: "/contributing/",
       },
     },
   ],
