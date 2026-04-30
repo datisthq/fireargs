@@ -1,66 +1,124 @@
+import { Command as CommanderCommand } from "commander"
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
 import { createCommand } from "./create.ts"
 
 describe("createCommand", () => {
-  it("builds a command from config + input + output + handler", async () => {
-    const cmd = createCommand({
-      name: "greet",
-      description: "Greets the user",
-      arguments: ["name"],
-    })
-      .input(z.object({ name: z.string(), times: z.number().default(1) }))
-      .output(z.object({ greeting: z.string() }))
-      .handler(input => ({
-        greeting: `hello ${input.name}`.repeat(input.times),
-      }))
+  it("returns a commander Command instance", () => {
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
 
-    expect(cmd.config).toEqual({
-      name: "greet",
-      description: "Greets the user",
-      arguments: ["name"],
-    })
-    expect(await cmd.handler({ name: "world", times: 1 })).toEqual({
-      greeting: "hello world",
-    })
+    expectTypeOf(cmd).toEqualTypeOf<CommanderCommand>()
+    expect(cmd).toBeInstanceOf(CommanderCommand)
+    expect(cmd.name()).toBe("greet")
   })
 
-  it("defaults to an empty config when called without arguments", () => {
-    const cmd = createCommand()
+  it("applies identity config to the commander Command", () => {
+    const cmd = createCommand({
+      name: "greet",
+      description: "Greet someone",
+      summary: "greet",
+      aliases: ["hi"],
+      version: "1.0.0",
+    })
       .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.name()).toBe("greet")
+    expect(cmd.description()).toBe("Greet someone")
+    expect(cmd.summary()).toBe("greet")
+    expect(cmd.aliases()).toEqual(["hi"])
+  })
+
+  it("declares positional arguments listed in config.arguments", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet", arguments: ["name"] })
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["world"], { from: "user" })
+    expect(captured).toEqual({ name: "world" })
+  })
+
+  it("treats unlisted fields as --options and coerces via zod", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ count: z.coerce.number() }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["--count", "5"], { from: "user" })
+    expect(captured).toEqual({ count: 5 })
+  })
+
+  it("declares boolean fields as value-less flags", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ verbose: z.boolean() }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync(["--verbose"], { from: "user" })
+    expect(captured).toEqual({ verbose: true })
+  })
+
+  it("treats optional/default-wrapped positionals as `[key]`", async () => {
+    let captured: unknown
+    const cmd = createCommand({ name: "greet", arguments: ["name"] })
+      .input(z.object({ name: z.string().optional() }))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(input => {
+        captured = input
+        return { ok: true }
+      })
+
+    await cmd.parseAsync([], { from: "user" })
+    expect(captured).toEqual({})
+  })
+
+  it("invokes hooks", async () => {
+    let preCalled = false
+    let postCalled = false
+    const cmd = createCommand({
+      name: "greet",
+      preAction: () => {
+        preCalled = true
+      },
+      postAction: () => {
+        postCalled = true
+      },
+    })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync([], { from: "user" })
+    expect(preCalled).toBe(true)
+    expect(postCalled).toBe(true)
+  })
+
+  it("propagates zod validation errors from input", async () => {
+    const cmd = createCommand({ name: "greet" })
+      .input(z.object({ count: z.coerce.number() }))
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
 
-    expect(cmd.config).toEqual({})
-  })
-
-  it("preserves z.infer through bare zod fields", () => {
-    createCommand({ arguments: ["name"] })
-      .input(
-        z.object({
-          name: z.string(),
-          times: z.number().default(1),
-          verbose: z.boolean(),
-        }),
-      )
-      .output(z.object({ ok: z.boolean() }))
-      .handler(input => {
-        expectTypeOf(input).toEqualTypeOf<{
-          name: string
-          times: number
-          verbose: boolean
-        }>()
-        return { ok: true }
-      })
-  })
-
-  it("constrains handler return type to the output schema", () => {
-    createCommand()
-      .input(z.object({}))
-      .output(z.object({ id: z.number() }))
-      .handler(() => {
-        return { id: 1 }
-      })
+    await expect(
+      cmd.parseAsync(["--count", "not-a-number"], { from: "user" }),
+    ).rejects.toThrow()
   })
 
   it("rejects non-object schemas at .input", () => {
@@ -98,19 +156,5 @@ describe("createCommand", () => {
     const builder = createCommand().input(z.object({}))
     expectTypeOf(builder).toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
-  })
-
-  it("round-trips hooks and configureHelp", () => {
-    const preAction = () => {}
-    const cmd = createCommand({
-      preAction,
-      configureHelp: { sortOptions: true },
-    })
-      .input(z.object({}))
-      .output(z.object({}))
-      .handler(() => ({}))
-
-    expect(cmd.config.preAction).toBe(preAction)
-    expect(cmd.config.configureHelp).toEqual({ sortOptions: true })
   })
 })
