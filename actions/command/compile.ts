@@ -8,8 +8,8 @@ import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
-import { FIREARGS_META_KEY } from "../../settings.ts"
 import { readFieldMeta } from "../field/read.ts"
+import { readCommandManifest, registerCommandManifest } from "./manifest.ts"
 
 /**
  * Build a fully-wired commander `Command` from the fireargs builder state.
@@ -29,6 +29,7 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
   applyConfig(cmd, config)
   const argKeys = declareFields(cmd, input)
   wireAction(cmd, argKeys, input, output, handler)
+  registerCommandManifest(cmd, input, output)
   return cmd
 }
 
@@ -231,7 +232,12 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
     if (options.llms === true) {
       const writer =
         cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
-      writer(`${JSON.stringify(buildManifest(cmd, input, output), null, 2)}\n`)
+      const manifest = {
+        readme:
+          "The `command` field describes the command. Pass input as a JSON string via `--json '<value>'` matching the input schema; the output is JSON on stdout matching the output schema.",
+        ...readCommandManifest(cmd),
+      }
+      writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return
     }
 
@@ -266,31 +272,6 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
 
 function stringChoices(options: readonly unknown[]) {
   return options.filter((o): o is string => typeof o === "string")
-}
-
-function buildManifest(
-  cmd: CommanderCommand,
-  input: z.ZodObject,
-  output: z.ZodObject,
-) {
-  const command: Record<string, unknown> = {}
-  const name = cmd.name()
-  if (name) command.name = name
-  const description = cmd.description()
-  if (description) command.description = description
-  const summary = cmd.summary()
-  if (summary) command.summary = summary
-  return {
-    readme:
-      "The `command` field describes the command. Pass input as a JSON string via `--json '<value>'` matching the input schema; the output is JSON on stdout matching the output schema.",
-    command,
-    input: z.toJSONSchema(input, { override: stripFireargsMeta }),
-    output: z.toJSONSchema(output, { override: stripFireargsMeta }),
-  }
-}
-
-function stripFireargsMeta(ctx: { jsonSchema: object }) {
-  Reflect.deleteProperty(ctx.jsonSchema, FIREARGS_META_KEY)
 }
 
 function unwrap(schema: unknown) {
