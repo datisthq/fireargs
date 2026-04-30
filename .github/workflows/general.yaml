@@ -16,6 +16,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
+    permissions:
+      id-token: write
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v5
@@ -32,6 +35,11 @@ jobs:
         run: pnpm build
       - name: Test Packages
         run: pnpm test
+      - name: Upload Coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
 
   release:
     needs: [test]
