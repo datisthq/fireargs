@@ -477,15 +477,14 @@ describe("f.command", () => {
 
     await cmd.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.readme).toContain("--json")
-    expect(manifest.command).toEqual({
-      name: "greet",
-      description: "Greet someone",
-    })
-    expect(manifest.input.type).toBe("object")
-    expect(manifest.input.properties.name).toBeDefined()
-    expect(manifest.output.type).toBe("object")
-    expect(manifest.output.properties.greeting).toBeDefined()
+    expect(manifest._meta._readme).toContain("--json")
+    expect(manifest.tools).toHaveLength(1)
+    expect(manifest.tools[0].name).toBe("greet")
+    expect(manifest.tools[0].description).toBe("Greet someone")
+    expect(manifest.tools[0].inputSchema.type).toBe("object")
+    expect(manifest.tools[0].inputSchema.properties.name).toBeDefined()
+    expect(manifest.tools[0].outputSchema.type).toBe("object")
+    expect(manifest.tools[0].outputSchema.properties.greeting).toBeDefined()
   })
 
   it("--llms strips CLI-only fireargs metadata from the manifest", async () => {
@@ -512,11 +511,12 @@ describe("f.command", () => {
 
     await cmd.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.input.properties.name.fireargs).toBeUndefined()
-    expect(manifest.input.properties.verbose.fireargs).toBeUndefined()
-    expect(manifest.input.properties.name.description).toBe("user's name")
-    expect(manifest.input.properties.times.default).toBe(1)
-    expect(manifest.input.properties.kind.enum).toEqual(["a", "b"])
+    const props = manifest.tools[0].inputSchema.properties
+    expect(props.name.fireargs).toBeUndefined()
+    expect(props.verbose.fireargs).toBeUndefined()
+    expect(props.name.description).toBe("user's name")
+    expect(props.times.default).toBe(1)
+    expect(props.kind.enum).toEqual(["a", "b"])
   })
 
   it("--llms exposes the option in help", () => {

@@ -3,76 +3,70 @@ import { z } from "zod"
 import { FIREARGS_META_KEY } from "../../settings.ts"
 
 /**
- * Per-leaf manifest. Standalone leaves emit this directly; programs emit it
- * inside `commands[key]` for each leaf subcommand.
+ * One MCP-style tool entry in a `--llms` manifest. `name` is the
+ * space-separated path the caller uses to reach the tool (e.g. `"api greet"`
+ * for a leaf nested two levels deep). `inputSchema` and `outputSchema` are
+ * JSON Schemas with fireargs metadata stripped.
  */
-export type CommandManifest = {
-  command: { name?: string; description?: string; summary?: string }
-  input: unknown
-  output: unknown
+export type Tool = {
+  name: string
+  description?: string
+  inputSchema: unknown
+  outputSchema: unknown
 }
 
 /**
- * Per-program manifest. Recursive: `commands[key]` may itself be a
- * `ProgramManifest` when subcommand trees are nested, or a `CommandManifest`
- * for leaves.
+ * Top-level shape of `--llms` output. Matches MCP's `tools/list` response
+ * shape, with our fireargs `_readme` stashed under MCP's free-form `_meta`.
  */
-export type ProgramManifest = {
-  program: {
-    name?: string
-    description?: string
-    summary?: string
-    version?: string
-  }
-  commands: Record<string, CommandManifest | ProgramManifest>
+export type Manifest = {
+  _meta: { _readme: string }
+  tools: Tool[]
 }
 
-export type Manifest = CommandManifest | ProgramManifest
-
-const builders = new WeakMap<CommanderCommand, () => Manifest>()
+const builders = new WeakMap<CommanderCommand, (prefix: string) => Tool[]>()
 
 /**
- * Register a manifest builder for a commander Command produced by fireargs.
- * Both `compileCommand` (leaf) and `compileProgram` (subtree) call this so
- * `--llms` manifests compose recursively across nested programs.
+ * Register a tools builder for a fireargs-built commander Command. Both
+ * leaf compilers and program compilers register one; `compileProgram`
+ * walks subcommands by calling each child's builder with the path-prefix
+ * accumulated so far.
  */
-export function registerManifest(
+export function registerManifestBuilder(
   cmd: CommanderCommand,
-  builder: () => Manifest,
+  builder: (prefix: string) => Tool[],
 ) {
   builders.set(cmd, builder)
 }
 
 /**
- * Read the manifest for a previously-registered Command. Returns `undefined`
- * for commander Commands that weren't built via fireargs.
+ * Invoke the registered tools builder for a Command with a path prefix.
+ * Returns the flat list of tools at and below this Command. The empty
+ * prefix `""` is used at the root of an `--llms` invocation; nested calls
+ * pass the accumulated path.
  */
-export function readManifest(cmd: CommanderCommand) {
-  return builders.get(cmd)?.()
+export function readManifestBuilder(cmd: CommanderCommand, prefix: string) {
+  return builders.get(cmd)?.(prefix)
 }
 
 /**
- * Build a leaf `CommandManifest` from a compiled commander Command and its
- * input/output zod schemas. The JSON Schemas are emitted via
- * `z.toJSONSchema` with fireargs metadata stripped.
+ * Build a leaf `Tool` from a compiled commander Command and its
+ * input/output zod schemas. Used by the leaf compiler's registered builder.
  */
-export function buildCommandManifest(
+export function buildLeafTool(
   cmd: CommanderCommand,
   input: z.ZodObject,
   output: z.ZodObject,
-): CommandManifest {
-  const command: CommandManifest["command"] = {}
-  const name = cmd.name()
-  if (name) command.name = name
-  const description = cmd.description()
-  if (description) command.description = description
-  const summary = cmd.summary()
-  if (summary) command.summary = summary
-  return {
-    command,
-    input: z.toJSONSchema(input, { override: stripFireargsMeta }),
-    output: z.toJSONSchema(output, { override: stripFireargsMeta }),
+  prefix: string,
+): Tool {
+  const tool: Tool = {
+    name: prefix || cmd.name(),
+    inputSchema: z.toJSONSchema(input, { override: stripFireargsMeta }),
+    outputSchema: z.toJSONSchema(output, { override: stripFireargsMeta }),
   }
+  const description = cmd.description()
+  if (description) tool.description = description
+  return tool
 }
 
 function stripFireargsMeta(ctx: { jsonSchema: object }) {

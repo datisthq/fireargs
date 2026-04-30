@@ -90,18 +90,18 @@ describe("f.program", () => {
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.readme).toContain("subcommand")
-    expect(manifest.program).toEqual({
-      name: "myapp",
-      description: "My CLI",
-      version: "1.0.0",
-    })
-    expect(Object.keys(manifest.commands)).toEqual(["greet", "deploy"])
-    expect(manifest.commands.greet.command.description).toBe("Greets the user")
-    expect(manifest.commands.greet.input.type).toBe("object")
-    expect(manifest.commands.greet.input.properties.name).toBeDefined()
-    expect(manifest.commands.greet.output.properties.greeting).toBeDefined()
-    expect(manifest.commands.deploy.input.properties.env.enum).toEqual([
+    expect(manifest._meta._readme).toContain("--json")
+    expect(manifest.tools).toHaveLength(2)
+    const greetTool = manifest.tools.find(
+      (t: { name: string }) => t.name === "greet",
+    )
+    const deployTool = manifest.tools.find(
+      (t: { name: string }) => t.name === "deploy",
+    )
+    expect(greetTool.description).toBe("Greets the user")
+    expect(greetTool.inputSchema.properties.name).toBeDefined()
+    expect(greetTool.outputSchema.properties.greeting).toBeDefined()
+    expect(deployTool.inputSchema.properties.env.enum).toEqual([
       "staging",
       "prod",
     ])
@@ -127,9 +127,10 @@ describe("f.program", () => {
 
     await cli.parseAsync(["greet", "--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.command.name).toBe("greet")
-    expect(manifest.input.properties.name).toBeDefined()
-    expect(manifest.output.properties.greeting).toBeDefined()
+    expect(manifest.tools).toHaveLength(1)
+    expect(manifest.tools[0].name).toBe("greet")
+    expect(manifest.tools[0].inputSchema.properties.name).toBeDefined()
+    expect(manifest.tools[0].outputSchema.properties.greeting).toBeDefined()
   })
 
   it("composes recursively: nested programs appear in --llms manifest", async () => {
@@ -157,13 +158,10 @@ describe("f.program", () => {
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
-    expect(manifest.commands.api.program.description).toBe("API subtree")
-    expect(manifest.commands.api.commands.greet.command.description).toBe(
-      "Greets",
-    )
-    expect(
-      manifest.commands.api.commands.greet.input.properties.name,
-    ).toBeDefined()
+    expect(manifest.tools).toHaveLength(1)
+    expect(manifest.tools[0].name).toBe("api greet")
+    expect(manifest.tools[0].description).toBe("Greets")
+    expect(manifest.tools[0].inputSchema.properties.name).toBeDefined()
   })
 
   it("dispatches through nested programs", async () => {

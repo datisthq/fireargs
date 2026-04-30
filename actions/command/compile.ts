@@ -10,9 +10,9 @@ import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
 import { readFieldMeta } from "../field/read.ts"
 import {
-  buildCommandManifest,
-  readManifest,
-  registerManifest,
+  buildLeafTool,
+  readManifestBuilder,
+  registerManifestBuilder,
 } from "./manifest.ts"
 
 /**
@@ -33,7 +33,9 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
   applyConfig(cmd, config)
   const argKeys = declareFields(cmd, input)
   wireAction(cmd, argKeys, input, output, handler)
-  registerManifest(cmd, () => buildCommandManifest(cmd, input, output))
+  registerManifestBuilder(cmd, prefix => [
+    buildLeafTool(cmd, input, output, prefix),
+  ])
   return cmd
 }
 
@@ -236,10 +238,13 @@ function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
     if (options.llms === true) {
       const writer =
         cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
+      const tools = readManifestBuilder(cmd, "") ?? []
       const manifest = {
-        readme:
-          "The `command` field describes the command. Pass input as a JSON string via `--json '<value>'` matching the input schema; the output is JSON on stdout matching the output schema.",
-        ...readManifest(cmd),
+        _meta: {
+          _readme:
+            "Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+        },
+        tools,
       }
       writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return

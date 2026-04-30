@@ -1,9 +1,9 @@
 import { Command as CommanderCommand, Option } from "commander"
 import type { ProgramConfig } from "../../models/program-config.ts"
 import {
-  type ProgramManifest,
-  readManifest,
-  registerManifest,
+  type Tool,
+  readManifestBuilder,
+  registerManifestBuilder,
 } from "../command/manifest.ts"
 
 /**
@@ -24,8 +24,21 @@ export function compileProgram(
     sub.name(key)
     cmd.addCommand(sub)
   }
-  registerManifest(cmd, () => buildProgramManifest(cmd, commands))
+  registerManifestBuilder(cmd, prefix => collectTools(commands, prefix))
   return cmd
+}
+
+function collectTools(
+  commands: Record<string, CommanderCommand>,
+  prefix: string,
+) {
+  const tools: Tool[] = []
+  for (const [key, sub] of Object.entries(commands)) {
+    const subPrefix = prefix ? `${prefix} ${key}` : key
+    const subTools = readManifestBuilder(sub, subPrefix) ?? []
+    tools.push(...subTools)
+  }
+  return tools
 }
 
 function applyProgramConfig(cmd: CommanderCommand, config: ProgramConfig) {
@@ -106,33 +119,12 @@ function declareLlmsOnProgram(
     const writer =
       cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
-      readme:
-        "Each subcommand is invoked via `<cmd> <subcommand> --json '<value>'` matching that subcommand's `input` schema; output is JSON on stdout matching its `output` schema. Nested subcommand trees compose recursively under `commands`.",
-      ...buildProgramManifest(cmd, commands),
+      _meta: {
+        _readme:
+          "Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+      },
+      tools: collectTools(commands, ""),
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })
-}
-
-function buildProgramManifest(
-  cmd: CommanderCommand,
-  commands: Record<string, CommanderCommand>,
-): ProgramManifest {
-  const program: ProgramManifest["program"] = {}
-  const name = cmd.name()
-  if (name) program.name = name
-  const description = cmd.description()
-  if (description) program.description = description
-  const summary = cmd.summary()
-  if (summary) program.summary = summary
-  const version = cmd.version()
-  if (version) program.version = version
-
-  const commandsManifest: ProgramManifest["commands"] = {}
-  for (const [key, sub] of Object.entries(commands)) {
-    const manifest = readManifest(sub)
-    if (manifest !== undefined) commandsManifest[key] = manifest
-  }
-
-  return { program, commands: commandsManifest }
 }
