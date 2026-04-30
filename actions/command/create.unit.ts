@@ -99,4 +99,18 @@ describe("createCommand", () => {
     expectTypeOf(builder).toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
+
+  it("round-trips hooks and configureHelp", () => {
+    const preAction = () => {}
+    const cmd = createCommand({
+      preAction,
+      configureHelp: { sortOptions: true },
+    })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.config.preAction).toBe(preAction)
+    expect(cmd.config.configureHelp).toEqual({ sortOptions: true })
+  })
 })

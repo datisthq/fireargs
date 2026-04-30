@@ -1,3 +1,5 @@
+import type { Command as CommanderCommand, HelpConfiguration } from "commander"
+
 /**
  * Commander-level configuration for a single command. All fields are
  * optional; unset values fall back to commander's defaults when the command
@@ -41,4 +43,26 @@ export type CommandConfig = {
   showHelpAfterError?: boolean | string
   /** Show "Did you mean…?" suggestions after errors. */
   showSuggestionAfterError?: boolean
+  /** Runs before a subcommand is dispatched. Forwarded to `cmd.hook("preSubcommand", ...)`. */
+  preSubcommand?: (
+    thisCommand: CommanderCommand,
+    subcommand: CommanderCommand,
+  ) => void | Promise<void>
+  /** Runs before the action callback. Forwarded to `cmd.hook("preAction", ...)`. */
+  preAction?: (
+    thisCommand: CommanderCommand,
+    actionCommand: CommanderCommand,
+  ) => void | Promise<void>
+  /** Runs after the action callback. Forwarded to `cmd.hook("postAction", ...)`. */
+  postAction?: (
+    thisCommand: CommanderCommand,
+    actionCommand: CommanderCommand,
+  ) => void | Promise<void>
+  /**
+   * Override commander's help formatting. Forwarded verbatim to
+   * `cmd.configureHelp(...)`. See commander's `Help` class for the
+   * properties and methods that can be overridden (e.g. `helpWidth`,
+   * `sortOptions`, `optionTerm`, `formatHelp`).
+   */
+  configureHelp?: HelpConfiguration
 }

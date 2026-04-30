@@ -30,6 +30,7 @@
     "unit": "vp test"
   },
   "dependencies": {
+    "commander": "^14.0.3",
     "zod": "^4.4.1"
   },
   "devDependencies": {
