@@ -8,7 +8,7 @@ import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
-import { type FieldMeta, readFieldMeta } from "../field/read.ts"
+import { readFieldMeta } from "../field/read.ts"
 
 /**
  * Build a fully-wired commander `Command` from the fireargs builder state.
@@ -281,24 +281,13 @@ function buildManifest(
   if (summary) command.summary = summary
   return {
     command,
-    input: enrichInputSchema(input),
-    output: z.toJSONSchema(output),
+    input: z.toJSONSchema(input, { override: stripFireargsMeta }),
+    output: z.toJSONSchema(output, { override: stripFireargsMeta }),
   }
 }
 
-function enrichInputSchema(input: z.ZodObject) {
-  const schema = z.toJSONSchema(input)
-  if (!schema.properties) return schema
-
-  const defaultMeta: FieldMeta = { kind: "option" }
-  for (const [key, fieldSchema] of Object.entries(input.shape)) {
-    const meta = readFieldMeta(fieldSchema) ?? defaultMeta
-    const prop = schema.properties[key]
-    if (typeof prop === "object" && prop !== null) {
-      Object.assign(prop, { fireargs: meta })
-    }
-  }
-  return schema
+function stripFireargsMeta(ctx: { jsonSchema: object }) {
+  Reflect.deleteProperty(ctx.jsonSchema, "fireargs")
 }
 
 function unwrap(schema: unknown) {
