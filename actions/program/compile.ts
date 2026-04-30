@@ -2,7 +2,7 @@ import { Command as CommanderCommand, Option } from "commander"
 import type { ProgramConfig } from "../../models/program-config.ts"
 import {
   type Tool,
-  buildUsageTool,
+  buildHelpTool,
   readManifestBuilder,
   registerManifestBuilder,
 } from "../command/manifest.ts"
@@ -120,7 +120,7 @@ function declareLlmsOnProgram(
     const writer =
       cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
-      tools: [buildUsageTool(), ...collectTools(commands, "")],
+      tools: [buildHelpTool(), ...collectTools(commands, "")],
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })
