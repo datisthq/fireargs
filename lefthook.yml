@@ -1,3 +1,9 @@
+pre-commit:
+  jobs:
+    - name: format:staged
+      run: pnpm format {staged_files}
+      stage_fixed: true
+
 pre-push:
   jobs:
     - name: test
