@@ -58,7 +58,6 @@
     "semantic-release": "24.2.9",
     "tempy": "3.2.0",
     "vite-plus": "0.1.19",
-    "vitest-polly": "2.1.0",
     "wrangler": "4.85.0"
   },
   "engines": {
