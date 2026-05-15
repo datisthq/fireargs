@@ -32,9 +32,9 @@
     "type": "tsgo --noEmit",
     "unit": "vp test",
     "leaks": "gitleaks git --config=.gitleaks.toml --verbose --redact",
-    "vulns": "semgrep --config=p/typescript --config=p/nodejs --config=p/owasp-top-ten --config=p/secrets --exclude=\"**/fixtures/**\" --metrics=off",
     "scan": "pnpm leaks && pnpm vulns",
-    "vers": "pnpm version --no-git-tag-version"
+    "vers": "pnpm version --no-git-tag-version",
+    "vulns": "semgrep --config=p/typescript --config=p/nodejs --config=p/owasp-top-ten --config=p/secrets --exclude=\"**/fixtures/**\" --metrics=off"
   },
   "dependencies": {
     "commander": "^14.0.3",
