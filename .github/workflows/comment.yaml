@@ -1,4 +1,4 @@
-name: mention
+name: comment
 
 on:
   issue_comment:
@@ -13,13 +13,13 @@ on:
 jobs:
   comment:
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude ') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'issues' && (
-        (contains(github.event.issue.body, '@claude') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association)) ||
+        (contains(github.event.issue.body, '@claude ') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association)) ||
         (github.event.action == 'assigned' && github.event.assignee.login == 'claude[bot]')
       )) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.review.author_association))
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude ') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude ') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.review.author_association))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: React on Mention
+      - name: React on Comment
         uses: anthropics/claude-code-action@57ab6717ca1d3d137264d60c630870bd3b903729 # v1.0.92
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
