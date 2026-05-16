@@ -11,7 +11,7 @@ on:
     types: [submitted]
 
 jobs:
-  comment:
+  claude:
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude ') && contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)) ||
       (github.event_name == 'issues' && (
