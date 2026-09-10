@@ -37,6 +37,7 @@
     "vulns": "semgrep --config=p/typescript --config=p/nodejs --config=p/owasp-top-ten --config=p/secrets --exclude=\"**/fixtures/**\" --metrics=off"
   },
   "dependencies": {
+    "cn": "0.2.6",
     "commander": "^14.0.3",
     "zod": "^4.4.1"
   },

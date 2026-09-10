@@ -13,7 +13,7 @@ import {
 import type { ComponentType, ReactNode, SVGProps } from "react"
 import { buttonVariants } from "livemark/elements/button"
 import { useInView } from "livemark/hooks/in-view"
-import { cn } from "livemark/utils/style"
+import { cn } from "cn"
 
 export const Route = createFileRoute("/")({
   component: Landing,
