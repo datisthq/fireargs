@@ -24,7 +24,7 @@
     "deps": "ncu -u",
     "docs:build": "livemark build",
     "docs:start": "livemark start",
-    "format": "vp fmt",
+    "format": "vp fmt --no-error-on-unmatched-pattern",
     "lint": "vp fmt --check && vp lint",
     "prepare": "lefthook install",
     "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
