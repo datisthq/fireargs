@@ -14,6 +14,16 @@ This file provides guidance to coding agents when working with code in this repo
 - Run linting as part of your tasks
 - Start plan from a summary a new/updated API summary (models/signatures) and most challenging points, continue plan using your default settings
 
+## Skills
+
+Depth lives in `skills/` (reached by Claude Code through the `.claude/skills` symlink), so
+this file carries invariants and the skills carry procedure. Reach for one before working in
+its area:
+
+| skill            | when                                                          |
+| ---------------- | ------------------------------------------------------------- |
+| `review-changes` | reviewing a pull request — also what the review workflow runs |
+
 ## Commands
 
 - Run `pnpm install` to install all dependencies

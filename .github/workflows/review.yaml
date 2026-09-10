@@ -20,13 +20,13 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1
           ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/merge', github.event.issue.number) || '' }}
 
       - name: Review Changes
-        uses: anthropics/claude-code-action@57ab6717ca1d3d137264d60c630870bd3b903729 # v1.0.92
+        uses: anthropics/claude-code-action@020e931323e467e00b803ad64e03410d3796b8f7 # v1.0.220
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "*"
@@ -35,34 +35,9 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
 
-            Perform a comprehensive review of this pull request.
-
-            ## Code Quality
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-
-            ## OWASP Top 10 Analysis
-            - SQL Injection vulnerabilities
-            - Cross-Site Scripting (XSS)
-            - Broken Authentication
-            - Sensitive Data Exposure
-            - XML External Entities (XXE)
-            - Broken Access Control
-            - Security Misconfiguration
-            - Cross-Site Request Forgery (CSRF)
-            - Using Components with Known Vulnerabilities
-            - Insufficient Logging & Monitoring
-
-            ## Additional Security Checks
-            - Hardcoded secrets or credentials
-            - Insecure cryptographic practices
-            - Unsafe deserialization
-            - Server-Side Request Forgery (SSRF)
-            - Race conditions or TOCTOU issues
-
-            Rate severity as: CRITICAL, HIGH, MEDIUM, LOW, or NONE.
-            Post detailed findings with recommendations using inline comments for specific issues. Do not be noisy.
+            Review this pull request using the `review-changes` skill in this repository
+            (`skills/review-changes/SKILL.md`), which carries the checklist and the severity
+            scale. Follow it rather than reviewing from general principles.
 
           claude_args: >-
             --allowedTools
