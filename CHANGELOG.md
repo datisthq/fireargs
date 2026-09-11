@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/datisthq/fireargs/compare/v0.4.0...v0.4.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **release:** keep the v-prefixed tag format ([d61fcb6](https://github.com/datisthq/fireargs/commit/d61fcb6879dfe7a315bbbbe51efe2518589faa85))
+
 ## [0.4.0](https://github.com/datisthq/fireargs/compare/v0.3.0...v0.4.0) (2026-08-29)
 
 ### Features
