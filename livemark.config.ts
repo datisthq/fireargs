@@ -13,7 +13,7 @@ export default defineConfig({
       title: "Changelog",
       prefix: "/changelog/",
       type: "changelog",
-      source: "https://github.com/datisthq/fireargs",
+      source: "CHANGELOG.md",
       version: true,
     },
   ],
