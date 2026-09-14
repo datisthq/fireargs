@@ -46,7 +46,7 @@
     "@tanstack/react-start": "1.167.2",
     "@types/node": "24.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "catalog:",
     "lefthook": "2.1.1",
     "livemark": "0.13.0",
     "lucide-react": "0.577.0",
@@ -54,7 +54,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tempy": "3.2.0",
-    "vite-plus": "0.3.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "4.85.0"
   },
   "engines": {
