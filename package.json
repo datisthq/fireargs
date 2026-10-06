@@ -26,7 +26,7 @@
     "docs:start": "livemark start",
     "format": "vp fmt --no-error-on-unmatched-pattern",
     "lint": "vp fmt --check && vp lint",
-    "prepare": "lefthook install",
+    "prepare": "lefthook install && mkdir -p .claude && ln -sfn ../.agents/skills .claude/skills",
     "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
     "test": "pnpm lint && pnpm type && pnpm unit",
     "type": "tsgo --noEmit",
