@@ -34,6 +34,13 @@ jobs:
           manifest-file: .release/manifest.json
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Assign Release PR
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/assignees" -f "assignees[]=roll"
+
   publish:
     needs: [release]
     if: needs.release.outputs.created == 'true'
