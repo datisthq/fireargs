@@ -67,3 +67,4 @@ messages.js
 tmuxp.yaml
 /.claude/settings.local.json
 .tanstack/
+.vitest/
