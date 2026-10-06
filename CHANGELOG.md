@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/datisthq/fireargs/compare/v0.4.0...v0.4.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **ci:** look up the release PR instead of reading the action output ([e65ae41](https://github.com/datisthq/fireargs/commit/e65ae411cba89ce04775a1c31ddae2d9c443e0c4))
+
 ## [0.4.0](https://github.com/datisthq/fireargs/compare/v0.3.0...v0.4.0) (2026-08-29)
 
 ### Features
