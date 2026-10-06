@@ -13,6 +13,7 @@ This file provides guidance to coding agents when working with code in this repo
 - Run specs as part of your tasks
 - Run linting as part of your tasks
 - Start plan from a summary a new/updated API summary (models/signatures) and most challenging points, continue plan using your default settings
+- **After every task, check whether a skill in `.agents/skills/` needs updating, and update it in the same commit.** Read the task description for what it taught: a new convention, a correction to how the work was done, or a decision about how an area should look or behave. Write that into the skill for that area, so the next session follows it without being told again. When no skill covers the area and the lesson will recur, add one.
 
 ## Skills
 
