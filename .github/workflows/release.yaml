@@ -35,11 +35,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Assign Release PR
-        if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
-        run: gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/assignees" -f "assignees[]=roll"
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release-please--")) | .number' |
+            xargs -r -I{} gh api "repos/$GITHUB_REPOSITORY/issues/{}/assignees" -f "assignees[]=roll"
 
   publish:
     needs: [release]
