@@ -35,8 +35,8 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
 
-            Review this pull request using the `review-changes` skill in this repository
-            (`skills/review-changes/SKILL.md`), which carries the checklist and the severity
+            Review this pull request using the `change-review` skill in this repository
+            (`.agents/skills/change-review/SKILL.md`), which carries the checklist and the severity
             scale. Follow it rather than reviewing from general principles.
 
           claude_args: >-

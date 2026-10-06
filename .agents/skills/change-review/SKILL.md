@@ -1,5 +1,5 @@
 ---
-name: review-changes
+name: change-review
 description: Review a pull request for correctness, security and repo conventions, posting findings as inline comments. Invoked by the review workflow and by a person; never fires on its own.
 disable-model-invocation: true
 ---

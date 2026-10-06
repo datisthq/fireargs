@@ -16,13 +16,13 @@ This file provides guidance to coding agents when working with code in this repo
 
 ## Skills
 
-Depth lives in `skills/` (reached by Claude Code through the `.claude/skills` symlink), so
+Depth lives in `.agents/skills/` (reached by Claude Code through the `.claude/skills` symlink), so
 this file carries invariants and the skills carry procedure. Reach for one before working in
-its area:
+its area. Each is named `<subject>-<facet>`, subject first (`change-review`):
 
 | skill            | when                                                          |
 | ---------------- | ------------------------------------------------------------- |
-| `review-changes` | reviewing a pull request — also what the review workflow runs |
+| `change-review`  | reviewing a pull request — also what the review workflow runs |
 
 ## Commands
 
