@@ -63,7 +63,7 @@ dist/
 .serena/
 .env.local
 messages.js
-.user/
+.private/
 tmuxp.yaml
 /.claude/
 .tanstack/
