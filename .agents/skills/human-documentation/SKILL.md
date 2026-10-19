@@ -18,7 +18,7 @@ git diff main...HEAD
 git status --short
 ```
 
-The guard in `.scripts/-test/docs.unit.ts` already fails the build on a path or `pnpm` command
+The guard in `scripts/-test/docs.unit.ts` already fails the build on a path or `pnpm` command
 that no longer exists. That is the mechanical half. This is the other half: a paragraph that
 still parses, still points at real files, and is no longer true.
 

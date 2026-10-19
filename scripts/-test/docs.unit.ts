@@ -101,7 +101,6 @@ const WORKSPACE = new Set([
   ".agents",
   ".github",
   ".release",
-  ".scripts",
 ])
 
 function readDocs() {

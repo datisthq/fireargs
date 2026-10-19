@@ -2,5 +2,14 @@
   "$schema": "https://json.schemastore.org/tsconfig",
 
   "extends": "./tsconfig.json",
-  "include": ["**/*.ts", "**/*.tsx"]
+  "exclude": [
+    "${configDir}/*.config.ts",
+    "${configDir}/**/build/",
+    "${configDir}/**/compile/",
+    "${configDir}/**/fixtures/",
+    "${configDir}/**/examples/",
+    "${configDir}/.livemark/",
+    "${configDir}/docs/",
+    "${configDir}/scripts/"
+  ]
 }

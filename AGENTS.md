@@ -43,7 +43,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `issue-resolution`    | taking one issue or bug report to one tested commit in a worktree       |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
-**There is exactly one `AGENTS.md`, at the root.** `.scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the table above.
+**There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the table above.
 
 ## Commands
 
@@ -67,8 +67,9 @@ The package lives at the repo root; `tsgo` compiles it into `build/`, which is a
 - Root files are single-concern: `index.ts` (the public façade), `settings.ts`
 - Unit tests sit beside their module as `<module>.unit.ts`; snapshots land in a sibling `fixtures/generated/`
 - `docs/` — the docs site's Markdown, configured by `livemark.config.ts`
+- `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; `tsconfig.build.json` leaves it out of `build/`
 
-Dot-directories hold non-package code: `.agents/` repo skills, `.scripts/` repo-wide guards, `.livemark/` the docs site's escapes, `.release/` release-please config. Globs skip dot-directories, so `.scripts/-test/` is named explicitly in `vite.config.ts` and `tsconfig.json`, and `tsconfig.build.json` leaves it out of `build/`.
+Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config.
 
 ## Conventions
 

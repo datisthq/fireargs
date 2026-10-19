@@ -1,11 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
 
-  "include": [
-    "${configDir}/**/*.ts",
-    "${configDir}/**/*.tsx",
-    "${configDir}/.scripts/**/*.ts"
-  ],
+  "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx"],
   "exclude": [
     "${configDir}/*.config.ts",
     "${configDir}/**/build/",
