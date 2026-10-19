@@ -30,7 +30,7 @@ fireargs/
 │   ├── option/        #   createOption — tag fields as --flags with per-field config
 │   └── program/       #   compileProgram — wire subcommand trees
 ├── docs/              # docs-site content (Markdown)
-├── .livemark/         # docs-site overrides (theme, includes)
+├── .livemark/         # docs-site escapes (theme, landing, screenshots)
 ├── models/            # typed records: CommandConfig, ProgramConfig, ArgumentConfig, OptionConfig
 ├── index.ts           # public API — exports the `f` namespace
 ├── settings.ts        # tunables (FIREARGS_META_KEY)

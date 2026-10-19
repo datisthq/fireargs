@@ -41,6 +41,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `change-verification` | checking a change works — the smallest lint/type/unit slice and a look  |
 | `human-documentation` | the docs-truth pass before a commit, and where a fact belongs           |
 | `issue-resolution`    | taking one issue or bug report to one tested commit in a worktree       |
+| `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots      |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
 **There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the table above.

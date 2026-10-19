@@ -6,21 +6,23 @@ export default defineConfig({
   description: "Modern CLI builder",
   logo: "/logo.svg",
   favicon: "/logo.png",
+  banner:
+    "Fireargs is in technical preview · [Share feedback →](https://github.com/datisthq/fireargs/discussions)",
   include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
   sections: [
-    { title: "Docs", prefix: "/" },
+    { title: "Docs", prefix: "/", icon: "book-open" },
     {
       title: "Changelog",
       prefix: "/changelog/",
       type: "changelog",
       source: "CHANGELOG.md",
       version: true,
+      icon: "history",
     },
-  ],
-  links: [
     {
-      url: "https://github.com/datisthq/fireargs",
       title: "GitHub",
+      type: "custom",
+      url: "https://github.com/datisthq/fireargs",
       icon: "github",
     },
   ],

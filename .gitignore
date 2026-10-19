@@ -67,6 +67,7 @@ messages.js
 tmuxp.yaml
 /.claude/
 .tanstack/
+.livemark/.target/
 .vitest/
 /.playwright-mcp/
 .worktrees/
