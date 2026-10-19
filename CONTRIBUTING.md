@@ -10,10 +10,10 @@ You'll need [Node.js](https://nodejs.org/) 24+ and [pnpm](https://pnpm.io/) 10+.
 git clone https://github.com/datisthq/fireargs.git
 cd fireargs
 pnpm install
-pnpm docs:start
+pnpm start
 ```
 
-`pnpm docs:start` boots the docs dev server so you can iterate on the site. To exercise the library itself:
+`pnpm start` boots the docs dev server so you can iterate on the site. To exercise the library itself:
 
 ```bash
 pnpm test
@@ -34,6 +34,8 @@ fireargs/
 ├── models/            # typed records: CommandConfig, ProgramConfig, ArgumentConfig, OptionConfig
 ├── index.ts           # public API — exports the `f` namespace
 ├── settings.ts        # tunables (FIREARGS_META_KEY)
+├── .agents/skills/    # repo skills for coding agents (see AGENTS.md)
+├── .scripts/          # repo-wide guards and the `pnpm squash` script
 ├── livemark.config.ts # config for the docs site
 ├── tsconfig.json
 └── vite.config.ts     # vite-plus shared config (lint, format, test)
@@ -43,17 +45,19 @@ The package ships only `build/` (compiled by `tsgo`). Everything else is for dev
 
 ## Local commands
 
-| Command           | What it does                                                |
-| ----------------- | ----------------------------------------------------------- |
-| `pnpm install`    | Install dependencies                                        |
-| `pnpm build`      | Compile `actions/`, `models/`, `index.ts` → `build/`        |
-| `pnpm type`       | Type-check via `tsgo --noEmit`                              |
-| `pnpm lint`       | Format check + lint via Biome (`vp fmt --check && vp lint`) |
-| `pnpm format`     | Auto-fix formatting (`vp fmt`)                              |
-| `pnpm unit`       | Run unit tests (Vitest via `vp test`)                       |
-| `pnpm test`       | `pnpm lint && pnpm type && pnpm unit`                       |
-| `pnpm docs:start` | Run the docs dev server                                     |
-| `pnpm docs:build` | Production build of the docs site                           |
+| Command            | What it does                                         |
+| ------------------ | ---------------------------------------------------- |
+| `pnpm install`     | Install dependencies                                 |
+| `pnpm build`       | Compile `actions/`, `models/`, `index.ts` → `build/` |
+| `pnpm check:types` | Type-check via `tsgo --noEmit`                       |
+| `pnpm check:lint`  | Format check + lint (`vp fmt --check && vp lint`)    |
+| `pnpm check`       | `pnpm check:lint && pnpm check:types`                |
+| `pnpm format`      | Auto-fix formatting (`vp fmt`)                       |
+| `pnpm test:unit`   | Run unit tests (Vitest via `vp test`)                |
+| `pnpm test`        | `pnpm check && pnpm test:unit`                       |
+| `pnpm start`       | Run the docs dev server                              |
+| `pnpm build:docs`  | Production build of the docs site                    |
+| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)   |
 
 A change is ready to push when `pnpm test` is green.
 
@@ -64,25 +68,23 @@ A change is ready to push when `pnpm test` is green.
 - **Comments**: docstrings on exports only. Skip narrative `//` comments inside function bodies.
 - **File layout**: high-level public items at the top, private helpers at the bottom.
 - **Tests**: unit tests live next to the code as `<module>.unit.ts`. No "Arrange/Act/Assert" comments — the structure should be obvious.
-- **Formatting**: Biome via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
+- **Formatting**: vite-plus via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
 
 ## Proposing a change
 
 1. **Open an issue first** for anything bigger than a typo or a small bug. It's easier to align on direction before code.
 2. **Branch from `main`** with a short descriptive name (e.g. `fix-json-default`, `feat-program-hooks`).
-3. **Write a focused commit history**. Fireargs uses [Conventional Commits](https://www.conventionalcommits.org/) — the prefix drives semantic-release:
+3. **Write a focused commit history**. Fireargs uses [Conventional Commits](https://www.conventionalcommits.org/) — the prefix drives release-please:
    - `fix:` — bug fix → patch release
    - `feat:` — new feature → minor release
-   - `fix!:` / `feat!:` or a `BREAKING CHANGE:` footer → major release
    - `chore:`, `docs:`, `refactor:`, `test:`, `perf:` — no release
+   - Only changes to the published package use `feat` or `fix`; never mark a commit breaking (`!` or a `BREAKING CHANGE:` footer)
 4. **Run `pnpm test`** before pushing.
 5. **Open a PR** against `main`. Describe the _why_ (link the issue), include CLI output for any UX-visible change, and call out anything reviewers should pay extra attention to.
 
 ## Releases
 
-Releases are driven by [semantic-release](https://semantic-release.gitbook.io/) on every push to `main`. Conventional commit messages decide the next version automatically. Maintainers don't need to bump versions manually.
-
-For a local version bump (e.g. preparing a non-semantic-release branch), use `pnpm setversion <new-version>` — it sets the version without creating a git tag.
+Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm. Maintainers don't bump versions manually.
 
 ## Where to find help
 

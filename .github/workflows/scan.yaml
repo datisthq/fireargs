@@ -47,7 +47,7 @@ jobs:
           tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks
           rm gitleaks.tar.gz
       - name: Run Secrets Scan
-        run: pnpm leaks
+        run: pnpm scan:leaks
 
   vulns:
     runs-on: ubuntu-latest
@@ -71,4 +71,4 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep==1.176.1
       - name: Run Security Scan
-        run: pnpm vulns
+        run: pnpm scan:vulns

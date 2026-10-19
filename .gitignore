@@ -68,3 +68,5 @@ tmuxp.yaml
 /.claude/
 .tanstack/
 .vitest/
+/.playwright-mcp/
+.worktrees/
