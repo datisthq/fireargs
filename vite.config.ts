@@ -8,7 +8,7 @@ export default defineConfig({
     semi: false,
     printWidth: 90,
     arrowParens: "avoid",
-    ignorePatterns,
+    ignorePatterns: [...ignorePatterns, "CHANGELOG.md"],
   },
   lint: {
     ignorePatterns,
