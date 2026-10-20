@@ -25,7 +25,7 @@ diff breaking. The full gate belongs to the lefthook pre-push hook and CI. A loc
 | `pnpm check:types`                           | ~1 s | ~2     | types everywhere (one package)        |
 | `vp test <file or dir>`                      | ~2 s | ~3     | the tests named                       |
 | `vp test related <files> --run`              | ~2 s | ~3     | every test importing the files        |
-| `pnpm test:unit`                             | ~2 s | ~4     | every unit test, including the guards |
+| `pnpm test:unit`                             | ~3 s | ~5     | every unit test, including the guards |
 | `pnpm build`                                 | ~1 s | ~2     | the `tsgo` emit consumers' Node loads |
 | `pnpm build:docs`                            | ~8 s | ~16    | the real build over this repo's docs  |
 

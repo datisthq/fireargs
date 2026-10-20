@@ -54,6 +54,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 - `pnpm test` — full gate: lint + type + unit · `pnpm check` — lint + type
 - `pnpm check:lint` — `vp fmt --check && vp lint` · `pnpm format` — `vp fmt` · `pnpm check:types` — `tsgo --noEmit`
 - `pnpm test:unit` — `vp test`. Single test: `vp test path/to/file.unit.ts` or `vp test -t "name"`. While iterating, verify the slice the diff reaches, not the full gate (**`change-verification`**)
+- `pnpm measure:coverage` — the unit tests with coverage, which `vp test` leaves off
 - `pnpm scan:leaks` / `pnpm scan:vulns` / `pnpm scan` — gitleaks / semgrep / both
 - `pnpm update:deps` — bump dependencies past a 7-day cooldown
 - `pnpm release` — publish to npm; run by the release workflow only

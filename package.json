@@ -26,6 +26,7 @@
     "check:lint": "vp fmt --check && vp lint",
     "check:types": "tsgo --noEmit",
     "format": "vp fmt --no-error-on-unmatched-pattern",
+    "measure:coverage": "vp test --run --coverage",
     "prepare": "lefthook install && node scripts/link-skills.ts",
     "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
     "scan": "pnpm scan:leaks && pnpm scan:vulns",
