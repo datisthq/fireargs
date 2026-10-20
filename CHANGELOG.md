@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/datisthq/fireargs/compare/v0.4.1...v0.5.0) (2026-10-20)
+
+
+### Features
+
+* add helpGroup to command and program config ([9ab8a6e](https://github.com/datisthq/fireargs/commit/9ab8a6e94a70c493ea47f2e23fe620805ff77b15)), closes [#3](https://github.com/datisthq/fireargs/issues/3)
+* add program.router() and distinct Command/Program types ([96fb726](https://github.com/datisthq/fireargs/commit/96fb7263f536d219f90fe754be428913457d83e1)), closes [#2](https://github.com/datisthq/fireargs/issues/2)
+* ship the fireargs-* agent skills in the package and on fireargs.dev ([a776f7e](https://github.com/datisthq/fireargs/commit/a776f7e4625ef666e9f1a7232fe8d79e9261a4e9))
+
+
+### Bug Fixes
+
+* make zod and commander peer dependencies ([3b82e16](https://github.com/datisthq/fireargs/commit/3b82e16912202e1c22c391681b11a3deaae1113a))
+
 ## [0.4.1](https://github.com/datisthq/fireargs/compare/v0.4.0...v0.4.1) (2026-10-06)
 
 
