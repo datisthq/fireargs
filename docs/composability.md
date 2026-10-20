@@ -174,8 +174,8 @@ When you reuse a fragment, every per-field detail rides along:
 
 - **Zod's own metadata** — `.describe()`, `.default()`, `.optional()`,
   `.enum()`, `.coerce`, validation rules.
-- **fireargs metadata** — `f.argument()` / `f.option()` config (short,
-  env, conflicts, hidden, preset, helpGroup, defaultDescription, parse).
+- **fireargs metadata** — `f.argument()` / `f.option()` config (name,
+  short, env, conflicts, hidden, preset, helpGroup, defaultDescription, parse).
 
 Both surface in commander's `--help` and in the `--llms` manifest exactly
 as if you'd written the fields inline. Compose freely; nothing leaks or

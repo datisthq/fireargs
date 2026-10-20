@@ -68,6 +68,25 @@ describe("f.program", () => {
     expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
   })
 
+  it("dispatches kebab-case flags to a nested leaf", async () => {
+    let captured: unknown
+    const read = f
+      .command({ name: "read" })
+      .input(z.object({ headerRows: z.coerce.number() }))
+      .output(z.object({}))
+      .handler(input => {
+        captured = input
+        return {}
+      })
+
+    const cli = f
+      .program({ name: "myapp" })
+      .router({ table: f.program().router({ read }) })
+
+    await cli.parseAsync(["table", "read", "--header-rows", "2"], { from: "user" })
+    expect(captured).toEqual({ headerRows: 2 })
+  })
+
   it("--llms emits a manifest with all subcommand schemas (MCP-style)", async () => {
     let captured = ""
     const greet = f

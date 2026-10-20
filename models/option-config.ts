@@ -5,6 +5,8 @@
  * `createOption(config).{type}()`.
  */
 export type OptionConfig<V = unknown> = {
+  /** Long flag without dashes (`"to"` → `--to`). Defaults to the kebab-case key. */
+  name?: string
   /** Short flag letter, e.g. `"v"` → adds `-v` to `--verbose`. */
   short?: string
   /** Environment variable to fall back to when the flag is absent. */

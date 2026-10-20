@@ -61,7 +61,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 - The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`). Never call it.
 - On a program, nested leaves are flattened and `name` is the space-separated path below the binary. `myapp db migrate --llms` prints only that leaf, named `migrate`: take tool names from the root's manifest.
-- Schemas are JSON Schema draft 2020-12 from `z.toJSONSchema`: types, `.describe(...)` text, defaults, enums and formats. CLI-only config (short flags, env, conflicts, …) is stripped.
+- Schemas are JSON Schema draft 2020-12 from `z.toJSONSchema`: types, `.describe(...)` text, defaults, enums and formats. CLI-only config (flag names, short flags, env, conflicts, …) is stripped: properties are the input keys (`headerRows`), not the flags (`--header-rows`).
 - `inputSchema` describes what `--json` accepts: a defaulted field is not `required`, and a `.transform()` field shows its pre-transform type. `outputSchema` describes the validated output.
 - A type JSON Schema cannot express (`z.date()`, an output `.transform()`) appears as `{}`, meaning any value.
 

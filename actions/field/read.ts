@@ -16,6 +16,7 @@ const parseSchema = z.custom<(value: string) => unknown>(v => typeof v === "func
 
 const argumentMetaSchema = z.object({
   kind: z.literal("argument"),
+  name: z.string().optional(),
   hidden: z.boolean().optional(),
   helpGroup: z.string().optional(),
   defaultDescription: z.string().optional(),
@@ -24,6 +25,7 @@ const argumentMetaSchema = z.object({
 
 const optionMetaSchema = z.object({
   kind: z.literal("option"),
+  name: z.string().optional(),
   short: z.string().optional(),
   env: z.string().optional(),
   conflicts: z.union([z.string(), z.array(z.string())]).optional(),

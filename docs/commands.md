@@ -79,6 +79,10 @@ For each property of the input object schema:
 | `z.array(z.enum([...]))`    | variadic with choices on the element                                              |
 | `.describe("...")`          | shown in commander `--help` and surfaced as `description` in `--llms` JSON Schema |
 
+`key` is shown in kebab-case: `headerRows` becomes `--header-rows` and
+`[header-rows]`, while the handler and `--json` keep `headerRows`. See
+[Flag names](/inputs/#flag-names).
+
 For per-field commander config that zod doesn't model (short flag, env var,
 conflicts, hidden, preset, a custom `parse`, …) wrap the field with [`f.argument(config)`
 or `f.option(config)`](/inputs/).

@@ -38,8 +38,8 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodType>(
 ) {
   const cmd = new Command(config.name)
   applyConfig(cmd, config)
-  const argKeys = declareFields(cmd, input)
-  wireAction(cmd, argKeys, input, output, handler, render)
+  const fields = declareFields(cmd, input)
+  wireAction(cmd, fields, input, output, handler, render)
   if (config.renderError !== undefined) registerErrorHandler(cmd, config.renderError)
   registerManifestBuilder(cmd, prefix => [buildLeafTool(cmd, input, output, prefix)])
   return cmd
@@ -145,13 +145,26 @@ function declareFields(cmd: CommanderCommand, input: z.ZodObject) {
     declareArgument(cmd, key, schema, meta?.kind === "argument" ? meta : undefined)
   }
 
+  const optionKeys = new Map<string, Option>()
+  const optionMetas = new Map<string, OptionConfig>()
   for (const [key, schema] of Object.entries(input.shape)) {
     const meta = readFieldMeta(schema)
     if (meta?.kind === "argument") continue
-    declareOption(cmd, key, schema, meta?.kind === "option" ? meta : undefined)
+    const optionMeta = meta?.kind === "option" ? meta : undefined
+    optionKeys.set(key, declareOption(cmd, key, schema, optionMeta))
+    if (optionMeta !== undefined) optionMetas.set(key, optionMeta)
   }
+  applyOptionRelations(optionKeys, optionMetas)
 
-  return argKeys
+  return { argKeys, optionKeys }
+}
+
+function deriveCliName(key: string, name: string | undefined) {
+  if (name !== undefined) return name
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase()
 }
 
 function declareArgument(
@@ -166,7 +179,7 @@ function declareArgument(
   const { variadic, choices } = readValueShape(inner, meta?.parse)
 
   const suffix = variadic ? "..." : ""
-  const spec = `[${key}${suffix}]`
+  const spec = `[${deriveCliName(key, meta?.name)}${suffix}]`
   const arg = new Argument(spec, description)
   if (choices !== undefined) arg.choices(choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
@@ -185,25 +198,51 @@ function declareOption(
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
   const shortPrefix = meta?.short ? `-${meta.short}, ` : ""
+  const long = `--${deriveCliName(key, meta?.name)}`
 
   if (inner instanceof z.ZodBoolean && meta?.parse === undefined) {
-    const opt = new Option(`${shortPrefix}--${key}`, description)
-    if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
-    applyOptionMeta(opt, meta)
-    cmd.addOption(opt)
-    return
+    return addOption(cmd, new Option(`${shortPrefix}${long}`, description), dflt, meta)
   }
 
   const { variadic, choices } = readValueShape(inner, meta?.parse)
   const suffix = variadic ? "..." : ""
-  const flagSpec = `${shortPrefix}--${key} <value${suffix}>`
-  const opt = new Option(flagSpec, description)
+  const opt = new Option(`${shortPrefix}${long} <value${suffix}>`, description)
   if (choices !== undefined) opt.choices(choices)
-  if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
   const parser = createValueParser(inner, meta?.parse, dflt)
   if (parser !== undefined) opt.argParser(parser)
+  return addOption(cmd, opt, dflt, meta)
+}
+
+function addOption(
+  cmd: CommanderCommand,
+  opt: Option,
+  dflt: unknown,
+  meta: OptionConfig | undefined,
+) {
+  // A `--no-` flag would otherwise become a negation: inverted value, defaulting to true
+  opt.negate = false
+  if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
   applyOptionMeta(opt, meta)
   cmd.addOption(opt)
+  return opt
+}
+
+function applyOptionRelations(
+  optionKeys: ReadonlyMap<string, Option>,
+  optionMetas: ReadonlyMap<string, OptionConfig>,
+) {
+  const readAttribute = (key: string) => optionKeys.get(key)?.attributeName() ?? key
+  for (const [key, meta] of optionMetas) {
+    const opt = optionKeys.get(key)
+    if (opt === undefined) continue
+    if (meta.conflicts !== undefined) {
+      opt.conflicts([meta.conflicts].flat().map(readAttribute))
+    }
+    if (meta.implies !== undefined) {
+      const entries = Object.entries(meta.implies)
+      opt.implies(Object.fromEntries(entries.map(([k, v]) => [readAttribute(k), v])))
+    }
+  }
 }
 
 // A field with `parse` takes one token: commander's own variadic collecting and its
@@ -256,8 +295,6 @@ function parseNumber(value: string) {
 function applyOptionMeta(opt: Option, meta: OptionConfig | undefined) {
   if (meta === undefined) return
   if (meta.env !== undefined) opt.env(meta.env)
-  if (meta.conflicts !== undefined) opt.conflicts(meta.conflicts)
-  if (meta.implies !== undefined) opt.implies(meta.implies)
   if (meta.hidden) opt.hideHelp(true)
   if (meta.preset !== undefined) opt.preset(meta.preset)
   if (meta.helpGroup !== undefined) opt.helpGroup(meta.helpGroup)
@@ -265,7 +302,7 @@ function applyOptionMeta(opt: Option, meta: OptionConfig | undefined) {
 
 function wireAction<I extends z.ZodObject, O extends z.ZodType>(
   cmd: Command,
-  argKeys: readonly string[],
+  fields: { argKeys: readonly string[]; optionKeys: ReadonlyMap<string, Option> },
   input: I,
   output: O,
   handler: Handler<I, O>,
@@ -301,11 +338,13 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
     }
 
     function buildRawFromCli() {
-      const positionals = args.slice(0, argKeys.length)
-      const raw: Record<string, unknown> = { ...options }
-      delete raw.json
-      delete raw.llms
-      argKeys.forEach((key, i) => {
+      const positionals = args.slice(0, fields.argKeys.length)
+      const raw: Record<string, unknown> = {}
+      for (const [key, opt] of fields.optionKeys) {
+        const value = options[opt.attributeName()]
+        if (value !== undefined) raw[key] = value
+      }
+      fields.argKeys.forEach((key, i) => {
         raw[key] = positionals[i]
       })
       return raw

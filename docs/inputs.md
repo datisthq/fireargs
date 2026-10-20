@@ -32,6 +32,26 @@ make a field positional, wrap with `f.argument()`:
 You can also use `f.option()` explicitly to attach per-field option config —
 even though bare zod fields are already options.
 
+## Flag names
+
+A field's flag is its key in kebab-case: `headerRows` becomes `--header-rows`,
+and a positional `sourcePath` is shown as `[source-path]`. The handler, `--json`
+input and the `--llms` manifest keep the zod key (`headerRows`). Set `name` to
+choose the flag yourself:
+
+```ts
+.input(
+  z.object({
+    headerRows: z.coerce.number(),                      // --header-rows <value>
+    toPath:     f.option({ name: "to" }).string(),      // --to <value>
+    dryRun:     f.option({ name: "dryRun" }).schema(z.boolean().default(false)), // --dryRun
+  }),
+)
+```
+
+A key starting with `no` gives a plain `--no-…` flag, not a commander
+negation: `noCache: z.boolean()` is `true` when `--no-cache` is passed.
+
 ## The wrappers
 
 `f.argument(config?)` and `f.option(config?)` open a per-field builder. Each
@@ -63,10 +83,11 @@ type Input = z.infer<typeof input> // { port: number }
 
 | Field                | What it does                                                  |
 | -------------------- | ------------------------------------------------------------- |
+| `name`               | Long flag without dashes, e.g. `"to"` → `--to`                |
 | `short`              | Short flag letter, e.g. `"v"` adds `-v` alongside `--verbose` |
 | `env`                | Environment variable to fall back to when the flag is absent  |
-| `conflicts`          | Other option name(s) that conflict with this one              |
-| `implies`            | Other option values implied when this option is set           |
+| `conflicts`          | Input key(s) of options that conflict with this one           |
+| `implies`            | `{ inputKey: value }` set when this option is given           |
 | `hidden`             | Hide from `--help`                                            |
 | `preset`             | Preset value used when the flag appears without an argument   |
 | `helpGroup`          | Group heading under which this option is listed in help       |
@@ -80,6 +101,7 @@ no env, no conflicts/implies, no hidden, no helpGroup. What remains:
 
 | Field                | What it does                                            |
 | -------------------- | ------------------------------------------------------- |
+| `name`               | Name shown in help and usage, e.g. `[file]`             |
 | `defaultDescription` | Display string for the default value in help            |
 | `parse`              | Turns the CLI string into the field's value — see below |
 
@@ -100,12 +122,12 @@ send that value directly:
 ```ts
 .input(
   z.object({
-    // --missingValues a,b → ["a", "b"]
+    // --missing-values a,b → ["a", "b"]
     missingValues: f
       .option({ parse: v => v.split(",") })
       .schema(z.array(z.string()).optional()),
 
-    // --headerRows false → false, --headerRows 1,2 → [1, 2]
+    // --header-rows false → false, --header-rows 1,2 → [1, 2]
     headerRows: f
       .option({ parse: v => (v === "false" ? false : v.split(",").map(Number)) })
       .schema(z.union([z.literal(false), z.array(z.number())]).optional()),

@@ -59,7 +59,7 @@ f.command({ name: "list" })
 
 ## How input fields map to the CLI
 
-Every key of the input object becomes a field, named exactly as the key (`dryRun` → `--dryRun`).
+Every key of the input object becomes a field, shown in kebab-case (`dryRun` → `--dry-run`, `[dry-run]`). The handler, `--json` and `--llms` keep the key itself (`dryRun`).
 
 | Zod                | CLI                                                   |
 | ------------------ | ----------------------------------------------------- |
@@ -83,9 +83,10 @@ Both open a field builder with `.string()`, `.number()`, `.boolean()`, `.enum([.
 
 | Field                | Effect                                                        |
 | -------------------- | ------------------------------------------------------------- |
+| `name`               | long flag without dashes: `"to"` gives `--to`                 |
 | `short`              | `"v"` adds `-v` alongside `--verbose`                         |
 | `env`                | environment variable used when the flag is absent             |
-| `conflicts`          | option name(s) that may not be combined with this one         |
+| `conflicts`          | input key(s) of options that may not be combined with this    |
 | `implies`            | `{ otherKey: value }` set when this option is given           |
 | `hidden`             | leave out of `--help`                                         |
 | `preset`             | value used when the flag is given without a value             |
@@ -93,7 +94,7 @@ Both open a field builder with `.string()`, `.number()`, `.boolean()`, `.enum([.
 | `defaultDescription` | text shown for the default in `--help` instead of the literal |
 | `parse`              | `(value: string) => value` for the CLI string; see below      |
 
-`f.argument(config)` takes only `defaultDescription` and `parse`. Commander arguments have no short flag, env, conflicts, hidden or group.
+`f.argument(config)` takes only `name` (shown in help and usage), `defaultDescription` and `parse`. Commander arguments have no short flag, env, conflicts, hidden or group.
 
 ## Parsing CLI strings
 
@@ -130,7 +131,7 @@ Anything commander supports that the config does not surface can be called on th
 2. **Use `parse`, not `.transform()`, for shell syntax.** A transform is part of the schema, so `--json` callers must send the same comma list or JSON string, and `--llms` shows the pre-transform type. `z.number()` needs neither: fireargs coerces its CLI string and keeps `--json` strict.
 3. **Give booleans a default.** An absent flag reaches zod as `undefined`, so a required `z.boolean()` fails whenever the flag is left off. Use `z.boolean().default(false)` or `.optional()`.
 4. **Expose dates as strings.** `z.date()` cannot be written to JSON Schema, so `--llms` shows it as `{}` and an agent cannot tell what to send. Use `z.iso.datetime()` (ISO string in and out) or `z.coerce.date()` on input.
-5. **Keep keys flag-shaped.** The key is the flag: prefer `camelCase` keys and avoid characters that do not read well after `--`.
+5. **Write camelCase keys; set `name` only to change the flag.** `headerRows` already gives `--header-rows`. Reach for `name` for a shorter flag (`toPath` → `--to`) or to keep an existing verbatim flag (`name: "dryRun"`). A `no…` key gives a plain `--no-…` flag, never a commander negation. `conflicts` and `implies` name input keys, not flags.
 6. **Wrap sparingly.** Plain zod covers descriptions, defaults, choices, variadics and optionality; the wrappers are only for commander-specific slots.
 
 ## Verification

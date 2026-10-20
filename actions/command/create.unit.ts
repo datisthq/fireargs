@@ -621,6 +621,167 @@ describe("f.command", () => {
   })
 })
 
+describe("f.command flag names", () => {
+  function captureInput(input: z.ZodObject) {
+    const captured: { value?: unknown } = {}
+    const cmd = f
+      .command({
+        name: "read",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(input)
+      .output(z.object({}))
+      .handler(parsed => {
+        captured.value = parsed
+        return {}
+      })
+    return { cmd, captured }
+  }
+
+  it("derives kebab-case long flags from camelCase keys", async () => {
+    const { cmd, captured } = captureInput(
+      z.object({ headerRows: z.coerce.number(), HTMLParser: z.string().optional() }),
+    )
+
+    expect(cmd.helpInformation()).toContain("--header-rows <value>")
+    expect(cmd.helpInformation()).toContain("--html-parser <value>")
+    await cmd.parseAsync(["--header-rows", "2"], { from: "user" })
+    expect(captured.value).toEqual({ headerRows: 2 })
+  })
+
+  it("rejects the verbatim camelCase flag", async () => {
+    const { cmd } = captureInput(z.object({ headerRows: z.coerce.number() }))
+
+    await expect(cmd.parseAsync(["--headerRows", "2"], { from: "user" })).rejects.toThrow(
+      /unknown option/,
+    )
+  })
+
+  it("reads kebab-case keys back under their own key", async () => {
+    const { cmd, captured } = captureInput(z.object({ "header-rows": z.coerce.number() }))
+
+    await cmd.parseAsync(["--header-rows", "2"], { from: "user" })
+    expect(captured.value).toEqual({ "header-rows": 2 })
+  })
+
+  it("f.option name overrides the long flag", async () => {
+    const { cmd, captured } = captureInput(
+      z.object({
+        toPath: f.option({ name: "to" }).string(),
+        headerRows: f.option({ name: "headerRows" }).schema(z.coerce.number()),
+      }),
+    )
+
+    expect(cmd.helpInformation()).toContain("--to <value>")
+    expect(cmd.helpInformation()).not.toContain("--to-path")
+    await cmd.parseAsync(["--to", "out.csv", "--headerRows", "1"], { from: "user" })
+    expect(captured.value).toEqual({ toPath: "out.csv", headerRows: 1 })
+  })
+
+  it("keeps no-prefixed keys as plain flags rather than negations", async () => {
+    const absent = captureInput(z.object({ noCache: z.boolean().optional() }))
+    await absent.cmd.parseAsync([], { from: "user" })
+    expect(absent.captured.value).toEqual({})
+
+    const present = captureInput(z.object({ noCache: z.boolean().optional() }))
+    await present.cmd.parseAsync(["--no-cache"], { from: "user" })
+    expect(present.captured.value).toEqual({ noCache: true })
+  })
+
+  it("resolves conflicts and implies by input key", async () => {
+    const conflicting = captureInput(
+      z.object({
+        toPath: f.option({ conflicts: "toStdout" }).schema(z.string().optional()),
+        toStdout: f.option({ name: "stdout" }).schema(z.boolean().optional()),
+      }),
+    )
+    await expect(
+      conflicting.cmd.parseAsync(["--to-path", "x", "--stdout"], { from: "user" }),
+    ).rejects.toThrow(/cannot be used with/)
+
+    const implying = captureInput(
+      z.object({
+        dryRun: f.option({ implies: { skipWrite: true } }).schema(z.boolean().optional()),
+        skipWrite: f.option({ name: "no-write" }).schema(z.boolean().optional()),
+      }),
+    )
+    await implying.cmd.parseAsync(["--dry-run"], { from: "user" })
+    expect(implying.captured.value).toEqual({ dryRun: true, skipWrite: true })
+  })
+
+  it("combines short, env and kebab flags", async () => {
+    const { cmd, captured } = captureInput(
+      z.object({
+        headerRows: f
+          .option({ short: "r", env: "FIREARGS_TEST_HEADER_ROWS" })
+          .schema(z.coerce.number()),
+      }),
+    )
+
+    expect(cmd.helpInformation()).toContain("-r, --header-rows <value>")
+    process.env.FIREARGS_TEST_HEADER_ROWS = "3"
+    try {
+      await cmd.parseAsync([], { from: "user" })
+      expect(captured.value).toEqual({ headerRows: 3 })
+    } finally {
+      delete process.env.FIREARGS_TEST_HEADER_ROWS
+    }
+  })
+
+  it("names positionals in kebab-case and honours f.argument name", async () => {
+    const { cmd, captured } = captureInput(
+      z.object({
+        sourcePath: f.argument().string(),
+        targetPath: f.argument({ name: "target" }).string(),
+      }),
+    )
+
+    expect(cmd.helpInformation()).toContain("[source-path]")
+    expect(cmd.helpInformation()).toContain("[target]")
+    await cmd.parseAsync(["a.csv", "b.csv"], { from: "user" })
+    expect(captured.value).toEqual({ sourcePath: "a.csv", targetPath: "b.csv" })
+  })
+
+  it("--json without a value reads kebab flags", async () => {
+    let written = ""
+    const cmd = f
+      .command({ name: "read", configureOutput: { writeOut: s => (written += s) } })
+      .input(z.object({ headerRows: z.coerce.number() }))
+      .output(z.object({ headerRows: z.number() }))
+      .handler(input => input)
+
+    await cmd.parseAsync(["--header-rows", "2", "--json"], { from: "user" })
+    expect(JSON.parse(written)).toEqual({ headerRows: 2 })
+  })
+
+  it("--llms keeps input keys and strips name", async () => {
+    let written = ""
+    const cmd = f
+      .command({ name: "read", configureOutput: { writeOut: s => (written += s) } })
+      .input(
+        z.object({
+          sourcePath: f.argument({ name: "source" }).string(),
+          toPath: f.option({ name: "to" }).string(),
+        }),
+      )
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["--llms"], { from: "user" })
+    const tool = JSON.parse(written).tools[1]
+    expect(Object.keys(tool.inputSchema.properties)).toEqual(["sourcePath", "toPath"])
+    expect(written).not.toContain('"name": "to"')
+    expect(written).not.toContain("fireargs")
+  })
+
+  it("throws when two fields derive the same flag", () => {
+    expect(() =>
+      captureInput(z.object({ toPath: z.string(), "to-path": z.string() })),
+    ).toThrow(/conflicting flag/)
+  })
+})
+
 describe("CLI value parsing", () => {
   it("applies f.option parse to the argv string", async () => {
     const { cmd, read } = createCapturingCommand(
@@ -655,9 +816,9 @@ describe("CLI value parsing", () => {
       }),
     )
 
-    await cmd.parseAsync(["--headerRows", "false"], { from: "user" })
+    await cmd.parseAsync(["--header-rows", "false"], { from: "user" })
     expect(read()).toEqual({ headerRows: false })
-    await cmd.parseAsync(["--headerRows", "1,2"], { from: "user" })
+    await cmd.parseAsync(["--header-rows", "1,2"], { from: "user" })
     expect(read()).toEqual({ headerRows: [1, 2] })
   })
 
