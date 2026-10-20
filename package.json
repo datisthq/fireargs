@@ -51,7 +51,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
     "@vitest/coverage-v8": "catalog:",
     "lefthook": "2.1.1",
-    "livemark": "0.27.1",
+    "livemark": "0.27.2",
     "lucide-react": "0.577.0",
     "npm-check-updates": "23.1.0",
     "react": "19.3.0",
