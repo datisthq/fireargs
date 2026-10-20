@@ -10,6 +10,7 @@
     "${configDir}/**/examples/",
     "${configDir}/.livemark/",
     "${configDir}/docs/",
-    "${configDir}/scripts/"
+    "${configDir}/scripts/",
+    "${configDir}/-test/"
   ]
 }

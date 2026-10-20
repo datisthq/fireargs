@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fireargs testsuite file",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["description", "tests"],
+    "additionalProperties": false,
+    "properties": {
+      "description": { "type": "string" },
+      "tests": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["description", "argv", "exitCode"],
+          "additionalProperties": false,
+          "properties": {
+            "description": { "type": "string" },
+            "argv": { "type": "array", "items": { "type": "string" } },
+            "exitCode": { "type": "integer" },
+            "stdout": {
+              "description": "The JSON stdout must parse to, compared deep-equal"
+            },
+            "stderr": {
+              "type": "string",
+              "description": "A prefix stderr must start with"
+            },
+            "tools": {
+              "type": "array",
+              "description": "The `--llms` tools with their schemas left out, deep-equal",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            },
+            "instances": {
+              "type": "array",
+              "description": "Data each `--llms` schema must accept or reject",
+              "items": {
+                "type": "object",
+                "required": ["tool", "io", "data", "valid"],
+                "additionalProperties": false,
+                "properties": {
+                  "tool": { "type": "string" },
+                  "io": { "enum": ["input", "output"] },
+                  "data": {},
+                  "valid": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
