@@ -4,7 +4,7 @@ TypeScript library that builds CLIs from zod schemas on top of commander: typed 
 
 ## Terminology
 
-- **package** — what `npm install fireargs` gets: `build/`
+- **package** — what `npm install fireargs` gets: `build/` and `skills/`
 - **builder** — the `f` namespace exported from `index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`)
 - **docs site** — this repo's own `docs/`, `README.md` and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
 - **meta** — per-field metadata stored in zod's registry under `FIREARGS_META_KEY` (`settings.ts`), the only contract between builder and compiler
@@ -44,7 +44,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots      |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
-Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; they are not yet in the package or on the docs site. Read the matching one before changing the behaviour it describes, and update it in the same commit:
+Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; they are published in the package and on fireargs.dev under `/.well-known/agent-skills/`. Read the matching one before changing the behaviour it describes, and update it in the same commit:
 
 | skill                 | when                                                                 |
 | --------------------- | -------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; th
 
 ## Code structure
 
-The package lives at the repo root; `tsgo` compiles it into `build/`, which is all that ships.
+The package lives at the repo root; `tsgo` compiles it into `build/`, which ships with `skills/` and nothing else.
 
 - `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree
 - `models/<entity>.ts` — zod schemas plus derived types for each builder's config
@@ -95,7 +95,7 @@ Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the 
 
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging that PR cuts the version, tags it and publishes. Merging is the gate — nothing ships without it.
 
-- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `actions/`, `models/`, `index.ts`, `settings.ts`, and the `exports` and `files` in `package.json`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, `skills/` while it stays out of `files`, the README, the docs site
+- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `actions/`, `models/`, `index.ts`, `settings.ts`, the `exports` and `files` in `package.json`, and the shipped `skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, `skills/` while it stays out of `files`, the README, the docs site
 - This is not a style preference. release-please reads the commit type: a `fix:` on a workflow file cuts a release and burns a version number on a change no consumer can observe. Version numbers can never be reused
 - When in doubt, ask whether the change alters what someone installing the package gets. If it does not, it is `chore`
 - Release config lives in `.release/config.json` and `.release/manifest.json`. The manifest holds the current version and release-please maintains it — never hand-edit it

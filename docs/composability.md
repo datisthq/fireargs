@@ -2,7 +2,7 @@
 title: Composability
 path: /composability/
 icon: boxes
-order: 8
+order: 9
 description: Share common parameters across commands by composing zod schemas.
 ---
 

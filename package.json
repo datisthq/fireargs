@@ -14,7 +14,8 @@
   "author": "Evgeny Karev",
   "repository": "https://github.com/datisthq/fireargs",
   "files": [
-    "build"
+    "build",
+    "skills"
   ],
   "type": "module",
   "sideEffects": false,

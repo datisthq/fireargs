@@ -2,7 +2,7 @@
 title: Outputs
 path: /outputs/
 icon: arrow-up-from-line
-order: 4
+order: 5
 description: How the output schema validates handler returns and shapes JSON / LLM responses.
 ---
 

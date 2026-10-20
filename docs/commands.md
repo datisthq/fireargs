@@ -2,7 +2,7 @@
 title: Commands
 path: /commands/
 icon: terminal
-order: 2
+order: 3
 description: The f.command(...) chainable builder and the leaf shape it produces.
 ---
 

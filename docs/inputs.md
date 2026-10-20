@@ -2,7 +2,7 @@
 title: Inputs
 path: /inputs/
 icon: square-pen
-order: 3
+order: 4
 description: f.argument() and f.option() for per-field commander config.
 ---
 

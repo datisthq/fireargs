@@ -9,6 +9,7 @@ export default defineConfig({
   banner:
     "Fireargs is in technical preview · [Share feedback →](https://github.com/datisthq/fireargs/discussions)",
   include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
+  skills: "skills/*/SKILL.md",
   sections: [
     { title: "Docs", prefix: "/", icon: "book-open" },
     {
