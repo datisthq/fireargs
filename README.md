@@ -5,9 +5,9 @@ Define each command with typed input and output schemas. Get composability, stru
 ## Install
 
 ```bash
-pnpm add fireargs zod commander
+pnpm add fireargs
 # or
-npm install fireargs zod commander
+npm install fireargs
 ```
 
 ## A first command
