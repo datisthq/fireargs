@@ -60,9 +60,11 @@ matching the output schema. May be async — fireargs awaits it.
 handler that drives spinners or progress output keeps quiet then, so stdout
 stays parseable. `ctx.command` is the running `Command`.
 
-The handler is wrapped in commander's `.action(...)`. Errors propagate via
-the returned `Command`'s `parseAsync(...)` unless a `renderError` hook is
-set (see [JSON mode](/json-mode/#errors)).
+The handler is wrapped in commander's `.action(...)`. Input that fails the
+zod schema is reported like a commander parse error — one `error: ...` line
+per field on stderr, exit code 1. Other errors propagate via the returned
+`Command`'s `parseAsync(...)`. A `renderError` hook takes all of them instead
+(see [JSON mode](/json-mode/#errors)).
 
 ## What gets derived from the input schema
 
@@ -72,15 +74,15 @@ For each property of the input object schema:
 | --------------------------- | --------------------------------------------------------------------------------- |
 | `z.string()` / `z.number()` | `--key <value>` (mandatory unless wrapped); a number's CLI string is coerced      |
 | `z.boolean()`               | `--key` flag (boolean)                                                            |
-| `z.optional(...)`           | optional positional `[key]` if marked `f.argument()`                              |
+| `f.argument()...`           | positional `<key>`; `[key]` when `.optional()` or `.default(v)`                   |
 | `z.default(v)`              | forwarded to commander as `defaultValue`                                          |
 | `z.enum([...])`             | `cmd.choices([...])` on the option/argument                                       |
-| `z.array(T)`                | variadic — `<key...>` for positional, `--key <value...>` for option               |
+| `z.array(T)`                | variadic — `<key...>` (or `[key...]`) for positional, `--key <value...>` option   |
 | `z.array(z.enum([...]))`    | variadic with choices on the element                                              |
 | `.describe("...")`          | shown in commander `--help` and surfaced as `description` in `--llms` JSON Schema |
 
 `key` is shown in kebab-case: `headerRows` becomes `--header-rows` and
-`[header-rows]`, while the handler and `--json` keep `headerRows`. See
+`<header-rows>`, while the handler and `--json` keep `headerRows`. See
 [Flag names](/inputs/#flag-names).
 
 For per-field commander config that zod doesn't model (short flag, env var,

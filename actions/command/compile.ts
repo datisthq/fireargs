@@ -1,17 +1,17 @@
 import {
-  Argument,
   Command as CommanderCommand,
   InvalidArgumentError,
   Option,
   type AddHelpTextPosition,
 } from "commander"
 import { z } from "zod"
+import { FieldArgument } from "../../models/argument.ts"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import { Command } from "../../models/command.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { CommandContext, RenderContext } from "../../models/context.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
-import { handleError, registerErrorHandler } from "../error/handle.ts"
+import { findErrorHandler, handleError, registerErrorHandler } from "../error/handle.ts"
 import { readFieldMeta } from "../field/read.ts"
 import {
   buildLeafTool,
@@ -19,6 +19,7 @@ import {
   readManifestBuilder,
   registerManifestBuilder,
 } from "./manifest.ts"
+import { reportInputError } from "./report.ts"
 
 /**
  * Build a fully-wired `Command` from the fireargs builder state.
@@ -119,7 +120,11 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
     const description =
       config.jsonOption?.description ??
       "write output as JSON; pass a JSON string to also drive input"
-    cmd.addOption(new Option(flags, description))
+    const option = new Option(flags, description)
+    cmd.addOption(option)
+    cmd.on(`option:${option.name()}`, (value: unknown) => {
+      if (typeof value === "string") relaxArguments(cmd)
+    })
   }
 
   if (config.llmsOption !== false) {
@@ -127,8 +132,16 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
     const description =
       config.llmsOption?.description ??
       "print this command's schema (name, input, output) as JSON for LLM tool-use"
-    cmd.addOption(new Option(flags, description))
+    const option = new Option(flags, description)
+    cmd.addOption(option)
+    cmd.on(`option:${option.name()}`, () => relaxArguments(cmd))
   }
+}
+
+// `option:*` events fire while options are parsed, before commander checks for
+// missing positionals; `Command.restoreStateBeforeParse` undoes this next parse
+function relaxArguments(cmd: CommanderCommand) {
+  for (const arg of cmd.registeredArguments) arg.required = false
 }
 
 function declareFields(cmd: CommanderCommand, input: z.ZodObject) {
@@ -178,9 +191,9 @@ function declareArgument(
   const inner = unwrap(schema)
   const { variadic, choices } = readValueShape(inner, meta?.parse)
 
-  const suffix = variadic ? "..." : ""
-  const spec = `[${deriveCliName(key, meta?.name)}${suffix}]`
-  const arg = new Argument(spec, description)
+  const name = `${deriveCliName(key, meta?.name)}${variadic ? "..." : ""}`
+  const required = !schema.safeParse(undefined).success
+  const arg = new FieldArgument(required ? `<${name}>` : `[${name}]`, description)
   if (choices !== undefined) arg.choices(choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
   const parser = createValueParser(inner, meta?.parse, dflt)
@@ -321,18 +334,35 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
     }
 
     const ctx: CommandContext = { json: json !== undefined, command: cmd }
+    let parsed: z.output<I>
     try {
-      const raw = typeof json === "string" ? JSON.parse(json) : buildRawFromCli()
-      const parsed = input.parse(raw)
+      parsed = input.parse(
+        typeof json === "string" ? JSON.parse(json) : buildRawFromCli(),
+      )
+    } catch (error) {
+      // Without a renderError hook, input failures read like commander's own parse errors
+      if (findErrorHandler(cmd) === undefined) {
+        if (typeof json === "string")
+          return reportInputError(cmd, error, { mode: "json" })
+        const raw = buildRawFromCli()
+        return reportInputError(cmd, error, { mode: "cli", raw, fields })
+      }
+      return handleError(cmd, error, ctx)
+    }
+
+    try {
       const validated = output.parse(await handler(parsed, ctx))
 
       if (ctx.json) {
-        writer(`${JSON.stringify(validated ?? null, null, 2)}\n`)
+        writer(`${JSON.stringify(validated ?? null, null, 2)}
+`)
         return
       }
 
       const rendered = await render?.(validated, { ...ctx, input: parsed })
-      if (typeof rendered === "string") writer(`${rendered}\n`)
+      if (typeof rendered === "string")
+        writer(`${rendered}
+`)
     } catch (error) {
       await handleError(cmd, error, ctx)
     }

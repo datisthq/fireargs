@@ -26,7 +26,7 @@ greet world --json                # CLI in, JSON out
 greet --json '{"name":"world"}'   # JSON in, JSON out
 ```
 
-With a value, the run is: `JSON.parse` the value → parse it with the input schema → run the handler → parse the result with the output schema → write `JSON.stringify(result, null, 2)` and a newline through `writeOut` (stdout by default). The CLI's own arguments and options are ignored for input.
+With a value, the run is: `JSON.parse` the value → parse it with the input schema → run the handler → parse the result with the output schema → write `JSON.stringify(result, null, 2)` and a newline through `writeOut` (stdout by default). The CLI's own arguments and options are ignored for input, so required positionals may be left off the command line.
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys the input schema does not declare are dropped by zod, not rejected.
@@ -78,9 +78,10 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 ## Errors and exits
 
-- A commander parse error (unknown option, bad choice, too many arguments) prints to stderr and exits with code 1. With `exitOverride: true` it throws a `CommanderError` instead.
-- Invalid JSON, a zod input or output failure, or an exception from the handler or `.render` rejects the `parseAsync(...)` promise — unless a `renderError` hook is set.
-- `renderError: (error, ctx) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
+- A commander parse error (unknown option, bad choice, missing positional, too many arguments) prints to stderr and exits with code 1. With `exitOverride: true` it throws a `CommanderError` instead.
+- Without a `renderError` hook, input failures take the same path: a `--json` value that is not JSON (`code: "fireargs.invalidJson"`) and input that fails the zod schema (`code: "fireargs.invalidInput"`), one `error: ...` line per field — `invalid --json input at 'a.b[0]': ...` in JSON mode, commander's own wording at the shell.
+- A zod output failure or an exception from the handler or `.render` rejects the `parseAsync(...)` promise — unless a `renderError` hook is set.
+- `renderError: (error, ctx) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). It also receives input failures, as the original `SyntaxError` or `ZodError`. Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
 
 ```ts
 f.program({

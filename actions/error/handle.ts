@@ -39,8 +39,11 @@ export function registerErrorHandler(cmd: CommanderCommand, renderError: RenderE
   handlers.set(cmd, renderError)
 }
 
-// Looked up at run time: a leaf is compiled before the program that mounts it
-function findErrorHandler(cmd: CommanderCommand) {
+/**
+ * Find the nearest `renderError` hook: the command's own, then each parent's.
+ * Looked up at run time, since a leaf is compiled before the program mounting it.
+ */
+export function findErrorHandler(cmd: CommanderCommand) {
   for (let c: CommanderCommand | null = cmd; c !== null; c = c.parent) {
     const renderError = handlers.get(c)
     if (renderError !== undefined) return renderError

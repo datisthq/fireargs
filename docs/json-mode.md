@@ -30,7 +30,8 @@ The flag takes an optional value (`--json [value]`):
 - **Present without a value** — CLI parsing for input, but the handler's
   return is serialized as JSON to stdout.
 - **Present with a JSON value** — input comes from the JSON blob; CLI
-  positionals/options are skipped; output is JSON.
+  positionals/options are skipped, so required positionals may be left off;
+  output is JSON.
 
 ## What happens on `--json '<value>'`
 
@@ -60,11 +61,21 @@ progress output should check `ctx.json`:
 
 ## Errors
 
-Without a hook, invalid JSON, zod validation failures (input or output) and
+Without a hook, a value that is not JSON and input that fails the zod schema
+are reported like a commander parse error, written to stderr with exit code 1:
+
+```text
+error: --json value is not valid JSON: ...
+error: invalid --json input at 'a.b[0]': Invalid input: expected number, received string
+```
+
+With `exitOverride: true` they throw a `CommanderError` instead, coded
+`fireargs.invalidJson` or `fireargs.invalidInput`. Output-schema failures and
 handler exceptions reject the returned `Command`'s `parseAsync(...)`.
 
-Set `renderError` in the command's or program's config to turn them into
-output instead:
+Set `renderError` in the command's or program's config to turn all of them
+into output instead — the hook receives the original `SyntaxError` or
+`ZodError` for input failures:
 
 ```ts
 f.program({
@@ -84,9 +95,9 @@ f.program({
 - It also catches `.render(...)` failures. The nearest hook wins: the leaf's
   own, then each enclosing program's.
 
-Commander parse errors (unknown option, bad choice, too many arguments)
-happen before the run starts: they are written to stderr and exit with code
-1, or throw a `CommanderError` with `exitOverride: true`.
+Commander parse errors (unknown option, bad choice, missing positional, too
+many arguments) happen before the run starts: they are written to stderr and
+exit with code 1, or throw a `CommanderError` with `exitOverride: true`.
 
 ## Composes with subcommands
 

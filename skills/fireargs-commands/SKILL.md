@@ -59,21 +59,21 @@ f.command({ name: "list" })
 
 ## How input fields map to the CLI
 
-Every key of the input object becomes a field, shown in kebab-case (`dryRun` → `--dry-run`, `[dry-run]`). The handler, `--json` and `--llms` keep the key itself (`dryRun`).
+Every key of the input object becomes a field, shown in kebab-case (`dryRun` → `--dry-run`, `<dry-run>`). The handler, `--json` and `--llms` keep the key itself (`dryRun`).
 
 | Zod                | CLI                                                   |
 | ------------------ | ----------------------------------------------------- |
 | bare field         | `--key <value>` option                                |
-| `f.argument()...`  | positional `[key]`, declared in input-key order       |
+| `f.argument()...`  | positional `<key>`, declared in input-key order       |
 | `z.boolean()`      | `--key` flag, no value                                |
 | `z.number()`       | CLI string coerced to a number before zod parses it   |
-| `z.array(T)`       | variadic: `[key...]` or `--key <value...>`            |
+| `z.array(T)`       | variadic: `<key...>` or `--key <value...>`            |
 | `z.enum([...])`    | choices, checked by commander before the handler runs |
 | `.default(v)`      | default shown in `--help` and applied by commander    |
-| `.optional()`      | field may be absent                                   |
+| `.optional()`      | field may be absent; a positional shows as `[key]`    |
 | `.describe("...")` | help text, and `description` in the `--llms` manifest |
 
-Positionals are always declared optional to commander (`[key]`); whether a field is really required is decided by zod when the input is parsed.
+A positional is required (`<key>`) unless its schema accepts `undefined` — `.optional()` or `.default(...)` make it `[key]`. A missing required one fails with commander's `error: missing required argument 'key'`; `--json '<value>'` and `--llms` runs need no positionals on the command line. Without a `renderError` hook, any other input that fails zod prints one commander-style `error: ...` line per field and exits 1.
 
 ## `f.argument()` and `f.option()`
 
@@ -132,7 +132,8 @@ Anything commander supports that the config does not surface can be called on th
 3. **Give booleans a default.** An absent flag reaches zod as `undefined`, so a required `z.boolean()` fails whenever the flag is left off. Use `z.boolean().default(false)` or `.optional()`.
 4. **Expose dates as strings.** `z.date()` cannot be written to JSON Schema, so `--llms` shows it as `{}` and an agent cannot tell what to send. Use `z.iso.datetime()` (ISO string in and out) or `z.coerce.date()` on input.
 5. **Write camelCase keys; set `name` only to change the flag.** `headerRows` already gives `--header-rows`. Reach for `name` for a shorter flag (`toPath` → `--to`) or to keep an existing verbatim flag (`name: "dryRun"`). A `no…` key gives a plain `--no-…` flag, never a commander negation. `conflicts` and `implies` name input keys, not flags.
-6. **Wrap sparingly.** Plain zod covers descriptions, defaults, choices, variadics and optionality; the wrappers are only for commander-specific slots.
+6. **Order positionals required first.** They are declared in input-key order, so an optional one before a required one takes the first value. A variadic that may be empty needs `.default([])`; a bare `z.array(...)` positional requires at least one value.
+7. **Wrap sparingly.** Plain zod covers descriptions, defaults, choices, variadics and optionality; the wrappers are only for commander-specific slots.
 
 ## Verification
 

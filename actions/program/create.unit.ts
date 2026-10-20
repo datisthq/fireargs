@@ -68,6 +68,28 @@ describe("f.program", () => {
     expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
   })
 
+  it("requires a leaf's positionals again after a --json dispatch", async () => {
+    let captured = ""
+    const greet = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeOut: str => (captured += str), writeErr: () => {} },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    const cli = f.program({ name: "myapp" }).router({ greet })
+
+    await cli.parseAsync(["greet", "--json", '{"name":"world"}'], { from: "user" })
+    expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
+    await expect(cli.parseAsync(["greet"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+      message: "error: missing required argument 'name'",
+    })
+  })
+
   it("dispatches kebab-case flags to a nested leaf", async () => {
     let captured: unknown
     const read = f

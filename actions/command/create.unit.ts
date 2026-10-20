@@ -210,19 +210,37 @@ describe("f.command", () => {
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
 
-    await expect(cmd.parseAsync([], { from: "user" })).rejects.toThrow()
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+      code: "fireargs.invalidInput",
+      exitCode: 1,
+      message: "error: required option '--name <value>' not specified",
+    })
   })
 
-  it("propagates zod validation errors from input", async () => {
+  it("reports zod validation errors from input like commander", async () => {
+    let stderr = ""
+    let called = false
     const cmd = f
-      .command({ name: "greet" })
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: str => (stderr += str) },
+      })
       .input(z.object({ count: z.coerce.number().min(10) }))
       .output(z.object({ ok: z.boolean() }))
-      .handler(() => ({ ok: true }))
+      .handler(() => {
+        called = true
+        return { ok: true }
+      })
 
-    await expect(cmd.parseAsync(["--count", "3"], { from: "user" })).rejects.toThrow(
-      z.ZodError,
-    )
+    const message =
+      "error: option '--count <value>' argument '3' is invalid. " +
+      "Too small: expected number to be >=10"
+    await expect(
+      cmd.parseAsync(["--count", "3"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "fireargs.invalidInput", exitCode: 1, message })
+    expect(stderr).toBe(`${message}\n`)
+    expect(called).toBe(false)
   })
 
   it("f.option attaches short flag", async () => {
@@ -488,7 +506,38 @@ describe("f.command", () => {
 
     await expect(
       cmd.parseAsync(["--json", '{"count":"not-a-number"}'], { from: "user" }),
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({
+      code: "fireargs.invalidInput",
+      message:
+        "error: invalid --json input at 'count': Invalid input: expected number, received string",
+    })
+  })
+
+  it("--json mode rejects a value that is not JSON", async () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(
+      cmd.parseAsync(["--json", "{not json"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "fireargs.invalidJson", exitCode: 1 })
+  })
+
+  it("still rejects with the ZodError when the output is invalid", async () => {
+    const cmd = f
+      .command({ name: "greet" })
+      .input(z.object({}))
+      .output(z.object({ ok: z.boolean() }))
+      // @ts-expect-error the handler breaks its output schema on purpose
+      .handler(() => ({ ok: "yes" }))
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toBeInstanceOf(z.ZodError)
   })
 
   it("--llms prints the command manifest as JSON", async () => {
@@ -585,6 +634,143 @@ describe("f.command", () => {
       .handler(() => ({}))
 
     expect(cmd.helpInformation()).not.toContain("--json")
+  })
+
+  it("declares required positionals as `<key>` and optional ones as `[key]`", () => {
+    const cmd = f
+      .command({ name: "copy" })
+      .input(
+        z.object({
+          source: f.argument().string(),
+          target: f.argument().schema(z.string().optional()),
+          mode: f.argument().schema(z.string().default("fast")),
+        }),
+      )
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.usage()).toBe("[options] <source> [target] [mode]")
+  })
+
+  it("declares variadic positionals as `<key...>` unless defaulted", () => {
+    const required = f
+      .command({ name: "lint" })
+      .input(z.object({ files: f.argument().array(z.string()) }))
+      .output(z.object({}))
+      .handler(() => ({}))
+    const defaulted = f
+      .command({ name: "lint" })
+      .input(z.object({ files: f.argument().schema(z.array(z.string()).default([])) }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(required.usage()).toBe("[options] <files...>")
+    expect(defaulted.usage()).toBe("[options] [files...]")
+  })
+
+  it("reports a missing required positional like commander", async () => {
+    let stderr = ""
+    let called = false
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: str => (stderr += str) },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({}))
+      .handler(() => {
+        called = true
+        return {}
+      })
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+      message: "error: missing required argument 'name'",
+    })
+    expect(stderr).toBe("error: missing required argument 'name'\n")
+    expect(called).toBe(false)
+  })
+
+  it("reports a missing required variadic positional like commander", async () => {
+    const cmd = f
+      .command({
+        name: "lint",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(z.object({ files: f.argument().array(z.string()) }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+      message: "error: missing required argument 'files'",
+    })
+  })
+
+  it("--json <value> supplies required positionals", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: { writeOut: str => (captured += str) },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({ greeting: z.string() }))
+      .handler(input => ({ greeting: `hello ${input.name}` }))
+
+    await cmd.parseAsync(["--json", '{"name":"world"}'], { from: "user" })
+    expect(JSON.parse(captured)).toEqual({ greeting: "hello world" })
+  })
+
+  it("--llms needs no required positionals", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: { writeOut: str => (captured += str) },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["--llms"], { from: "user" })
+    expect(JSON.parse(captured).tools[1].name).toBe("greet")
+  })
+
+  it("bare --json still requires positionals from the CLI", async () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeErr: () => {} },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(cmd.parseAsync(["--json"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+    })
+  })
+
+  it("requires positionals again on the next parse after --json <value>", async () => {
+    const cmd = f
+      .command({
+        name: "greet",
+        exitOverride: true,
+        configureOutput: { writeOut: () => {}, writeErr: () => {} },
+      })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["--json", '{"name":"world"}'], { from: "user" })
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+    })
+    await cmd.parseAsync(["--json", '{"name":"world"}'], { from: "user" })
   })
 
   it("requires .input before .output", () => {
@@ -737,10 +923,31 @@ describe("f.command flag names", () => {
       }),
     )
 
-    expect(cmd.helpInformation()).toContain("[source-path]")
-    expect(cmd.helpInformation()).toContain("[target]")
+    expect(cmd.helpInformation()).toContain("<source-path>")
+    expect(cmd.helpInformation()).toContain("<target>")
     await cmd.parseAsync(["a.csv", "b.csv"], { from: "user" })
     expect(captured.value).toEqual({ sourcePath: "a.csv", targetPath: "b.csv" })
+  })
+
+  it("names a missing kebab-case positional and option by their CLI names", async () => {
+    const { cmd } = captureInput(
+      z.object({
+        sourcePath: f.argument().string(),
+        headerRows: z.number().min(1),
+      }),
+    )
+
+    await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+      message: "error: missing required argument 'source-path'",
+    })
+    await expect(
+      cmd.parseAsync(["a.csv", "--header-rows", "0"], { from: "user" }),
+    ).rejects.toMatchObject({
+      code: "fireargs.invalidInput",
+      message:
+        "error: option '--header-rows <value>' argument '0' is invalid. " +
+        "Too small: expected number to be >=1",
+    })
   })
 
   it("--json without a value reads kebab flags", async () => {
@@ -864,7 +1071,7 @@ describe("CLI value parsing", () => {
 
     await cmd.parseAsync(["a:int,b:str"], { from: "user" })
     expect(read()).toEqual({ pairs: { a: "int", b: "str" } })
-    expect(cmd.helpInformation()).toContain("[pairs]")
+    expect(cmd.helpInformation()).toContain("<pairs>")
   })
 
   it("reports a throwing parse as an invalid commander argument", async () => {
@@ -934,7 +1141,7 @@ describe("CLI value parsing", () => {
 
     await expect(
       cmd.parseAsync(["--json", '{"rows":"3"}'], { from: "user" }),
-    ).rejects.toThrow(z.ZodError)
+    ).rejects.toMatchObject({ code: "fireargs.invalidInput" })
   })
 })
 

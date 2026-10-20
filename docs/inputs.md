@@ -35,7 +35,7 @@ even though bare zod fields are already options.
 ## Flag names
 
 A field's flag is its key in kebab-case: `headerRows` becomes `--header-rows`,
-and a positional `sourcePath` is shown as `[source-path]`. The handler, `--json`
+and a positional `sourcePath` is shown as `<source-path>`. The handler, `--json`
 input and the `--llms` manifest keep the zod key (`headerRows`). Set `name` to
 choose the flag yourself:
 
@@ -101,7 +101,7 @@ no env, no conflicts/implies, no hidden, no helpGroup. What remains:
 
 | Field                | What it does                                            |
 | -------------------- | ------------------------------------------------------- |
-| `name`               | Name shown in help and usage, e.g. `[file]`             |
+| `name`               | Name shown in help and usage, e.g. `<file>`             |
 | `defaultDescription` | Display string for the default value in help            |
 | `parse`              | Turns the CLI string into the field's value — see below |
 
@@ -154,8 +154,11 @@ field by its pre-transform type.
 ```ts
 .input(
   z.object({
-    // positional, required
+    // positional, required: <name>
     name: f.argument().string().describe("user's name"),
+
+    // positional, optional: [greeting]; keep required positionals first
+    greeting: f.argument().schema(z.string().optional()),
 
     // option with short alias and env fallback
     port: f.option({ short: "p", env: "PORT" }).schema(z.number().default(8080)),
