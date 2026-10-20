@@ -161,7 +161,7 @@ into trees. Mounting the same leaf under different program keys is a valid
 form of reuse:
 
 ```ts
-const cli = f.program({ name: "myapp" }).commands({
+const cli = f.program({ name: "myapp" }).router({
   users: listUsers,
   members: listUsers,
 })

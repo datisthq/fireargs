@@ -7,8 +7,8 @@ import { createProgram } from "./actions/program/create.ts"
  * The fireargs builder namespace. `f.command(config?)` opens a command
  * builder; `f.argument(config?)` and `f.option(config?)` open per-field
  * builders that produce zod schemas tagged with positional or `--option`
- * metadata respectively. `f.program(config?)` opens a program builder for
- * a subcommand tree.
+ * metadata respectively. `f.program(config?)` opens a program builder whose
+ * `.router(...)` mounts commands and nested programs.
  */
 export const f = {
   command: createCommand,
@@ -18,6 +18,9 @@ export const f = {
 }
 
 export type { ArgumentConfig } from "./models/argument-config.ts"
+export type { Command } from "./models/command.ts"
 export type { CommandConfig } from "./models/config.ts"
 export type { OptionConfig } from "./models/option-config.ts"
+export type { Program } from "./models/program.ts"
 export type { ProgramConfig } from "./models/program-config.ts"
+export type { Route } from "./models/route.ts"

@@ -1,5 +1,7 @@
 import { Command as CommanderCommand, Option } from "commander"
+import { Program } from "../../models/program.ts"
 import type { ProgramConfig } from "../../models/program-config.ts"
+import type { Route } from "../../models/route.ts"
 import {
   type Tool,
   buildHelpTool,
@@ -8,30 +10,26 @@ import {
 } from "../command/manifest.ts"
 
 /**
- * Build a fully-wired commander root `Command` from a program config and a
- * map of subcommands. Applies all `ProgramConfig` pass-throughs (identity,
+ * Build a fully-wired `Program` from a program config and a map of routes. Applies all `ProgramConfig` pass-throughs (identity,
  * help, hooks, behavior toggles, exit/output, `on`, `configureHelp`,
  * `addHelpText`/`addHelpCommand`/`addHelpOption`, `executableDir`,
- * `llmsOption`) and attaches each subcommand under its object-key name.
+ * `llmsOption`) and attaches each route under its object-key name.
  */
-export function compileProgram(
-  config: ProgramConfig,
-  commands: Record<string, CommanderCommand>,
-) {
-  const cmd = new CommanderCommand(config.name)
+export function compileProgram(config: ProgramConfig, routes: Record<string, Route>) {
+  const cmd = new Program(config.name)
   applyProgramConfig(cmd, config)
-  declareLlmsOnProgram(cmd, config, commands)
-  for (const [key, sub] of Object.entries(commands)) {
+  declareLlmsOnProgram(cmd, config, routes)
+  for (const [key, sub] of Object.entries(routes)) {
     sub.name(key)
     cmd.addCommand(sub)
   }
-  registerManifestBuilder(cmd, prefix => collectTools(commands, prefix))
+  registerManifestBuilder(cmd, prefix => collectTools(routes, prefix))
   return cmd
 }
 
-function collectTools(commands: Record<string, CommanderCommand>, prefix: string) {
+function collectTools(routes: Record<string, Route>, prefix: string) {
   const tools: Tool[] = []
-  for (const [key, sub] of Object.entries(commands)) {
+  for (const [key, sub] of Object.entries(routes)) {
     const subPrefix = prefix ? `${prefix} ${key}` : key
     const subTools = readManifestBuilder(sub, subPrefix) ?? []
     tools.push(...subTools)
@@ -98,7 +96,7 @@ function applyProgramConfig(cmd: CommanderCommand, config: ProgramConfig) {
 function declareLlmsOnProgram(
   cmd: CommanderCommand,
   config: ProgramConfig,
-  commands: Record<string, CommanderCommand>,
+  routes: Record<string, Route>,
 ) {
   if (config.llmsOption === false) return
   const flags = config.llmsOption?.flags ?? "--llms"
@@ -111,7 +109,7 @@ function declareLlmsOnProgram(
     if (options.llms !== true) return
     const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
-      tools: [buildHelpTool(), ...collectTools(commands, "")],
+      tools: [buildHelpTool(), ...collectTools(routes, "")],
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })

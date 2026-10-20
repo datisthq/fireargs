@@ -1,18 +1,19 @@
 import { Command as CommanderCommand } from "commander"
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { f } from "../../index.ts"
+import { f, type Command } from "../../index.ts"
 
 describe("f.command", () => {
-  it("returns a commander Command instance", () => {
+  it("returns a Command instance", () => {
     const cmd = f
       .command({ name: "greet" })
       .input(z.object({}))
       .output(z.object({}))
       .handler(() => ({}))
 
-    expectTypeOf(cmd).toEqualTypeOf<CommanderCommand>()
+    expectTypeOf(cmd).toEqualTypeOf<Command>()
     expect(cmd).toBeInstanceOf(CommanderCommand)
+    expect(cmd.type).toBe("command")
     expect(cmd.name()).toBe("greet")
   })
 

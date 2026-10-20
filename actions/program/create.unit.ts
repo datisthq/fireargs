@@ -1,10 +1,10 @@
 import { Command as CommanderCommand } from "commander"
 import { describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { f } from "../../index.ts"
+import { f, type Program } from "../../index.ts"
 
 describe("f.program", () => {
-  it("returns a commander Command with subcommands attached", () => {
+  it("returns a Program with its routes attached", () => {
     const greet = f
       .command({ name: "greet" })
       .input(z.object({}))
@@ -18,13 +18,20 @@ describe("f.program", () => {
 
     const cli = f
       .program({ name: "myapp", description: "My CLI" })
-      .commands({ greet, deploy })
+      .router({ greet, deploy })
 
-    expectTypeOf(cli).toEqualTypeOf<CommanderCommand>()
+    expectTypeOf(cli).toEqualTypeOf<Program>()
     expect(cli).toBeInstanceOf(CommanderCommand)
+    expect(cli.type).toBe("program")
     expect(cli.name()).toBe("myapp")
     expect(cli.description()).toBe("My CLI")
     expect(cli.commands.map(c => c.name())).toEqual(["greet", "deploy"])
+  })
+
+  it("router rejects a raw commander Command", () => {
+    const raw = new CommanderCommand("raw")
+    // @ts-expect-error a raw commander Command would be missing from --llms
+    f.program({ name: "myapp" }).router({ raw })
   })
 
   it("object key overrides leaf name", () => {
@@ -34,7 +41,7 @@ describe("f.program", () => {
       .output(z.object({}))
       .handler(() => ({}))
 
-    const cli = f.program({ name: "myapp" }).commands({ greet: leaf })
+    const cli = f.program({ name: "myapp" }).router({ greet: leaf })
     expect(cli.commands[0]?.name()).toBe("greet")
   })
 
@@ -53,7 +60,7 @@ describe("f.program", () => {
       .output(z.object({ greeting: z.string() }))
       .handler(input => ({ greeting: `hello ${input.name}` }))
 
-    const cli = f.program({ name: "myapp" }).commands({ greet })
+    const cli = f.program({ name: "myapp" }).router({ greet })
 
     await cli.parseAsync(["greet", "--json", '{"name":"world"}'], {
       from: "user",
@@ -86,7 +93,7 @@ describe("f.program", () => {
           },
         },
       })
-      .commands({ greet, deploy })
+      .router({ greet, deploy })
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
@@ -117,7 +124,7 @@ describe("f.program", () => {
       .output(z.object({ greeting: z.string() }))
       .handler(input => ({ greeting: `hello ${input.name}` }))
 
-    const cli = f.program({ name: "myapp" }).commands({ greet })
+    const cli = f.program({ name: "myapp" }).router({ greet })
 
     await cli.parseAsync(["greet", "--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
@@ -138,7 +145,7 @@ describe("f.program", () => {
 
     const apiCli = f
       .program({ name: "api", description: "API subtree" })
-      .commands({ greet })
+      .router({ greet })
 
     const cli = f
       .program({
@@ -149,7 +156,7 @@ describe("f.program", () => {
           },
         },
       })
-      .commands({ api: apiCli })
+      .router({ api: apiCli })
 
     await cli.parseAsync(["--llms"], { from: "user" })
     const manifest = JSON.parse(captured)
@@ -175,8 +182,8 @@ describe("f.program", () => {
       .output(z.object({ greeting: z.string() }))
       .handler(input => ({ greeting: `hello ${input.name}` }))
 
-    const apiCli = f.program({ name: "api" }).commands({ greet })
-    const cli = f.program({ name: "myapp" }).commands({ api: apiCli })
+    const apiCli = f.program({ name: "api" }).router({ greet })
+    const cli = f.program({ name: "myapp" }).router({ api: apiCli })
 
     await cli.parseAsync(["api", "greet", "--json", '{"name":"world"}'], {
       from: "user",
@@ -191,7 +198,7 @@ describe("f.program", () => {
       .output(z.object({}))
       .handler(() => ({}))
 
-    const cli = f.program({ name: "myapp", llmsOption: false }).commands({ greet })
+    const cli = f.program({ name: "myapp", llmsOption: false }).router({ greet })
 
     expect(cli.helpInformation()).not.toContain("--llms")
     expect(cli.commands[0]?.helpInformation()).toContain("--llms")

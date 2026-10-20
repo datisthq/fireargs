@@ -38,10 +38,10 @@ const migrate = f
 
 const db = f
   .program({ name: "db", description: "Manage the database." })
-  .commands({ migrate })
+  .router({ migrate })
 
 const cli = f
   .program({ name: "shipit", description: "Ship apps to the cloud.", version: "2.4.0" })
-  .commands({ deploy, db })
+  .router({ deploy, db })
 
 cli.parseAsync(process.argv)

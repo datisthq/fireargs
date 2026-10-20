@@ -14,7 +14,7 @@ this site:
 | ----- | --------------------------------------------------------- | -------------------------------------- |
 | Help  | `shipit deploy --help`                                    | the `env` argument and `region` option |
 | JSON  | flags in / JSON out, JSON in / JSON out, a nested program | the `.output(z.object(...))` schema    |
-| LLMs  | the `--llms` manifest queried with jq                     | `f.program(...).commands(...)`         |
+| LLMs  | the `--llms` manifest queried with jq                     | `f.program(...).router(...)`           |
 | Agent | an agent reading `--llms`, previewing, then deploying     | `.input(...)` and `.output(...)`       |
 
 ## Rules

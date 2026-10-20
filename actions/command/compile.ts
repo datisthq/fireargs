@@ -6,6 +6,7 @@ import {
 } from "commander"
 import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
+import { Command } from "../../models/command.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
 import { readFieldMeta } from "../field/read.ts"
@@ -17,7 +18,7 @@ import {
 } from "./manifest.ts"
 
 /**
- * Build a fully-wired commander `Command` from the fireargs builder state.
+ * Build a fully-wired `Command` from the fireargs builder state.
  * Applies config pass-throughs, declares arguments and options derived from
  * the input zod schema (with each field's `createArgument`/`createOption`
  * metadata selecting positional vs flag and supplying per-field config), and
@@ -30,7 +31,7 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
   output: O,
   handler: (input: z.infer<I>) => z.infer<O> | Promise<z.infer<O>>,
 ) {
-  const cmd = new CommanderCommand(config.name)
+  const cmd = new Command(config.name)
   applyConfig(cmd, config)
   const argKeys = declareFields(cmd, input)
   wireAction(cmd, argKeys, input, output, handler)

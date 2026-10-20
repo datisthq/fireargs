@@ -10,7 +10,8 @@ description: The f.command(...) chainable builder and the leaf shape it produces
 
 `f.command(config?)` opens a chainable, type-stated builder. Call `.input(...)`,
 `.output(...)`, then `.handler(...)` — each step is required, in that order.
-The terminal `.handler(...)` returns a fully-wired commander `Command`.
+The terminal `.handler(...)` returns a fully-wired `Command`, a subclass of
+commander's `Command` tagged `type: "command"`.
 
 ```ts
 import { f } from "fireargs"

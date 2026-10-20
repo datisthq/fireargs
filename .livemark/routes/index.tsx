@@ -232,7 +232,7 @@ const slides: Slide[] = [
           <span className={tk.punct}>{" })"}</span>
           {"\n  "}
           <span className={tk.punct}>.</span>
-          <span className={tk.func}>commands</span>
+          <span className={tk.func}>router</span>
           <span className={tk.punct}>{"({ "}</span>deploy
           <span className={tk.punct}>,</span> db <span className={tk.punct}>{"})"}</span>
         </>
@@ -575,7 +575,7 @@ const freedoms: FreedomPoint[] = [
     description: (
       <>
         Group commands with{" "}
-        <code className="font-mono text-foreground">f.program().commands()</code> and nest
+        <code className="font-mono text-foreground">f.program().router()</code> and nest
         programs inside programs. See{" "}
         <Link
           to="/$"

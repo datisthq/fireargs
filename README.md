@@ -45,17 +45,17 @@ $ greet --help
 
 ## Subcommand trees
 
-Group leaves with `f.program(...).commands({ ... })`:
+Group leaves with `f.program(...).router({ ... })`:
 
 ```ts
 const cli = f
   .program({ name: "myapp", description: "My CLI", version: "1.0.0" })
-  .commands({ greet, deploy, db: dbCli })
+  .router({ greet, deploy, db: dbCli })
 
 cli.parseAsync(process.argv)
 ```
 
-Programs nest — `commands` accepts other programs the same way it accepts
+Programs nest — `router` accepts other programs the same way it accepts
 leaves. `myapp db migrate --json '...'` routes through both levels.
 
 ## LLM tool-use
