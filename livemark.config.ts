@@ -6,8 +6,6 @@ export default defineConfig({
   description: "Modern CLI builder",
   logo: "/logo.svg",
   favicon: "/logo.png",
-  banner:
-    "Fireargs is in technical preview · [Share feedback →](https://github.com/datisthq/fireargs/discussions)",
   include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
   skills: "skills/*/SKILL.md",
   sections: [
