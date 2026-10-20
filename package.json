@@ -40,9 +40,7 @@
     "update:deps": "ncu -u --cooldown 7d"
   },
   "dependencies": {
-    "cn": "0.2.4",
-    "commander": "^14.0.3",
-    "zod": "^4.4.1"
+    "cn": "0.2.4"
   },
   "devDependencies": {
     "@plausible-analytics/tracker": "^0.4.4",
@@ -51,6 +49,7 @@
     "@types/node": "24.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
     "@vitest/coverage-v8": "catalog:",
+    "commander": "^14.0.3",
     "lefthook": "2.1.1",
     "livemark": "0.27.2",
     "lucide-react": "0.577.0",
@@ -61,7 +60,12 @@
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:",
-    "wrangler": "4.85.0"
+    "wrangler": "4.85.0",
+    "zod": "^4.4.1"
+  },
+  "peerDependencies": {
+    "commander": "^14.0.3",
+    "zod": "^4.4.1"
   },
   "engines": {
     "node": "^24.11.0",

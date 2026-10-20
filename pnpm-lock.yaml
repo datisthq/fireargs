@@ -30,12 +30,6 @@ importers:
       cn:
         specifier: 0.2.4
         version: 0.2.4
-      commander:
-        specifier: ^14.0.3
-        version: 14.0.3
-      zod:
-        specifier: ^4.4.1
-        version: 4.4.1
     devDependencies:
       '@plausible-analytics/tracker':
         specifier: ^0.4.4
@@ -55,6 +49,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.1(@vitest/browser@5.0.1)(vitest@5.0.1)
+      commander:
+        specifier: ^14.0.3
+        version: 14.0.3
       lefthook:
         specifier: 2.1.1
         version: 2.1.1
@@ -88,6 +85,9 @@ importers:
       wrangler:
         specifier: 4.85.0
         version: 4.85.0
+      zod:
+        specifier: ^4.4.1
+        version: 4.4.1
 
 packages:
 
