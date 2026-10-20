@@ -24,6 +24,8 @@ export type CommandConfig = {
   summary?: string
   /** Alternate invocation names. */
   aliases?: string[]
+  /** Group heading under which this command is listed in its parent's help. */
+  helpGroup?: string
   /** Overrides the auto-generated `Usage: ...` line. */
   usage?: string
   /** Version string (typically only set on the root command). */

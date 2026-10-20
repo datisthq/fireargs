@@ -203,4 +203,37 @@ describe("f.program", () => {
     expect(cli.helpInformation()).not.toContain("--llms")
     expect(cli.commands[0]?.helpInformation()).toContain("--llms")
   })
+
+  it("lists a command under its helpGroup heading in the parent's help", () => {
+    const deploy = f
+      .command({ description: "Deploys", helpGroup: "Ops:" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+    const status = f
+      .command({ description: "Shows status" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    const cli = f.program({ name: "myapp" }).router({ deploy, status })
+
+    expect(cli.helpInformation()).toMatch(/Ops:\n {2}deploy.*Deploys/)
+    expect(cli.helpInformation()).toMatch(/Commands:\n {2}status.*Shows status/)
+  })
+
+  it("lists a nested program under its helpGroup heading in the parent's help", () => {
+    const list = f
+      .command({ name: "list" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+    const users = f
+      .program({ description: "Manages users", helpGroup: "Admin:" })
+      .router({ list })
+
+    const cli = f.program({ name: "myapp" }).router({ users })
+
+    expect(cli.helpInformation()).toMatch(/Admin:\n {2}users.*Manages users/)
+  })
 })

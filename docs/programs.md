@@ -83,16 +83,38 @@ import type { Command, Program, Route } from "fireargs"
 import { Command as CommanderCommand } from "commander" // alias on clash
 ```
 
+## Grouping commands in help
+
+Set `helpGroup` on a command or a nested program to list it under its own
+heading in the parent's `--help`, the same way `f.option({ helpGroup })`
+groups options. Routes without one stay under `Commands:`, and headings
+print in the order their first route appears.
+
+```ts
+const deploy = f.command({ description: "Deploy", helpGroup: "Ops:" }) // ...
+const users = f
+  .program({ description: "Manage users", helpGroup: "Ops:" })
+  .router({ list })
+
+f.program({ name: "myapp" }).router({ deploy, users, version })
+// Ops:
+//   deploy [options]   Deploy
+//   users [options]    Manage users
+//
+// Commands:
+//   version [options]  Print version
+```
+
 ## `ProgramConfig`
 
 Same shape as `CommandConfig` minus the input-side concerns: `arguments`
 (no input fields at the program level) and `jsonOption` (programs dispatch —
 they don't read JSON input). Otherwise everything in
 [CommandConfig](/commands/#commandconfig) applies — identity (`name`,
-`description`, `summary`, `aliases`, `usage`, `version`), help slots
-(`helpOption`, `helpCommand`, `configureHelp`, `addHelpText`, `addHelpCommand`,
-`addHelpOption`), behavior toggles, hooks, exit/output config, `on`
-listeners, `executableDir`, and `llmsOption`.
+`description`, `summary`, `aliases`, `usage`, `version`, `helpGroup`), help
+slots (`helpOption`, `helpCommand`, `configureHelp`, `addHelpText`,
+`addHelpCommand`, `addHelpOption`), behavior toggles, hooks, exit/output
+config, `on` listeners, `executableDir`, and `llmsOption`.
 
 ## `enablePositionalOptions` defaults to `true` on programs
 

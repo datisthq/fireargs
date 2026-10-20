@@ -43,6 +43,7 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
   if (config.description !== undefined) cmd.description(config.description)
   if (config.summary !== undefined) cmd.summary(config.summary)
   if (config.aliases !== undefined) cmd.aliases(config.aliases)
+  if (config.helpGroup !== undefined) cmd.helpGroup(config.helpGroup)
   if (config.usage !== undefined) cmd.usage(config.usage)
   if (config.version !== undefined) cmd.version(config.version)
 
