@@ -44,7 +44,15 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots      |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
-**There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the table above.
+Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; they are not yet in the package or on the docs site. Read the matching one before changing the behaviour it describes, and update it in the same commit:
+
+| skill                 | when                                                                 |
+| --------------------- | -------------------------------------------------------------------- |
+| `fireargs-commands`   | writing a command — input/output schemas, arguments, options, config |
+| `fireargs-programs`   | building a subcommand tree and sharing pieces across commands        |
+| `fireargs-automation` | driving a CLI through `--json` and `--llms`, testing it, its errors  |
+
+**There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the two tables above.
 
 ## Commands
 
@@ -69,6 +77,7 @@ The package lives at the repo root; `tsgo` compiles it into `build/`, which is a
 - Root files are single-concern: `index.ts` (the public façade), `settings.ts`
 - Unit tests sit beside their module as `<module>.unit.ts`; snapshots land in a sibling `fixtures/generated/`
 - `docs/` — the docs site's Markdown, configured by `livemark.config.ts`
+- `skills/` — shipped agent skills for people who build CLIs with Fireargs
 - `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; `tsconfig.build.json` leaves it out of `build/`
 
 Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config.
@@ -86,7 +95,7 @@ Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the 
 
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging that PR cuts the version, tags it and publishes. Merging is the gate — nothing ships without it.
 
-- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `actions/`, `models/`, `index.ts`, `settings.ts`, and the `exports` and `files` in `package.json`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
+- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `actions/`, `models/`, `index.ts`, `settings.ts`, and the `exports` and `files` in `package.json`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, `skills/` while it stays out of `files`, the README, the docs site
 - This is not a style preference. release-please reads the commit type: a `fix:` on a workflow file cuts a release and burns a version number on a change no consumer can observe. Version numbers can never be reused
 - When in doubt, ask whether the change alters what someone installing the package gets. If it does not, it is `chore`
 - Release config lives in `.release/config.json` and `.release/manifest.json`. The manifest holds the current version and release-please maintains it — never hand-edit it

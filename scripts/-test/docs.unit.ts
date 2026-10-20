@@ -4,6 +4,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const REPO_SKILLS = join(ROOT, ".agents", "skills")
+const SHIPPED_SKILLS = join(ROOT, "skills")
 
 describe("documentation stays true", () => {
   it("wires .claude/skills to .agents/skills", () => {
@@ -59,31 +60,33 @@ describe("documentation stays true", () => {
 
   it("gives every skill a name and a short description", () => {
     const problems: string[] = []
-    for (const name of readdirSync(REPO_SKILLS)) {
-      const path = join(REPO_SKILLS, name, "SKILL.md")
-      if (!existsSync(path)) {
-        problems.push(`${name}: no SKILL.md`)
-        continue
-      }
-      const [, frontmatter = ""] = readFileSync(path, "utf8").split("---", 2)
-      if (!new RegExp(`^name: ${name}$`, "m").test(frontmatter)) {
-        problems.push(`${name}: frontmatter name must match the directory`)
-      }
-      // A description over the listing budget is cut to a bare name, and the skill is
-      // then found only through the AGENTS.md table.
-      const description = /^description: (.*)$/m.exec(frontmatter)?.[1] ?? ""
-      if (!description) problems.push(`${name}: no description`)
-      if (description.length > 250) {
-        problems.push(`${name}: description is ${description.length} chars, keep ≤ 250`)
+    for (const directory of [REPO_SKILLS, SHIPPED_SKILLS]) {
+      for (const name of readdirSync(directory)) {
+        const path = join(directory, name, "SKILL.md")
+        if (!existsSync(path)) {
+          problems.push(`${name}: no SKILL.md`)
+          continue
+        }
+        const [, frontmatter = ""] = readFileSync(path, "utf8").split("---", 2)
+        if (!new RegExp(`^name: ${name}$`, "m").test(frontmatter)) {
+          problems.push(`${name}: frontmatter name must match the directory`)
+        }
+        // A description over the listing budget is cut to a bare name, and the skill is
+        // then found only through the AGENTS.md table.
+        const description = /^description: (.*)$/m.exec(frontmatter)?.[1] ?? ""
+        if (!description) problems.push(`${name}: no description`)
+        if (description.length > 250) {
+          problems.push(`${name}: description is ${description.length} chars, keep ≤ 250`)
+        }
       }
     }
     expect(problems).toEqual([])
   })
 
-  it("lists every skill in the AGENTS.md table, and only those", () => {
+  it("lists every skill in the AGENTS.md tables, and only those", () => {
     const agents = readFileSync(join(ROOT, "AGENTS.md"), "utf8")
     const listed = [...agents.matchAll(/^\| `([a-z-]+)` +\|/gm)].map(match => match[1])
-    const skills = readdirSync(REPO_SKILLS)
+    const skills = [...readdirSync(REPO_SKILLS), ...readdirSync(SHIPPED_SKILLS)]
     expect(listed.toSorted()).toEqual(skills.toSorted())
   })
 })

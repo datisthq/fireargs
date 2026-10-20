@@ -60,7 +60,8 @@ Run it with `vp test <path>` and watch it fail.
   you did not otherwise change.
 - Never rename `FIREARGS_META_KEY` or a builder method as part of a fix: it breaks every CLI
   built on the package.
-- A behaviour change a CLI author can see updates its `docs/` page in the same commit.
+- A behaviour change a CLI author can see updates its `docs/` page and the matching shipped
+  skill in `skills/` in the same commit.
 
 ## 6. Gate it
 

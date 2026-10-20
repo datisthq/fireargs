@@ -35,6 +35,7 @@ fireargs/
 ├── index.ts           # public API — exports the `f` namespace
 ├── settings.ts        # tunables (FIREARGS_META_KEY)
 ├── .agents/skills/    # repo skills for coding agents (see AGENTS.md)
+├── skills/           # agent skills for people who use Fireargs (see AGENTS.md)
 ├── scripts/          # repo-wide guards and the `pnpm squash` script
 ├── livemark.config.ts # config for the docs site
 ├── tsconfig.json

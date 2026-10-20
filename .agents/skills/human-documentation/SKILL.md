@@ -40,7 +40,7 @@ Work through the diff asking each of these:
 ### Where to look
 
 - `AGENTS.md` — the only one, at the repo root; the guard enforces that.
-- `.agents/skills/*/SKILL.md` — including the `description`, which is what makes a skill get
+- `.agents/skills/*/SKILL.md` and the shipped `skills/*/SKILL.md` — including the `description`, which is what makes a skill get
   picked up at all. A skill whose body drifted is bad; a skill whose _description_ drifted is
   invisible.
 - `README.md`, `CONTRIBUTING.md` and the docs site under `docs/`, which is the user manual.
@@ -56,7 +56,7 @@ area's skill, with at most a one-line pointer left in `AGENTS.md`. When a paragr
 move it. Keep `AGENTS.md` near 10 KB.
 
 - How to **use** Fireargs (builders, field config, JSON and LLM modes) → the matching `docs/`
-  page, and the README for the first command.
+  page and the shipped skill in `skills/`, kept in step, and the README for the first command.
 - How to **work on** Fireargs (checks, review, conventions) → a repo skill in `.agents/skills/`.
 - How a person contributes (setup, commands, the PR flow) → `CONTRIBUTING.md`.
 
