@@ -4,6 +4,12 @@
     "typescript": {
       "release-type": "node",
       "include-component-in-tag": false
+    },
+    "python": {
+      "release-type": "python",
+      "package-name": "fireargs",
+      "component": "python",
+      "include-component-in-tag": true
     }
   }
 }

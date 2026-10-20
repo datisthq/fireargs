@@ -1,0 +1,16 @@
+{
+  "name": "fireargs-python",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "uv build --out-dir build",
+    "check:lint": "uv run ruff check && uv run ruff format --check",
+    "check:types": "uv run ty check",
+    "format": "uv run ruff format",
+    "measure:coverage": "uv run pytest --cov --cov-report html --cov-report json",
+    "release": "uv publish build/*",
+    "setup": "uv sync",
+    "test": "pnpm check:types && pnpm test:unit",
+    "test:unit": "uv run pytest"
+  }
+}

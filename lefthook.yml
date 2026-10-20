@@ -1,7 +1,13 @@
 pre-commit:
   jobs:
     - name: format
-      run: pnpm format {staged_files}
+      exclude: ["**/*.py"]
+      run: pnpm exec vp fmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+    - name: format-python
+      root: python/
+      glob: "*.py"
+      run: uv run ruff format {staged_files}
       stage_fixed: true
 
 pre-push:

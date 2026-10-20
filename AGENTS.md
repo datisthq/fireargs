@@ -1,13 +1,14 @@
 # fireargs
 
-Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-ready manifests. The TypeScript package (zod on top of commander) lives in `typescript/`; the repo root holds the tooling shared across languages and Fireargs' own docs site, built with Livemark.
+Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-ready manifests. Two packages share one contract: TypeScript (zod on top of commander) in `typescript/`, Python (pydantic on top of click) in `python/`. The repo root holds the tooling shared across languages, the shared `testsuite/` and Fireargs' own docs site, built with Livemark.
 
 ## Terminology
 
-- **package** — what `npm install fireargs` gets: `typescript/build/` and `typescript/skills/`
-- **builder** — the `f` namespace exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`)
-- **docs site** — `typescript/docs/`, the READMEs and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
-- **meta** — per-field metadata stored in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), the only contract between builder and compiler
+- **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), or `pip install fireargs` (`python/fireargs/` and `python/skills/`)
+- **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `f.Option()`
+- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the `fireargs` module imported as `f` (`f.command`, `f.Argument`, `f.Option`, `f.Program`)
+- **docs site** — `typescript/docs/`, `python/docs/`, the READMEs and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
+- **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`)
 
 ## Rules
 
@@ -20,6 +21,7 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 - When resolving a TODO, follow its instructions literally. Prefer LSP capabilities where available.
 - Start a plan from a summary of the new or changed API (models and signatures) and the hardest points.
 - **Every plan ends by asking how to work it** (`AskUserQuestion`, before finalising): **the current branch** or **a `.worktrees/<name>` branch** (**`worktree-workflow`**).
+- **A behaviour change lands on both twins in the same branch**, with the same names (case-converted), defaults and output, and a behaviour both share gets a `testsuite/` case, not only a unit test per package. A twin left out on purpose is named in the commit body with why. **`python-development`** holds the Python side.
 - **The meta key and the `f` namespace are public API.** Renaming `FIREARGS_META_KEY`, a builder method or a field-config option silently breaks every CLI built on the package. Treat it like an export change (**`change-review`**).
 - Use full relative import paths with the `.ts` / `.tsx` extension. No barrel re-export files — `typescript/index.ts` is the one public façade.
 - Each `actions/<entity>/<verb>.ts` holds one action, named after its verb (`actions/command/create.ts` exports `createCommand`); a new action gets its own file.
@@ -42,15 +44,19 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `human-documentation` | the docs-truth pass before a commit, and where a fact belongs           |
 | `issue-resolution`    | taking one issue or bug report to one tested commit in a worktree       |
 | `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots      |
+| `python-development`  | working in `python/` — layout, uv commands, typing, the testsuite twin  |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
-Shipped skills live in `typescript/skills/` and teach coding agents to **use** Fireargs; they are published in the package and on fireargs.dev under `/.well-known/agent-skills/`. Read the matching one before changing the behaviour it describes, and update it in the same commit:
+Shipped skills live in `typescript/skills/` and `python/skills/` and teach coding agents to **use** Fireargs; they are published in each package and on fireargs.dev under `/.well-known/agent-skills/`. Read the matching one before changing the behaviour it describes, and update it in the same commit:
 
-| skill                 | when                                                                 |
-| --------------------- | -------------------------------------------------------------------- |
-| `fireargs-commands`   | writing a command — input/output schemas, arguments, options, config |
-| `fireargs-programs`   | building a subcommand tree and sharing pieces across commands        |
-| `fireargs-automation` | driving a CLI through `--json` and `--llms`, testing it, its errors  |
+| skill                        | when                                                                 |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `fireargs-commands`          | writing a command — input/output schemas, arguments, options, config |
+| `fireargs-programs`          | building a subcommand tree and sharing pieces across commands        |
+| `fireargs-automation`        | driving a CLI through `--json` and `--llms`, testing it, its errors  |
+| `fireargs-python-commands`   | the Python twin of `fireargs-commands`                               |
+| `fireargs-python-programs`   | the Python twin of `fireargs-programs`                               |
+| `fireargs-python-automation` | the Python twin of `fireargs-automation`                             |
 
 **There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the two tables above.
 
@@ -58,14 +64,14 @@ Shipped skills live in `typescript/skills/` and teach coding agents to **use** F
 
 - `pnpm install` — dependencies, lefthook and the `.claude/skills` symlink
 - `pnpm start` — the dev server over this repo's docs site · `pnpm build:docs` — its production build
-- `pnpm build` — compile the package into `typescript/build/` with `tsgo` (`typescript/tsconfig.build.json`)
+- `pnpm build` — compile `typescript/build/` with `tsgo` (`typescript/tsconfig.build.json`), then the wheel and sdist into `python/build/` with `uv build`
 - `pnpm test` — full gate: lint + type + unit · `pnpm check` — lint + type
 - `pnpm check:lint` — `vp fmt --check && vp lint` · `pnpm format` — `vp fmt` · `pnpm check:types` — `tsgo --noEmit`
-- `pnpm test:unit` — the repo guards, then the package's units. Single test, from `typescript/`: `vp test path/to/file.unit.ts` or `vp test -t "name"`. While iterating, verify the slice the diff reaches, not the full gate (**`change-verification`**)
+- `pnpm test:unit` — the repo guards, then each package's units and its `testsuite/` runner. Single test, from `typescript/`: `vp test path/to/file.unit.ts` or `vp test -t "name"`. While iterating, verify the slice the diff reaches, not the full gate (**`change-verification`**)
 - `pnpm measure:coverage` — the unit tests with coverage, which `vp test` leaves off
 - `pnpm scan:leaks` / `pnpm scan:vulns` / `pnpm scan` — gitleaks / semgrep / both
 - `pnpm update:deps` — bump dependencies past a 7-day cooldown
-- `pnpm -C typescript release` — publish to npm; run by the release workflow only
+- `pnpm -C typescript release` / `pnpm -C python release` — publish to npm / PyPI; run by the release workflow only
 - `pnpm squash <branch> -m "<subject>"` — land a worktree branch on local `main` as one commit (**`worktree-workflow`**)
 
 ## Code structure
@@ -74,10 +80,10 @@ The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): fo
 
 - `typescript/` — the npm package. `tsgo` compiles it into `typescript/build/`, which ships with `typescript/skills/` and nothing else; `typescript/vite.config.ts` holds only its `test` block
   - `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree
-  - `models/<entity>.ts` — zod schemas plus derived types for each builder's config
-  - Root files are single-concern: `index.ts` (the public façade), `settings.ts`
-  - Unit tests sit beside their module as `<module>.unit.ts`; snapshots land in a sibling `fixtures/generated/`
-  - `docs/` — the section's pages on the docs site; `skills/` — shipped agent skills for people who build CLIs with Fireargs
+  - `models/<entity>.ts` — types for each builder's config; `index.ts` the public façade, `settings.ts`
+  - Unit tests sit beside their module as `<module>.unit.ts`; `docs/` the section's pages, `skills/` its shipped skills
+- `python/` — the PyPI package, a uv project; `python/fireargs/` mirrors `typescript/` module for module, with `docs/` and `skills/` beside it (**`python-development`**)
+- `testsuite/` — language-neutral JSON cases both packages run against twin fixture CLIs
 - `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; the root `vite.config.ts` holds format, lint and the guards' tests
 - `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the repo overview and the docs site's config
 
@@ -90,14 +96,15 @@ Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the 
 - PascalCase types, interfaces and classes; camelCase values. Function names are **verbNoun** (`compileCommand`), never a bare verb or noun; factories are `create*` / `build*` / `make*`
 - `package.json` script names are `verb[:object]` (`check:lint`, `build:docs`), never noun-first; a `verb:x` script is a part or a scoped run of `verb`
 - Specs: Vitest via `vite-plus/test`, `<module>.unit.ts`, no "Arrange / Act / Assert" comments
+- Python: 3.12+, uv, ruff (90 columns), `ty`; snake_case **verb_noun** functions, the same no-`Any` rule (**`python-development`**)
 - Commits: Conventional Commits, typed by what an installer gets (below)
 
 ## Releases
 
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging that PR cuts the version, tags it and publishes. Merging is the gate — nothing ships without it.
 
-- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `typescript/actions/`, `typescript/models/`, `typescript/index.ts`, `typescript/settings.ts`, the `exports` and `files` in `typescript/package.json`, and the shipped `typescript/skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
+- **IMPORTANT: only changes to a published package use `feat` or `fix`** — `typescript/actions/`, `typescript/models/`, `typescript/index.ts`, `typescript/settings.ts`, the `exports` and `files` in `typescript/package.json`, the shipped `typescript/skills/`; `python/fireargs/`, the `[project]` table of `python/pyproject.toml` and the shipped `python/skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
 - This is not a style preference. release-please reads the commit type: a `fix:` on a workflow file cuts a release and burns a version number on a change no consumer can observe. Version numbers can never be reused
 - When in doubt, ask whether the change alters what someone installing the package gets. If it does not, it is `chore`
 - release-please assigns a commit to every component whose path it touches: a `feat` spanning two sections releases both, so land a change that only moves or shares files as `chore`
-- Release config lives in `.release/config.json` and `.release/manifest.json`. Each section is its own release-please component, keyed by its path, with its own version and changelog (`typescript/CHANGELOG.md`, tags `vX.Y.Z`), and all of them ship through one combined Release PR. The manifest holds the current versions and release-please maintains it — never hand-edit it
+- Release config lives in `.release/config.json` and `.release/manifest.json`. Each section is its own release-please component, keyed by its path, with its own version and changelog (a `CHANGELOG.md` in each section; tags `vX.Y.Z` for TypeScript, `python-vX.Y.Z` for Python), and all of them ship through one combined Release PR. The manifest holds the current versions and release-please maintains it — never hand-edit it

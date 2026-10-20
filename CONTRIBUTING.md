@@ -4,7 +4,7 @@ Fireargs is an open-source project and we'd love your help — whether that's fi
 
 ## Quick start
 
-You'll need [Node.js](https://nodejs.org/) 24+ and [pnpm](https://pnpm.io/) 10+. Then:
+You'll need [Node.js](https://nodejs.org/) 24+, [pnpm](https://pnpm.io/) 11+ and, for the Python package, [uv](https://docs.astral.sh/uv/). Then:
 
 ```bash
 git clone https://github.com/datisthq/fireargs.git
@@ -13,7 +13,7 @@ pnpm install
 pnpm start
 ```
 
-`pnpm start` boots the docs dev server so you can iterate on the site. To exercise the library itself:
+`pnpm install` also syncs the Python environment when `uv` is on your `PATH`. `pnpm start` boots the docs dev server so you can iterate on the site. To exercise both packages:
 
 ```bash
 pnpm test
@@ -36,6 +36,11 @@ fireargs/
 │   ├── index.ts         #   public API — exports the `f` namespace
 │   ├── settings.ts      #   tunables (FIREARGS_META_KEY)
 │   └── vite.config.ts   #   the package's test config
+├── python/              # the PyPI package `fireargs`, a uv project
+│   ├── fireargs/        #   the twin of typescript/: actions/, models/, __init__.py
+│   ├── docs/            #   the Python pages of the docs site
+│   └── skills/          #   shipped agent skills for Python users
+├── testsuite/           # language-neutral cases both packages must pass
 ├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
 ├── .livemark/           # docs-site escapes (theme, landing, screenshots)
 ├── scripts/             # repo-wide guards and the `pnpm squash` script
@@ -44,25 +49,25 @@ fireargs/
 └── vite.config.ts       # vite-plus shared config (format, lint, the guards' tests)
 ```
 
-The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`. Everything else is for development.
+The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`. Everything else is for development. A change to shared behaviour lands in both packages, with a `testsuite/` case.
 
 ## Local commands
 
 Run these at the repo root; each chains into the language sections with `pnpm -C <section>`.
 
-| Command            | What it does                                                  |
-| ------------------ | ------------------------------------------------------------- |
-| `pnpm install`     | Install dependencies                                          |
-| `pnpm build`       | Compile `typescript/` → `typescript/build/`                   |
-| `pnpm check:types` | Type-check via `tsgo --noEmit`                                |
-| `pnpm check:lint`  | Format check + lint (`vp fmt --check && vp lint`)             |
-| `pnpm check`       | `pnpm check:lint && pnpm check:types`                         |
-| `pnpm format`      | Auto-fix formatting (`vp fmt`)                                |
-| `pnpm test:unit`   | Run the repo guards and the unit tests (Vitest via `vp test`) |
-| `pnpm test`        | `pnpm check && pnpm test:unit`                                |
-| `pnpm start`       | Run the docs dev server                                       |
-| `pnpm build:docs`  | Production build of the docs site                             |
-| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)            |
+| Command            | What it does                                                      |
+| ------------------ | ----------------------------------------------------------------- |
+| `pnpm install`     | Install dependencies                                              |
+| `pnpm build`       | Build `typescript/build/` and the Python wheel in `python/build/` |
+| `pnpm check:types` | Type-check via `tsgo --noEmit` and `ty check`                     |
+| `pnpm check:lint`  | Format check + lint (`vp fmt`, `vp lint`, `ruff`)                 |
+| `pnpm check`       | `pnpm check:lint && pnpm check:types`                             |
+| `pnpm format`      | Auto-fix formatting (`vp fmt`, `ruff format`)                     |
+| `pnpm test:unit`   | Run the repo guards and both packages' unit tests and testsuite   |
+| `pnpm test`        | `pnpm check && pnpm test:unit`                                    |
+| `pnpm start`       | Run the docs dev server                                           |
+| `pnpm build:docs`  | Production build of the docs site                                 |
+| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)                |
 
 A change is ready to push when `pnpm test` is green.
 
@@ -74,6 +79,7 @@ A change is ready to push when `pnpm test` is green.
 - **File layout**: high-level public items at the top, private helpers at the bottom.
 - **Tests**: unit tests live next to the code as `<module>.unit.ts`; run one from `typescript/` with `vp test <file>`. No "Arrange/Act/Assert" comments — the structure should be obvious.
 - **Formatting**: vite-plus via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
+- **Python**: 3.12+, typed for `ty` without `Any`; tests beside the module as `<module>_unit.py`, run one with `uv run pytest <file>` from `python/`.
 
 ## Proposing a change
 
@@ -89,7 +95,7 @@ A change is ready to push when `pnpm test` is green.
 
 ## Releases
 
-Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm. Maintainers don't bump versions manually.
+Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm and PyPI. Each package has its own version. Maintainers don't bump versions manually.
 
 ## Where to find help
 

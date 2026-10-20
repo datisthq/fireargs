@@ -9,12 +9,15 @@ export default defineConfig({
   include: [
     "typescript/README.md",
     "typescript/docs/**/*.md",
+    "python/README.md",
+    "python/docs/**/*.md",
     "README.md",
     "CONTRIBUTING.md",
   ],
-  skills: ["typescript/skills/*/SKILL.md"],
+  skills: ["typescript/skills/*/SKILL.md", "python/skills/*/SKILL.md"],
   sections: [
     { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
+    { title: "Python", prefix: "/python/", icon: "code" },
     { title: "Project", prefix: "/", icon: "book-open" },
     {
       title: "Changelog",
@@ -40,6 +43,16 @@ export default defineConfig({
         icon: "rocket",
         order: 1,
         path: "/typescript/introduction/",
+      },
+    },
+    {
+      file: "python/README.md",
+      article: {
+        title: "Introduction",
+        description: "Install fireargs for Python and write your first command.",
+        icon: "rocket",
+        order: 1,
+        path: "/python/introduction/",
       },
     },
     {
