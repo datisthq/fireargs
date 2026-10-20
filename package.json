@@ -1,6 +1,6 @@
 {
   "name": "fireargs",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Build CLIs from zod schemas",
   "keywords": [
     "cli",

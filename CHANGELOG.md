@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0](https://github.com/datisthq/fireargs/compare/v0.5.0...v0.6.0) (2026-10-20)
+
+
+### Features
+
+* add a CLI-only parse to option and argument config ([1db9a03](https://github.com/datisthq/fireargs/commit/1db9a03435dc1dae9b7cc1b4b67dee509493ca6a))
+* declare required positionals and report input errors like commander ([7f030c0](https://github.com/datisthq/fireargs/commit/7f030c0c624e1edb52211bd2087dc0ba7365ab36))
+* derive kebab-case flags from input keys ([b407384](https://github.com/datisthq/fireargs/commit/b407384009db18396a0349be89e10a546a61508f))
+* pass a handler context and render human output ([5b32751](https://github.com/datisthq/fireargs/commit/5b32751993725163f4781c7c87ff9a9deee794ed))
+
 ## [0.5.0](https://github.com/datisthq/fireargs/compare/v0.4.1...v0.5.0) (2026-10-20)
 
 
