@@ -44,6 +44,11 @@ The same fields as `CommandConfig` (see `fireargs-commands`) without `jsonOption
 - `enablePositionalOptions` defaults to `true`, so options before a subcommand belong to the program and options after it belong to the subcommand. Without it, `myapp greet --llms` would be read as the program's `--llms`. Pass `false` only for commander's legacy parsing.
 - `--llms` on a program prints the whole tree; `llmsOption: false` removes it from that level only.
 
+Two settings belong on the root program:
+
+- `version` plus `versionOption: { flags: "-v, --version" }` for a short version flag.
+- `renderError` formats errors for every leaf below that has no hook of its own (see `fireargs-automation`).
+
 ## Help groups
 
 Set `helpGroup` on a command's or nested program's config to list it under its own heading in the parent's `--help`. Routes without one stay under `Commands:`; headings appear in the order their first route does. `f.option({ helpGroup })` does the same for options.

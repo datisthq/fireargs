@@ -8,12 +8,13 @@ import {
   readManifestBuilder,
   registerManifestBuilder,
 } from "../command/manifest.ts"
+import { registerErrorHandler } from "../error/handle.ts"
 
 /**
  * Build a fully-wired `Program` from a program config and a map of routes. Applies all `ProgramConfig` pass-throughs (identity,
  * help, hooks, behavior toggles, exit/output, `on`, `configureHelp`,
  * `addHelpText`/`addHelpCommand`/`addHelpOption`, `executableDir`,
- * `llmsOption`) and attaches each route under its object-key name.
+ * `llmsOption`, `renderError`) and attaches each route under its object-key name.
  */
 export function compileProgram(config: ProgramConfig, routes: Record<string, Route>) {
   const cmd = new Program(config.name)
@@ -24,6 +25,7 @@ export function compileProgram(config: ProgramConfig, routes: Record<string, Rou
     cmd.addCommand(sub)
   }
   registerManifestBuilder(cmd, prefix => collectTools(routes, prefix))
+  if (config.renderError !== undefined) registerErrorHandler(cmd, config.renderError)
   return cmd
 }
 
@@ -43,7 +45,10 @@ function applyProgramConfig(cmd: CommanderCommand, config: ProgramConfig) {
   if (config.aliases !== undefined) cmd.aliases(config.aliases)
   if (config.helpGroup !== undefined) cmd.helpGroup(config.helpGroup)
   if (config.usage !== undefined) cmd.usage(config.usage)
-  if (config.version !== undefined) cmd.version(config.version)
+  if (config.version !== undefined) {
+    const vo = config.versionOption
+    cmd.version(config.version, vo?.flags, vo?.description)
+  }
 
   const ho = config.helpOption
   if (ho === false) cmd.helpOption(false)

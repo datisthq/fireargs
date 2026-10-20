@@ -18,14 +18,15 @@ customize the flag string/description with `jsonOption: { flags?, description? }
 ## Three modes
 
 ```bash
-greet world                              # CLI in, no output (default behavior)
+greet world                              # CLI in, .render output (if any)
 greet world --json                       # CLI in, JSON out
 greet --json '{"name":"world"}'          # JSON in, JSON out
 ```
 
 The flag takes an optional value (`--json [value]`):
 
-- **Absent** — normal CLI parsing, handler runs, no automatic output.
+- **Absent** — normal CLI parsing, handler runs, and the validated output
+  goes to `.render(...)` if the command has one; otherwise nothing is printed.
 - **Present without a value** — CLI parsing for input, but the handler's
   return is serialized as JSON to stdout.
 - **Present with a JSON value** — input comes from the JSON blob; CLI
@@ -35,7 +36,7 @@ The flag takes an optional value (`--json [value]`):
 
 1. `JSON.parse`'s the value.
 2. Validates the parsed object through the input zod schema.
-3. Calls the handler with the validated input.
+3. Calls the handler with the validated input and `ctx.json === true`.
 4. Validates the handler's return through the output schema.
 5. Writes `JSON.stringify(result, null, 2) + "\n"` to commander's
    `writeOut` — `configureOutput.writeOut` can intercept it (handy for
@@ -44,12 +45,48 @@ The flag takes an optional value (`--json [value]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 3–5 are identical.
 
+## Keeping stdout clean
+
+The handler's second argument tells it which mode it runs in. In JSON mode,
+anything else written to stdout corrupts the result, so spinners, colors and
+progress output should check `ctx.json`:
+
+```ts
+.handler(async (input, ctx) => {
+  const spinner = ctx.json ? undefined : startSpinner("Loading")
+  // ...
+})
+```
+
 ## Errors
 
-Zod validation failures (input or output) and commander parse errors are
-written to stderr and propagate via the returned `Command`'s
-`parseAsync(...)`. With `exitOverride: true` they surface as exceptions
-instead of `process.exit(1)`.
+Without a hook, invalid JSON, zod validation failures (input or output) and
+handler exceptions reject the returned `Command`'s `parseAsync(...)`.
+
+Set `renderError` in the command's or program's config to turn them into
+output instead:
+
+```ts
+f.program({
+  name: "myapp",
+  renderError: (error, ctx) => {
+    const message = error instanceof Error ? error.message : String(error)
+    return ctx.json ? { error: message } : `error: ${message}`
+  },
+})
+```
+
+- In JSON mode a returned value is written as JSON to `writeOut`; otherwise a
+  returned string is written to `writeErr`. Return nothing to write it
+  yourself; rethrow to reject `parseAsync(...)` as before.
+- `process.exitCode` is then set to `1`. The process is not exited, so a
+  large payload still drains into a pipe — and `exitOverride` does not apply.
+- It also catches `.render(...)` failures. The nearest hook wins: the leaf's
+  own, then each enclosing program's.
+
+Commander parse errors (unknown option, bad choice, too many arguments)
+happen before the run starts: they are written to stderr and exit with code
+1, or throw a `CommanderError` with `exitOverride: true`.
 
 ## Composes with subcommands
 

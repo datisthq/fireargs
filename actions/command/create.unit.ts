@@ -1,7 +1,7 @@
 import { Command as CommanderCommand } from "commander"
-import { describe, expect, expectTypeOf, it } from "vite-plus/test"
+import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
-import { f, type Command } from "../../index.ts"
+import { f, type Command, type CommandContext, type RenderContext } from "../../index.ts"
 
 describe("f.command", () => {
   it("returns a Command instance", () => {
@@ -307,11 +307,47 @@ describe("f.command", () => {
     )
   })
 
-  it("rejects non-object schemas at .output", () => {
-    f.command().input(z.object({})).output(
-      // @ts-expect-error string is not a ZodObject
-      z.string(),
-    )
+  it("accepts non-object schemas at .output", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "list",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({}))
+      .output(z.array(z.string()))
+      .handler(() => ["a", "b"])
+
+    await cmd.parseAsync(["--json"], { from: "user" })
+    expect(JSON.parse(captured)).toEqual(["a", "b"])
+
+    captured = ""
+    await cmd.parseAsync(["--llms"], { from: "user" })
+    const manifest = JSON.parse(captured)
+    expect(manifest.tools[1].outputSchema.type).toBe("array")
+  })
+
+  it("--json writes null for an undefined output", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "noop",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({}))
+      .output(z.undefined())
+      .handler(() => undefined)
+
+    await cmd.parseAsync(["--json"], { from: "user" })
+    expect(captured).toBe("null\n")
   })
 
   it("rejects mismatched handler return type", () => {
@@ -562,4 +598,260 @@ describe("f.command", () => {
     expectTypeOf(builder).toHaveProperty("output")
     expectTypeOf(builder).not.toHaveProperty("handler")
   })
+
+  it("allows .render once, between .output and .handler", () => {
+    const builder = f.command().input(z.object({})).output(z.object({}))
+    expectTypeOf(builder).toHaveProperty("render")
+    expectTypeOf(builder.render(() => {})).not.toHaveProperty("render")
+    expectTypeOf(builder.render(() => {})).toHaveProperty("handler")
+  })
+
+  it("types .render output and input as parsed by their schemas", () => {
+    f.command()
+      .input(z.object({ name: z.string().default("x") }))
+      .output(z.object({ n: z.number().default(0) }))
+      .render((output, ctx) => {
+        expectTypeOf(output.n).toEqualTypeOf<number>()
+        expectTypeOf(ctx.input.name).toEqualTypeOf<string>()
+        // @ts-expect-error output has no such key
+        void output.missing
+      })
+      .handler(() => ({ n: 1 }))
+  })
 })
+
+describe("f.command handler context", () => {
+  async function runWithContext(argv: string[]) {
+    let seen: CommandContext | undefined
+    const cmd = f
+      .command({ name: "greet", configureOutput: { writeOut: () => {} } })
+      .input(z.object({ name: z.string().default("world") }))
+      .output(z.object({}))
+      .handler((_input, ctx) => {
+        seen = ctx
+        return {}
+      })
+    await cmd.parseAsync(argv, { from: "user" })
+    return { cmd, seen }
+  }
+
+  it("reports human mode without --json", async () => {
+    const { cmd, seen } = await runWithContext([])
+    expect(seen?.json).toBe(false)
+    expect(seen?.command).toBe(cmd)
+  })
+
+  it("reports JSON mode for a bare --json", async () => {
+    const { seen } = await runWithContext(["--json"])
+    expect(seen?.json).toBe(true)
+  })
+
+  it("reports JSON mode for --json with a value", async () => {
+    const { seen } = await runWithContext(["--json", '{"name":"x"}'])
+    expect(seen?.json).toBe(true)
+  })
+})
+
+describe("f.command .render", () => {
+  function buildRendered(render: (output: { size: number }) => string | void) {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "measure",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({ text: f.argument().string() }))
+      .output(z.object({ size: z.number().transform(n => n * 10) }))
+      .render(render)
+      .handler(input => ({ size: input.text.length }))
+    return { cmd, read: () => captured }
+  }
+
+  it("writes a returned string to writeOut in human mode", async () => {
+    const { cmd, read } = buildRendered(output => `size ${output.size}`)
+    await cmd.parseAsync(["abc"], { from: "user" })
+    expect(read()).toBe("size 30\n")
+  })
+
+  it("receives the parsed input and a human-mode context", async () => {
+    let seen: RenderContext<{ text: string }> | undefined
+    const cmd = f
+      .command({ name: "echo" })
+      .input(z.object({ text: f.argument().string() }))
+      .output(z.object({}))
+      .render((_output, ctx) => {
+        seen = ctx
+      })
+      .handler(() => ({}))
+
+    await cmd.parseAsync(["hi"], { from: "user" })
+    expect(seen?.input).toEqual({ text: "hi" })
+    expect(seen?.json).toBe(false)
+    expect(seen?.command).toBe(cmd)
+  })
+
+  it("is skipped in JSON mode", async () => {
+    let calls = 0
+    const { cmd, read } = buildRendered(() => {
+      calls += 1
+      return "human"
+    })
+    await cmd.parseAsync(["abc", "--json"], { from: "user" })
+    expect(calls).toBe(0)
+    expect(JSON.parse(read())).toEqual({ size: 30 })
+  })
+
+  it("prints nothing in human mode without .render", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "greet",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({}))
+      .output(z.object({ ok: z.boolean() }))
+      .handler(() => ({ ok: true }))
+
+    await cmd.parseAsync([], { from: "user" })
+    expect(captured).toBe("")
+  })
+})
+
+describe("f.command renderError", () => {
+  afterEach(() => {
+    process.exitCode = undefined
+  })
+
+  function buildFailing(props: {
+    handler?: () => { ok: boolean }
+    render?: () => void
+    renderError?: (error: unknown, ctx: CommandContext) => unknown
+  }) {
+    const out = { stdout: "", stderr: "" }
+    const cmd = f
+      .command({
+        name: "fail",
+        exitOverride: true,
+        configureOutput: {
+          writeOut: str => {
+            out.stdout += str
+          },
+          writeErr: str => {
+            out.stderr += str
+          },
+        },
+        renderError:
+          props.renderError ??
+          ((error, ctx) =>
+            ctx.json
+              ? { error: describeError(error) }
+              : `error: ${describeError(error)}`),
+      })
+      .input(z.object({ count: z.coerce.number() }))
+      .output(z.object({ ok: z.boolean() }))
+      .render(props.render ?? (() => {}))
+      .handler(props.handler ?? (() => ({ ok: true })))
+    return { cmd, out }
+  }
+
+  it("writes the hook's value as JSON for invalid --json input", async () => {
+    const { cmd, out } = buildFailing({})
+    await cmd.parseAsync(["--json", "{not json"], { from: "user" })
+    expect(JSON.parse(out.stdout)).toHaveProperty("error")
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("writes the hook's value as JSON for an input schema failure", async () => {
+    const { cmd, out } = buildFailing({})
+    await cmd.parseAsync(["--json", '{"count":"x"}'], { from: "user" })
+    expect(JSON.parse(out.stdout)).toHaveProperty("error")
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("writes the hook's value as JSON for a handler exception", async () => {
+    const { cmd, out } = buildFailing({
+      handler: () => {
+        throw new Error("boom")
+      },
+    })
+    await cmd.parseAsync(["--json", '{"count":1}'], { from: "user" })
+    expect(JSON.parse(out.stdout)).toEqual({ error: "boom" })
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("writes the hook's value as JSON for an output schema failure", async () => {
+    const { cmd, out } = buildFailing({
+      // @ts-expect-error the wrong output type is the point of this test
+      handler: () => ({ ok: "yes" }),
+    })
+    await cmd.parseAsync(["--json", '{"count":1}'], { from: "user" })
+    expect(JSON.parse(out.stdout)).toHaveProperty("error")
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("writes the hook's string to writeErr for a render failure", async () => {
+    const { cmd, out } = buildFailing({
+      render: () => {
+        throw new Error("render broke")
+      },
+    })
+    await cmd.parseAsync(["--count", "1"], { from: "user" })
+    expect(out.stdout).toBe("")
+    expect(out.stderr).toBe("error: render broke\n")
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("propagates an error the hook rethrows", async () => {
+    const { cmd } = buildFailing({
+      handler: () => {
+        throw new Error("boom")
+      },
+      renderError: error => {
+        throw error
+      },
+    })
+    await expect(cmd.parseAsync(["--count", "1"], { from: "user" })).rejects.toThrow(
+      "boom",
+    )
+  })
+})
+
+describe("f.command versionOption", () => {
+  it("prints the version through custom flags", async () => {
+    let captured = ""
+    const cmd = f
+      .command({
+        name: "tool",
+        version: "1.2.3",
+        versionOption: { flags: "-v, --version", description: "show the version" },
+        exitOverride: true,
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    expect(cmd.helpInformation()).toContain("-v, --version")
+    expect(cmd.helpInformation()).toContain("show the version")
+    await expect(cmd.parseAsync(["-v"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.version",
+    })
+    expect(captured).toBe("1.2.3\n")
+  })
+})
+
+function describeError(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}

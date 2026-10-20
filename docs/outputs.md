@@ -8,7 +8,7 @@ description: How the output schema validates handler returns and shapes JSON / L
 
 # Outputs
 
-`.output(z.object({...}))` defines the shape of whatever the handler
+`.output(schema)` defines the shape of whatever the handler
 returns. There's no `f.argument()` / `f.option()` equivalent for outputs —
 outputs aren't CLI inputs, so commander has no per-field surface to
 configure. The schema is pure data shape.
@@ -20,9 +20,10 @@ configure. The schema is pure data shape.
 }))
 ```
 
-The output schema must be a `z.object(...)`. Returning a primitive (string,
-number, etc.) directly isn't supported — wrap it in an object so JSON
-output is always navigable by key.
+Any zod schema works: `z.array(z.string())` writes a bare JSON array under
+`--json`, and a scalar writes a scalar. An `undefined` result is written as
+`null`. Prefer an object when the output may grow fields later — and when
+the CLI is exposed to MCP clients, whose `outputSchema` must be an object.
 
 ## Where the output schema is used
 
@@ -33,7 +34,9 @@ output is always navigable by key.
 2. **`--json` serialization** — when `--json` is set, the validated value
    is serialized via `JSON.stringify(value, null, 2)` and written to
    commander's `writeOut`. See [JSON mode](/json-mode/).
-3. **`--llms` manifest** — the schema is run through `z.toJSONSchema(...)`
+3. **Human rendering** — without `--json`, the validated value goes to
+   `.render(...)` when the command has one. See [Commands](/commands/).
+4. **`--llms` manifest** — the schema is run through `z.toJSONSchema(...)`
    and surfaced as the tool's `outputSchema`. See [LLMs mode](/llms-mode/).
 
 ## Serialization
@@ -90,7 +93,7 @@ There's no CLI-side metadata to strip on outputs — `f.argument()` /
 ## Why no separate slots like `f.argument()`/`f.option()`?
 
 Commander's `Command` has no output abstraction. CLI users see whatever
-your handler prints (or what `--json` serializes); there's nothing for
+`.render` prints (or what `--json` serializes); there's nothing for
 fireargs to "wire" beyond running the validation. Keeping outputs as plain
 zod schemas matches commander's surface and avoids inventing concepts the
 runtime can't honor.

@@ -20,6 +20,7 @@ export const f = {
 export type { ArgumentConfig } from "./models/argument-config.ts"
 export type { Command } from "./models/command.ts"
 export type { CommandConfig } from "./models/config.ts"
+export type { CommandContext, RenderContext } from "./models/context.ts"
 export type { OptionConfig } from "./models/option-config.ts"
 export type { Program } from "./models/program.ts"
 export type { ProgramConfig } from "./models/program-config.ts"

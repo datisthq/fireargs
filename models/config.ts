@@ -7,6 +7,7 @@ import type {
   Option,
   OutputConfiguration,
 } from "commander"
+import type { CommandContext } from "./context.ts"
 
 /**
  * Commander-level configuration for a single command. All fields are
@@ -30,6 +31,16 @@ export type CommandConfig = {
   usage?: string
   /** Version string (typically only set on the root command). */
   version?: string
+  /** Customize the flags and description of the option `version` adds. */
+  versionOption?: { flags?: string; description?: string }
+  /**
+   * Turn an error from a run (bad `--json`, input or output validation, the
+   * handler, `.render`) into output. In JSON mode a returned value is written
+   * as JSON to `writeOut`; otherwise a returned string goes to `writeErr`.
+   * Then the exit code is set to 1. Rethrow to propagate. The nearest hook
+   * wins: a leaf's own, then each enclosing program's.
+   */
+  renderError?: (error: unknown, ctx: CommandContext) => unknown
   /** Customize the auto-help option. Pass `false` to disable. */
   helpOption?: { flags?: string; description?: string } | false
   /** Customize the auto-help subcommand. Pass `false` to disable. */

@@ -21,7 +21,7 @@ Invoke when the user asks to:
 Every leaf command gets `--json [value]`:
 
 ```bash
-greet world                       # CLI in, nothing printed
+greet world                       # CLI in, .render output if any
 greet world --json                # CLI in, JSON out
 greet --json '{"name":"world"}'   # JSON in, JSON out
 ```
@@ -78,7 +78,18 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 ## Errors and exits
 
 - A commander parse error (unknown option, bad choice, too many arguments) prints to stderr and exits with code 1. With `exitOverride: true` it throws a `CommanderError` instead.
-- Invalid JSON, a zod input or output failure, or an exception from the handler rejects the `parseAsync(...)` promise. Catch it to print a clean message and set the exit code; Node otherwise reports the unhandled rejection.
+- Invalid JSON, a zod input or output failure, or an exception from the handler or `.render` rejects the `parseAsync(...)` promise — unless a `renderError` hook is set.
+- `renderError: (error, ctx) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
+
+```ts
+f.program({
+  name: "myapp",
+  renderError: (error, ctx) => {
+    const message = error instanceof Error ? error.message : String(error)
+    return ctx.json ? { error: message } : `error: ${message}`
+  },
+})
+```
 
 ## Testing a command
 
@@ -97,20 +108,20 @@ await cmd.parseAsync(["--json", '{"name":"world"}'], { from: "user" })
 expect(JSON.parse(out)).toEqual({ greeting: "hello world" })
 ```
 
-`writeOut` receives both the `--json` result and the `--llms` manifest; `{ from: "user" }` passes arguments without the `node script` prefix.
+`writeOut` receives the `--json` result, the `--llms` manifest and `.render` text; `{ from: "user" }` passes arguments without the `node script` prefix. A test that triggers `renderError` asserts `process.exitCode` and resets it in `afterEach`.
 
 ## Rules of thumb
 
 1. **Describe every field and command.** Descriptions are the only prose an agent sees in the manifest.
 2. **Keep output schemas JSON-native.** Strings, numbers, booleans, arrays and objects round-trip; `Date`, `BigInt`, `Map` and `Set` do not (use `z.iso.datetime()`, strings, records and arrays).
-3. **Keep stdout clean in JSON mode.** A handler that logs to stdout corrupts the `--json` result; log to stderr.
+3. **Keep stdout clean in JSON mode.** Check the handler's `ctx.json` and skip spinners and colored output; put human output in `.render`, which never runs under `--json`.
 4. **Never parse `--help` text.** Use `--llms` for structure and `--json` for results.
 
 ## Verification
 
 - `<binary> --llms | jq '.tools[].name'` lists every tool once, with the expected paths.
 - Each tool runs with `--json` and a value built only from its `inputSchema`.
-- A failing call exits non-zero and leaves stdout empty or unparsable as a result.
+- A failing call exits non-zero, and stdout holds no result: it is empty, or only the `renderError` payload.
 
 ## References
 

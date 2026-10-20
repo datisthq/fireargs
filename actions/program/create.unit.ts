@@ -1,5 +1,5 @@
 import { Command as CommanderCommand } from "commander"
-import { describe, expect, expectTypeOf, it } from "vite-plus/test"
+import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
 import { f, type Program } from "../../index.ts"
 
@@ -235,5 +235,86 @@ describe("f.program", () => {
     const cli = f.program({ name: "myapp" }).router({ users })
 
     expect(cli.helpInformation()).toMatch(/Admin:\n {2}users.*Manages users/)
+  })
+
+  it("prints the version through custom flags", async () => {
+    let captured = ""
+    const cli = f
+      .program({
+        name: "myapp",
+        version: "1.2.3",
+        versionOption: { flags: "-v, --version" },
+        exitOverride: true,
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .router({})
+
+    await expect(cli.parseAsync(["-v"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.version",
+    })
+    expect(captured).toBe("1.2.3\n")
+  })
+})
+
+describe("f.program renderError", () => {
+  afterEach(() => {
+    process.exitCode = undefined
+  })
+
+  function buildFailingLeaf(props: { renderError?: () => unknown }) {
+    const out = { stdout: "" }
+    const leaf = f
+      .command({
+        name: "migrate",
+        configureOutput: {
+          writeOut: str => {
+            out.stdout += str
+          },
+        },
+        renderError: props.renderError,
+      })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => {
+        throw new Error("boom")
+      })
+    return { leaf, out }
+  }
+
+  it("catches an error from a nested leaf", async () => {
+    const { leaf, out } = buildFailingLeaf({})
+    const db = f.program({ name: "db" }).router({ migrate: leaf })
+    const cli = f
+      .program({
+        name: "myapp",
+        renderError: (error, ctx) => ({
+          error: error instanceof Error ? error.message : String(error),
+          json: ctx.json,
+          command: ctx.command.name(),
+        }),
+      })
+      .router({ db })
+
+    await cli.parseAsync(["db", "migrate", "--json"], { from: "user" })
+    expect(JSON.parse(out.stdout)).toEqual({
+      error: "boom",
+      json: true,
+      command: "migrate",
+    })
+    expect(process.exitCode).toBe(1)
+  })
+
+  it("lets a leaf's own hook override the program's", async () => {
+    const { leaf, out } = buildFailingLeaf({ renderError: () => ({ from: "leaf" }) })
+    const cli = f
+      .program({ name: "myapp", renderError: () => ({ from: "program" }) })
+      .router({ migrate: leaf })
+
+    await cli.parseAsync(["migrate", "--json"], { from: "user" })
+    expect(JSON.parse(out.stdout)).toEqual({ from: "leaf" })
   })
 })

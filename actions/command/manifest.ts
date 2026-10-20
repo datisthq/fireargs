@@ -72,7 +72,7 @@ export function readManifestBuilder(cmd: CommanderCommand, prefix: string) {
 export function buildLeafTool(
   cmd: CommanderCommand,
   input: z.ZodObject,
-  output: z.ZodObject,
+  output: z.ZodType,
   prefix: string,
 ): Tool {
   const tool: Tool = {

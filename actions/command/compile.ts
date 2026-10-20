@@ -8,7 +8,9 @@ import { z } from "zod"
 import type { ArgumentConfig } from "../../models/argument-config.ts"
 import { Command } from "../../models/command.ts"
 import type { CommandConfig } from "../../models/config.ts"
+import type { CommandContext, RenderContext } from "../../models/context.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
+import { handleError, registerErrorHandler } from "../error/handle.ts"
 import { readFieldMeta } from "../field/read.ts"
 import {
   buildLeafTool,
@@ -23,21 +25,34 @@ import {
  * the input zod schema (with each field's `createArgument`/`createOption`
  * metadata selecting positional vs flag and supplying per-field config), and
  * wires the `.action(...)` callback to validate input via zod, invoke the
- * handler, and validate the return value via the output schema.
+ * handler, validate the return value via the output schema, and then write it
+ * as JSON or hand it to `render`.
  */
-export function compileCommand<I extends z.ZodObject, O extends z.ZodObject>(
+export function compileCommand<I extends z.ZodObject, O extends z.ZodType>(
   config: CommandConfig,
   input: I,
   output: O,
-  handler: (input: z.infer<I>) => z.infer<O> | Promise<z.infer<O>>,
+  handler: Handler<I, O>,
+  render?: Render<I, O>,
 ) {
   const cmd = new Command(config.name)
   applyConfig(cmd, config)
   const argKeys = declareFields(cmd, input)
-  wireAction(cmd, argKeys, input, output, handler)
+  wireAction(cmd, argKeys, input, output, handler, render)
+  if (config.renderError !== undefined) registerErrorHandler(cmd, config.renderError)
   registerManifestBuilder(cmd, prefix => [buildLeafTool(cmd, input, output, prefix)])
   return cmd
 }
+
+export type Handler<I extends z.ZodObject, O extends z.ZodType> = (
+  input: z.infer<I>,
+  ctx: CommandContext,
+) => z.infer<O> | Promise<z.infer<O>>
+
+export type Render<I extends z.ZodObject, O extends z.ZodType> = (
+  output: z.output<O>,
+  ctx: RenderContext<z.output<I>>,
+) => string | void | Promise<string | void>
 
 function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
   if (config.description !== undefined) cmd.description(config.description)
@@ -45,7 +60,10 @@ function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
   if (config.aliases !== undefined) cmd.aliases(config.aliases)
   if (config.helpGroup !== undefined) cmd.helpGroup(config.helpGroup)
   if (config.usage !== undefined) cmd.usage(config.usage)
-  if (config.version !== undefined) cmd.version(config.version)
+  if (config.version !== undefined) {
+    const vo = config.versionOption
+    cmd.version(config.version, vo?.flags, vo?.description)
+  }
 
   const ho = config.helpOption
   if (ho === false) cmd.helpOption(false)
@@ -211,38 +229,42 @@ function applyOptionMeta(opt: Option, meta: OptionConfig | undefined) {
   if (meta.helpGroup !== undefined) opt.helpGroup(meta.helpGroup)
 }
 
-function wireAction<I extends z.ZodObject, O extends z.ZodObject>(
-  cmd: CommanderCommand,
+function wireAction<I extends z.ZodObject, O extends z.ZodType>(
+  cmd: Command,
   argKeys: readonly string[],
   input: I,
   output: O,
-  handler: (input: z.infer<I>) => z.infer<O> | Promise<z.infer<O>>,
+  handler: Handler<I, O>,
+  render: Render<I, O> | undefined,
 ) {
   cmd.action(async (...args) => {
     const options = cmd.opts()
     const json = options.json
+    const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
 
     if (options.llms === true) {
-      const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
       const tools = readManifestBuilder(cmd, "") ?? []
       const manifest = { tools: [buildHelpTool(), ...tools] }
       writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return
     }
 
-    if (json !== undefined) {
+    const ctx: CommandContext = { json: json !== undefined, command: cmd }
+    try {
       const raw = typeof json === "string" ? JSON.parse(json) : buildRawFromCli()
       const parsed = input.parse(raw)
-      const result = await handler(parsed)
-      const validated = output.parse(result)
-      const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
-      writer(`${JSON.stringify(validated, null, 2)}\n`)
-      return
-    }
+      const validated = output.parse(await handler(parsed, ctx))
 
-    const parsed = input.parse(buildRawFromCli())
-    const result = await handler(parsed)
-    output.parse(result)
+      if (ctx.json) {
+        writer(`${JSON.stringify(validated ?? null, null, 2)}\n`)
+        return
+      }
+
+      const rendered = await render?.(validated, { ...ctx, input: parsed })
+      if (typeof rendered === "string") writer(`${rendered}\n`)
+    } catch (error) {
+      await handleError(cmd, error, ctx)
+    }
 
     function buildRawFromCli() {
       const positionals = args.slice(0, argKeys.length)

@@ -38,6 +38,11 @@ Enabled by default on every command and program. Disable per-command via
 }
 ```
 
+MCP requires a tool's `outputSchema` to describe an object. A command with an
+array or scalar output still gets a valid JSON Schema here, but an MCP client
+that validates strictly will reject it: use `z.object(...)` outputs for a CLI
+meant to be served over MCP.
+
 ## The reserved `help` tool
 
 The first entry is always a `help` tool whose `description` carries the

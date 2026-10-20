@@ -9,7 +9,7 @@ description: The f.command(...) chainable builder and the leaf shape it produces
 # Commands
 
 `f.command(config?)` opens a chainable, type-stated builder. Call `.input(...)`,
-`.output(...)`, then `.handler(...)` — each step is required, in that order.
+`.output(...)`, optionally `.render(...)`, then `.handler(...)`, in that order.
 The terminal `.handler(...)` returns a fully-wired `Command`, a subclass of
 commander's `Command` tagged `type: "command"`.
 
@@ -26,22 +26,43 @@ const greet = f
 await greet.parseAsync(process.argv)
 ```
 
-## `.input(z.object)` and `.output(z.object)`
+## `.input(z.object)` and `.output(schema)`
 
-Both must be `z.object(...)` schemas. The input shape determines the
-positional arguments and `--options` (see [Inputs](/inputs/)). The output
-schema validates whatever the handler returns; mismatches throw at runtime
-through commander's `parseAsync`.
+The input must be a `z.object(...)`: its shape determines the positional
+arguments and `--options` (see [Inputs](/inputs/)). The output can be any zod
+schema — an object, an array, a scalar (see [Outputs](/outputs/)). It
+validates whatever the handler returns; mismatches throw at runtime through
+commander's `parseAsync`.
 
-## `.handler((input) => result)`
+## `.render((output, ctx) => text)`
 
-Receives the parsed, zod-validated input as a single positional argument.
-Must return a value matching the output schema. May be async — fireargs
-awaits it.
+Optional. Turns the validated output into what a human sees at the shell.
+It runs only without `--json`; with it, the output is written as JSON
+instead. A returned string is written to `writeOut` with a trailing newline;
+return nothing to write the output yourself (spinners, colors, tables).
+`ctx` carries `input` (the parsed input), `json` and `command`. Without
+`.render`, a run without `--json` prints nothing.
+
+```ts
+f.command({ name: "list" })
+  .input(z.object({ path: f.argument().string() }))
+  .output(z.array(z.string()))
+  .render(names => names.map(name => `- ${name}`).join("\n"))
+  .handler(input => listNames(input.path))
+```
+
+## `.handler((input, ctx) => result)`
+
+Receives the parsed, zod-validated input and a context. Must return a value
+matching the output schema. May be async — fireargs awaits it.
+
+`ctx.json` is `true` when `--json` was given, with or without a value: a
+handler that drives spinners or progress output keeps quiet then, so stdout
+stays parseable. `ctx.command` is the running `Command`.
 
 The handler is wrapped in commander's `.action(...)`. Errors propagate via
-the returned `Command`'s `parseAsync(...)` — set `exitOverride: true` in the
-config to surface them as exceptions instead of `process.exit`.
+the returned `Command`'s `parseAsync(...)` unless a `renderError` hook is
+set (see [JSON mode](/json-mode/#errors)).
 
 ## What gets derived from the input schema
 
@@ -71,6 +92,7 @@ commander methods. All fields are optional.
 | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `name`                                                                                                                       | `cmd.name(...)`                                                                                    |
 | `description`, `summary`, `aliases`, `usage`, `version`                                                                      | identity setters                                                                                   |
+| `versionOption`                                                                                                              | `{ flags?, description? }` for the option `version` adds, e.g. `{ flags: "-v, --version" }`        |
 | `helpGroup`                                                                                                                  | `cmd.helpGroup(...)` — heading this command is listed under in its parent's help                   |
 | `helpOption`, `helpCommand`                                                                                                  | `cmd.helpOption(...)`, `cmd.helpCommand(...)`; `false` to disable                                  |
 | `configureHelp`                                                                                                              | `cmd.configureHelp(...)` — `Partial<commander.Help>`                                               |
@@ -84,6 +106,7 @@ commander methods. All fields are optional.
 | `executableDir`                                                                                                              | `cmd.executableDir(path)`                                                                          |
 | `on`                                                                                                                         | `Array<{ event, listener }>` — each registered via `cmd.on(event, listener)`                       |
 | `jsonOption`, `llmsOption`                                                                                                   | customize or disable the built-in `--json`/`--llms` flags. See [LLMs mode](/llms-mode/)            |
+| `renderError`                                                                                                                | `(error, ctx) => value` — turn a failed run into output. See [JSON mode](/json-mode/#errors)       |
 
 Anything commander supports that fireargs hasn't surfaced (yet) you can call
 directly on the returned `Command` — `.handler(...)` returns a real commander
@@ -91,7 +114,7 @@ instance.
 
 ## Why fixed-order pipeline?
 
-`.input` then `.output` then `.handler`, all required, no shortcuts. This
-keeps the type-state simple (three small interfaces, each exposing one
-method) and makes the `Command`'s static type predictable. If you find
+`.input` then `.output` then `.handler`, all required, with `.render` the one
+optional step before `.handler`. This keeps the type-state simple (small
+interfaces exposing one or two methods) and makes the `Command`'s static type predictable. If you find
 yourself wanting an inputless command, use `z.object({})`.

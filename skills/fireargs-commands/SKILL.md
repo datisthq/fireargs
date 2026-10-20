@@ -1,11 +1,11 @@
 ---
 name: fireargs-commands
-description: Use when writing or editing a Fireargs command — f.command(...).input().output().handler(), how zod fields become arguments and --options, f.argument()/f.option() config, CommandConfig, and the traps that silently drop field metadata.
+description: Use when writing or editing a Fireargs command — f.command(...).input().output().render().handler(), how zod fields become arguments and --options, f.argument()/f.option() config, CommandConfig, and the traps that silently drop field metadata.
 ---
 
 # Fireargs Commands
 
-Guidance for defining a single CLI command with Fireargs: one zod input schema, one zod output schema, one handler.
+Guidance for defining a single CLI command with Fireargs: one zod input schema, one zod output schema, one handler and an optional renderer for humans.
 
 ## When to use this skill
 
@@ -14,11 +14,12 @@ Invoke when the user asks to:
 - Add a new command or change an existing one's arguments, options or output.
 - Make a field positional, give an option a short flag, an env-var fallback, choices or a default.
 - Mark options as conflicting, implied, hidden or grouped in `--help`.
-- Customise help text, hooks, error handling or the built-in `--json` / `--llms` flags of one command.
+- Print human-readable output, or keep a spinner quiet under `--json`.
+- Customise help text, hooks, error handling, version flags or the built-in `--json` / `--llms` flags of one command.
 
 ## The builder
 
-`f.command(config?)` opens a type-stated builder. `.input(...)`, `.output(...)` and `.handler(...)` are all required, in that order. `.handler(...)` returns a real commander `Command` (tagged `type: "command"`), so run it with `parseAsync`:
+`f.command(config?)` opens a type-stated builder. `.input(...)`, `.output(...)` and `.handler(...)` are required, in that order; `.render(...)` is an optional step just before `.handler(...)`. `.handler(...)` returns a real commander `Command` (tagged `type: "command"`), so run it with `parseAsync`:
 
 ```ts
 import { f } from "fireargs"
@@ -39,9 +40,21 @@ const greet = f
 await greet.parseAsync(process.argv)
 ```
 
-- Input and output must both be `z.object(...)`. A command without input uses `z.object({})`; a command returning a scalar wraps it (`z.object({ count: z.number() })`).
-- The handler receives the zod-parsed input as one argument and may be async. Its return value is parsed through the output schema on every run, so output transforms apply and a mismatch throws.
-- Without `--json` nothing is printed: a handler that should talk to a human at the shell writes to stdout itself.
+- Input must be `z.object(...)`; a command without input uses `z.object({})`. Output may be any zod schema — `z.array(...)` writes a bare JSON array — but prefer an object when the CLI is served over MCP, whose `outputSchema` must be an object.
+- The handler receives the zod-parsed input and `ctx: { json, command }`, and may be async. Its return value is parsed through the output schema on every run, so output transforms apply and a mismatch throws.
+- `ctx.json` is `true` under `--json`, with or without a value. Anything else written to stdout then corrupts the result: skip spinners, colors and progress output.
+
+## Human output: `.render(...)`
+
+Without `--json` nothing is printed unless the command has `.render((output, ctx) => ...)`. It receives the validated output and `ctx.input`; a returned string is written to `writeOut` with a newline, or it writes itself and returns nothing. It never runs under `--json`, so the handler just returns data:
+
+```ts
+f.command({ name: "list" })
+  .input(z.object({ path: f.argument().string() }))
+  .output(z.array(z.string()))
+  .render(names => names.map(name => `- ${name}`).join("\n"))
+  .handler(input => listNames(input.path))
+```
 
 ## How input fields map to the CLI
 
@@ -83,12 +96,13 @@ Both open a field builder with `.string()`, `.number()`, `.boolean()`, `.enum([.
 
 Everything passed to `f.command(config)` is optional and forwarded to commander:
 
-- **Identity:** `name`, `description`, `summary`, `aliases`, `usage`, `version`, `helpGroup`.
+- **Identity:** `name`, `description`, `summary`, `aliases`, `usage`, `version`, `helpGroup`; `versionOption: { flags?, description? }` renames the version flag (`"-v, --version"`).
 - **Help:** `helpOption` / `helpCommand` (`false` disables), `configureHelp`, `addHelpText` (`{ beforeAll, before, after, afterAll }`), `addHelpCommand`, `addHelpOption`.
 - **Parsing:** `allowUnknownOption`, `allowExcessArguments`, `enablePositionalOptions`, `passThroughOptions`, `combineFlagAndOptionalValue`, `showHelpAfterError`, `showSuggestionAfterError`.
 - **Hooks and events:** `preSubcommand`, `preAction`, `postAction`, `on: [{ event, listener }]`.
 - **Exit and output:** `exitOverride` (`true` throws `CommanderError` instead of exiting), `configureOutput` (`writeOut` / `writeErr`), `executableDir`.
 - **Built-in flags:** `jsonOption` and `llmsOption` — `{ flags?, description? }` or `false`. See `fireargs-automation`.
+- **Errors:** `renderError: (error, ctx) => value` turns a failed run into output and exit code 1. See `fireargs-automation`.
 
 Anything commander supports that the config does not surface can be called on the returned `Command` directly.
 
@@ -104,7 +118,7 @@ Anything commander supports that the config does not surface can be called on th
 ## Verification
 
 - Run the command with `--help` and check every argument, option, default, choice and env binding is listed as intended.
-- Run it once at the shell and once with `--json '<value>'`, including a case that omits each optional field.
+- Run it once at the shell and once with `--json '<value>'`, including a case that omits each optional field. Under `--json`, stdout holds the JSON and nothing else.
 - With `exitOverride: true` and `configureOutput: { writeOut, writeErr }` the command can be driven from a unit test without exiting the process.
 
 ## References

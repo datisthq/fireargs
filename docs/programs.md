@@ -116,6 +116,14 @@ slots (`helpOption`, `helpCommand`, `configureHelp`, `addHelpText`,
 `addHelpCommand`, `addHelpOption`), behavior toggles, hooks, exit/output
 config, `on` listeners, `executableDir`, and `llmsOption`.
 
+Two of them reach past the program itself:
+
+- `version` with `versionOption: { flags: "-v, --version" }` keeps a short
+  version flag.
+- `renderError` set on a program covers every leaf below it that has no hook
+  of its own, so one hook formats errors for the whole tree (see
+  [JSON mode](/json-mode/#errors)).
+
 ## `enablePositionalOptions` defaults to `true` on programs
 
 Without it, a program-level option like `--llms` would shadow a subcommand's
