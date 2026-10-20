@@ -23,10 +23,8 @@ import { f } from "fireargs"
 import { z } from "zod"
 
 const paginationParams = z.object({
-  page: f.option({ short: "p" }).schema(z.coerce.number().int().min(1).default(1)),
-  limit: f
-    .option({ short: "l" })
-    .schema(z.coerce.number().int().min(1).max(100).default(20)),
+  page: f.option({ short: "p" }).schema(z.number().int().min(1).default(1)),
+  limit: f.option({ short: "l" }).schema(z.number().int().min(1).max(100).default(20)),
 })
 
 const verbosityParams = z.object({
@@ -177,7 +175,7 @@ When you reuse a fragment, every per-field detail rides along:
 - **Zod's own metadata** — `.describe()`, `.default()`, `.optional()`,
   `.enum()`, `.coerce`, validation rules.
 - **fireargs metadata** — `f.argument()` / `f.option()` config (short,
-  env, conflicts, hidden, preset, helpGroup, defaultDescription).
+  env, conflicts, hidden, preset, helpGroup, defaultDescription, parse).
 
 Both surface in commander's `--help` and in the `--llms` manifest exactly
 as if you'd written the fields inline. Compose freely; nothing leaks or

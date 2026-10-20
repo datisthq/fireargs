@@ -5,8 +5,8 @@ import { FIREARGS_META_KEY } from "../../settings.ts"
 /**
  * One MCP-style tool entry in a `--llms` manifest. `name` is the
  * space-separated path the caller uses to reach the tool (e.g. `"api greet"`
- * for a leaf nested two levels deep). `inputSchema` and `outputSchema` are
- * JSON Schemas with fireargs metadata stripped.
+ * for a leaf nested two levels deep). `inputSchema` (what `--json` accepts) and
+ * `outputSchema` are JSON Schemas with fireargs metadata stripped.
  */
 export type Tool = {
   name: string
@@ -77,8 +77,16 @@ export function buildLeafTool(
 ): Tool {
   const tool: Tool = {
     name: prefix || cmd.name(),
-    inputSchema: z.toJSONSchema(input, { override: stripFireargsMeta }),
-    outputSchema: z.toJSONSchema(output, { override: stripFireargsMeta }),
+    inputSchema: z.toJSONSchema(input, {
+      io: "input",
+      unrepresentable: "any",
+      override: stripFireargsMeta,
+    }),
+    outputSchema: z.toJSONSchema(output, {
+      io: "output",
+      unrepresentable: "any",
+      override: stripFireargsMeta,
+    }),
   }
   const description = cmd.description()
   if (description) tool.description = description

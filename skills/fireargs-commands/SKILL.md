@@ -1,6 +1,6 @@
 ---
 name: fireargs-commands
-description: Use when writing or editing a Fireargs command — f.command(...).input().output().render().handler(), how zod fields become arguments and --options, f.argument()/f.option() config, CommandConfig, and the traps that silently drop field metadata.
+description: Use when writing or editing a Fireargs command — f.command(...).input().output().render().handler(), how zod fields become arguments and --options, f.argument()/f.option() config and parse, CommandConfig, and metadata traps.
 ---
 
 # Fireargs Commands
@@ -13,6 +13,7 @@ Invoke when the user asks to:
 
 - Add a new command or change an existing one's arguments, options or output.
 - Make a field positional, give an option a short flag, an env-var fallback, choices or a default.
+- Accept a shell-only syntax such as a comma list or a JSON string for one option.
 - Mark options as conflicting, implied, hidden or grouped in `--help`.
 - Print human-readable output, or keep a spinner quiet under `--json`.
 - Customise help text, hooks, error handling, version flags or the built-in `--json` / `--llms` flags of one command.
@@ -30,7 +31,7 @@ const greet = f
   .input(
     z.object({
       name: f.argument().string().describe("The user's name."),
-      times: z.coerce.number().default(1).describe("Repeat the greeting n times."),
+      times: z.number().default(1).describe("Repeat the greeting n times."),
       verbose: f.option({ short: "v" }).schema(z.boolean().default(false)),
     }),
   )
@@ -65,6 +66,7 @@ Every key of the input object becomes a field, named exactly as the key (`dryRun
 | bare field         | `--key <value>` option                                |
 | `f.argument()...`  | positional `[key]`, declared in input-key order       |
 | `z.boolean()`      | `--key` flag, no value                                |
+| `z.number()`       | CLI string coerced to a number before zod parses it   |
 | `z.array(T)`       | variadic: `[key...]` or `--key <value...>`            |
 | `z.enum([...])`    | choices, checked by commander before the handler runs |
 | `.default(v)`      | default shown in `--help` and applied by commander    |
@@ -89,8 +91,24 @@ Both open a field builder with `.string()`, `.number()`, `.boolean()`, `.enum([.
 | `preset`             | value used when the flag is given without a value             |
 | `helpGroup`          | heading this option is listed under in `--help`               |
 | `defaultDescription` | text shown for the default in `--help` instead of the literal |
+| `parse`              | `(value: string) => value` for the CLI string; see below      |
 
-`f.argument(config)` takes only `defaultDescription`. Commander arguments have no short flag, env, conflicts, hidden or group.
+`f.argument(config)` takes only `defaultDescription` and `parse`. Commander arguments have no short flag, env, conflicts, hidden or group.
+
+## Parsing CLI strings
+
+`parse` turns the string from argv or `env` into the field's value; zod then validates it. It never runs on `--json` input, so the schema — and the `--llms` manifest — describe the real value:
+
+```ts
+missingValues: f.option({ parse: v => v.split(",") }).schema(z.array(z.string()).optional()),
+headerRows: f
+  .option({ parse: v => (v === "false" ? false : v.split(",").map(Number)) })
+  .schema(z.union([z.literal(false), z.array(z.number())]).optional()),
+```
+
+- A field with `parse` takes exactly one value (`--key <value>`), even for an array or boolean schema, and skips commander's choices check.
+- `.schema(...)` must accept what `parse` returns, or TypeScript rejects it.
+- A throw inside `parse` becomes commander's "argument … is invalid" error.
 
 ## `CommandConfig`
 
@@ -109,16 +127,16 @@ Anything commander supports that the config does not surface can be called on th
 ## Rules of thumb
 
 1. **Put modifiers inside `.schema(...)`.** `f.option({ short: "v" }).boolean().optional()` returns a new zod wrapper without the metadata, so `-v` disappears and an `f.argument()` field silently turns back into `--key`. Write `f.option({ short: "v" }).schema(z.boolean().optional())`. `.describe(...)` is the one chain that keeps the metadata.
-2. **Coerce numbers.** Commander hands every value over as a string, so a bare `z.number()` (and `.number()` on a field builder) rejects `--times 3`. Use `z.coerce.number()`; it accepts both CLI strings and `--json` numbers.
+2. **Use `parse`, not `.transform()`, for shell syntax.** A transform is part of the schema, so `--json` callers must send the same comma list or JSON string, and `--llms` shows the pre-transform type. `z.number()` needs neither: fireargs coerces its CLI string and keeps `--json` strict.
 3. **Give booleans a default.** An absent flag reaches zod as `undefined`, so a required `z.boolean()` fails whenever the flag is left off. Use `z.boolean().default(false)` or `.optional()`.
-4. **Expose dates as strings.** `z.date()` cannot be written to JSON Schema, so `--llms` throws. Use `z.iso.datetime()` (ISO string in and out) or `z.coerce.date()` on input.
+4. **Expose dates as strings.** `z.date()` cannot be written to JSON Schema, so `--llms` shows it as `{}` and an agent cannot tell what to send. Use `z.iso.datetime()` (ISO string in and out) or `z.coerce.date()` on input.
 5. **Keep keys flag-shaped.** The key is the flag: prefer `camelCase` keys and avoid characters that do not read well after `--`.
 6. **Wrap sparingly.** Plain zod covers descriptions, defaults, choices, variadics and optionality; the wrappers are only for commander-specific slots.
 
 ## Verification
 
 - Run the command with `--help` and check every argument, option, default, choice and env binding is listed as intended.
-- Run it once at the shell and once with `--json '<value>'`, including a case that omits each optional field. Under `--json`, stdout holds the JSON and nothing else.
+- Run it once at the shell and once with `--json '<value>'`, including a case that omits each optional field. Under `--json`, stdout holds the JSON and nothing else. For a field with `parse`, the shell gets the string syntax and `--json` the parsed value.
 - With `exitOverride: true` and `configureOutput: { writeOut, writeErr }` the command can be driven from a unit test without exiting the process.
 
 ## References

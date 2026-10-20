@@ -59,7 +59,7 @@ so the wire is consumable by any LLM, shell, or non-fireargs client.
 ## Round-trip caveat for `Date`
 
 `z.date()` makes round-trip with `--json` awkward and is unrepresentable
-in `z.toJSONSchema(...)` (Zod throws). Prefer:
+in `z.toJSONSchema(...)`, so `--llms` shows it as `{}`. Prefer:
 
 ```ts
 .output(z.object({
@@ -85,7 +85,10 @@ Per-property, the JSON Schema in the manifest carries:
 - `type`, `format`, `pattern` — derived from the zod constructor.
 - `description` — from `.describe(...)` and `.meta({ description })`.
 - `enum` — from `z.enum([...])`.
-- `required` — derived from non-`optional` / non-`default` fields.
+- `required` — derived from non-`optional` fields; a defaulted output field
+  is always present, so it is required.
+- `{}` — for a type JSON Schema cannot express, such as `z.date()` or the
+  result of a `.transform()`.
 
 There's no CLI-side metadata to strip on outputs — `f.argument()` /
 `f.option()` are inputs-only — so every key zod emits passes through.

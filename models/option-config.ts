@@ -1,9 +1,10 @@
 /**
  * Per-option commander config that can't be derived from a zod schema —
- * short flag, env-var binding, cross-field constraints, and help-presentation
- * hints. Attached to an input field via `createOption(config).{type}()`.
+ * short flag, env-var binding, cross-field constraints, help-presentation
+ * hints and a CLI-only value parser. Attached to an input field via
+ * `createOption(config).{type}()`.
  */
-export type OptionConfig = {
+export type OptionConfig<V = unknown> = {
   /** Short flag letter, e.g. `"v"` → adds `-v` to `--verbose`. */
   short?: string
   /** Environment variable to fall back to when the flag is absent. */
@@ -20,4 +21,6 @@ export type OptionConfig = {
   helpGroup?: string
   /** Display string for the default value in help (overrides the literal). */
   defaultDescription?: string
+  /** Turn the CLI string into the schema's input; `--json` input skips it. */
+  parse?: (value: string) => V
 }

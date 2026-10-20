@@ -70,7 +70,7 @@ For each property of the input object schema:
 
 | Zod construct               | Becomes                                                                           |
 | --------------------------- | --------------------------------------------------------------------------------- |
-| `z.string()` / `z.number()` | `--key <value>` (mandatory unless wrapped)                                        |
+| `z.string()` / `z.number()` | `--key <value>` (mandatory unless wrapped); a number's CLI string is coerced      |
 | `z.boolean()`               | `--key` flag (boolean)                                                            |
 | `z.optional(...)`           | optional positional `[key]` if marked `f.argument()`                              |
 | `z.default(v)`              | forwarded to commander as `defaultValue`                                          |
@@ -80,7 +80,7 @@ For each property of the input object schema:
 | `.describe("...")`          | shown in commander `--help` and surfaced as `description` in `--llms` JSON Schema |
 
 For per-field commander config that zod doesn't model (short flag, env var,
-conflicts, hidden, preset, …) wrap the field with [`f.argument(config)`
+conflicts, hidden, preset, a custom `parse`, …) wrap the field with [`f.argument(config)`
 or `f.option(config)`](/inputs/).
 
 ## `CommandConfig`

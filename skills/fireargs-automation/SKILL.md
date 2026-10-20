@@ -30,7 +30,7 @@ With a value, the run is: `JSON.parse` the value → parse it with the input sch
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys the input schema does not declare are dropped by zod, not rejected.
-- JSON input skips commander, so `env` fallbacks, choices checks and commander defaults do not apply — zod's `.default(...)` still does.
+- JSON input skips commander, so `env` fallbacks, choices checks, a field's `parse`, number coercion and commander defaults do not apply — zod's `.default(...)` still does. Send each value in its real type: `["a","b"]`, not `"a,b"`; `3`, not `"3"`.
 
 ## `--llms`: the manifest
 
@@ -62,7 +62,8 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 - The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`). Never call it.
 - On a program, nested leaves are flattened and `name` is the space-separated path below the binary. `myapp db migrate --llms` prints only that leaf, named `migrate`: take tool names from the root's manifest.
 - Schemas are JSON Schema draft 2020-12 from `z.toJSONSchema`: types, `.describe(...)` text, defaults, enums and formats. CLI-only config (short flags, env, conflicts, …) is stripped.
-- A field with a `.default(...)` is listed in `required` (the schema describes the parsed value), yet may be left out of the `--json` input.
+- `inputSchema` describes what `--json` accepts: a defaulted field is not `required`, and a `.transform()` field shows its pre-transform type. `outputSchema` describes the validated output.
+- A type JSON Schema cannot express (`z.date()`, an output `.transform()`) appears as `{}`, meaning any value.
 
 ## Calling a Fireargs CLI as an agent
 

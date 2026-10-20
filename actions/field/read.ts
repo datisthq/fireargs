@@ -12,11 +12,14 @@ export type FieldMeta =
   | ({ kind: "argument" } & ArgumentConfig)
   | ({ kind: "option" } & OptionConfig)
 
+const parseSchema = z.custom<(value: string) => unknown>(v => typeof v === "function")
+
 const argumentMetaSchema = z.object({
   kind: z.literal("argument"),
   hidden: z.boolean().optional(),
   helpGroup: z.string().optional(),
   defaultDescription: z.string().optional(),
+  parse: parseSchema.optional(),
 })
 
 const optionMetaSchema = z.object({
@@ -29,6 +32,7 @@ const optionMetaSchema = z.object({
   preset: z.unknown().optional(),
   helpGroup: z.string().optional(),
   defaultDescription: z.string().optional(),
+  parse: parseSchema.optional(),
 })
 
 const fieldMetaSchema: z.ZodType<FieldMeta> = z.discriminatedUnion("kind", [

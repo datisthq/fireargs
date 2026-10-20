@@ -1,6 +1,7 @@
 import {
   Argument,
   Command as CommanderCommand,
+  InvalidArgumentError,
   Option,
   type AddHelpTextPosition,
 } from "commander"
@@ -162,22 +163,15 @@ function declareArgument(
   const description = schema.description ?? ""
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
-
-  let variadic = false
-  let choices: readonly string[] | undefined
-  if (inner instanceof z.ZodArray) {
-    variadic = true
-    const element = unwrap(inner.element)
-    if (element instanceof z.ZodEnum) choices = stringChoices(element.options)
-  } else if (inner instanceof z.ZodEnum) {
-    choices = stringChoices(inner.options)
-  }
+  const { variadic, choices } = readValueShape(inner, meta?.parse)
 
   const suffix = variadic ? "..." : ""
   const spec = `[${key}${suffix}]`
   const arg = new Argument(spec, description)
   if (choices !== undefined) arg.choices(choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
+  const parser = createValueParser(inner, meta?.parse, dflt)
+  if (parser !== undefined) arg.argParser(parser)
   cmd.addArgument(arg)
 }
 
@@ -192,7 +186,7 @@ function declareOption(
   const inner = unwrap(schema)
   const shortPrefix = meta?.short ? `-${meta.short}, ` : ""
 
-  if (inner instanceof z.ZodBoolean) {
+  if (inner instanceof z.ZodBoolean && meta?.parse === undefined) {
     const opt = new Option(`${shortPrefix}--${key}`, description)
     if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
     applyOptionMeta(opt, meta)
@@ -200,8 +194,24 @@ function declareOption(
     return
   }
 
+  const { variadic, choices } = readValueShape(inner, meta?.parse)
+  const suffix = variadic ? "..." : ""
+  const flagSpec = `${shortPrefix}--${key} <value${suffix}>`
+  const opt = new Option(flagSpec, description)
+  if (choices !== undefined) opt.choices(choices)
+  if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
+  const parser = createValueParser(inner, meta?.parse, dflt)
+  if (parser !== undefined) opt.argParser(parser)
+  applyOptionMeta(opt, meta)
+  cmd.addOption(opt)
+}
+
+// A field with `parse` takes one token: commander's own variadic collecting and its
+// choices (an argParser too) would otherwise run before, or instead of, `parse`.
+function readValueShape(inner: unknown, parse: ((value: string) => unknown) | undefined) {
   let variadic = false
   let choices: readonly string[] | undefined
+  if (parse !== undefined) return { variadic, choices }
   if (inner instanceof z.ZodArray) {
     variadic = true
     const element = unwrap(inner.element)
@@ -209,14 +219,38 @@ function declareOption(
   } else if (inner instanceof z.ZodEnum) {
     choices = stringChoices(inner.options)
   }
+  return { variadic, choices }
+}
 
-  const suffix = variadic ? "..." : ""
-  const flagSpec = `${shortPrefix}--${key} <value${suffix}>`
-  const opt = new Option(flagSpec, description)
-  if (choices !== undefined) opt.choices(choices)
-  if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
-  applyOptionMeta(opt, meta)
-  cmd.addOption(opt)
+function createValueParser(
+  inner: unknown,
+  parse: ((value: string) => unknown) | undefined,
+  dflt: unknown,
+) {
+  if (parse !== undefined) return (value: string) => runParse(parse, value)
+  if (inner instanceof z.ZodNumber) return parseNumber
+  if (inner instanceof z.ZodArray && unwrap(inner.element) instanceof z.ZodNumber) {
+    return (value: string, previous: unknown) => {
+      // Mirrors commander's `_collectValue`: a repeated value replaces the default.
+      const values = previous === dflt || !Array.isArray(previous) ? [] : previous
+      return [...values, parseNumber(value)]
+    }
+  }
+  return undefined
+}
+
+function runParse(parse: (value: string) => unknown, value: string) {
+  try {
+    return parse(value)
+  } catch (error) {
+    throw new InvalidArgumentError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+function parseNumber(value: string) {
+  const number = value.trim() === "" ? Number.NaN : Number(value)
+  if (Number.isNaN(number)) throw new InvalidArgumentError("Not a number.")
+  return number
 }
 
 function applyOptionMeta(opt: Option, meta: OptionConfig | undefined) {

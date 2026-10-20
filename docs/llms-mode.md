@@ -80,7 +80,18 @@ Per-property fields in `inputSchema` / `outputSchema` are emitted by Zod's
 - `default` — from `.default(...)`.
 - `enum` — from `z.enum([...])`.
 - `format`, `pattern`, etc. — from `z.iso.datetime()` and friends.
-- `required` array — derived from non-`optional` / non-`default` fields.
+- `required` array — non-`optional` fields; in `inputSchema` a defaulted
+  field is not required either.
+
+`inputSchema` describes what `--json` accepts — the input side of each zod
+schema. A defaulted field is optional there, a `.transform()` field shows
+its pre-transform type, and a field with a [`parse`](/inputs/#parsing-cli-values)
+shows its schema type, since `parse` applies to CLI strings only.
+`outputSchema` describes the validated value the handler's output becomes.
+
+A zod type that JSON Schema cannot express — `z.date()`, the result of an
+output `.transform()` — is written as `{}` (any value) rather than failing
+the whole manifest.
 
 Fireargs metadata attached by `f.argument()` / `f.option()` (short flags,
 env, conflicts, …) is **stripped** from the JSON Schema in the manifest —
@@ -95,8 +106,6 @@ correctly on the wire. The opposite direction is trickier:
 - `z.date()` rejects an ISO string at parse time. For round-trip via
   `--json`, accept the wire format with `z.iso.datetime()` (validated
   ISO string passed through) or `z.coerce.date()` (string → `Date`).
-- `z.date()`'s schema is _unrepresentable_ in JSON Schema — Zod throws
-  by default. Tracked in
-  [issue #1](https://github.com/datisthq/fireargs/issues/1); workaround for
-  now is to use `z.iso.datetime()` for any Date you want to expose via
-  `--llms`.
+- `z.date()`'s schema is _unrepresentable_ in JSON Schema, so the manifest
+  shows it as `{}` and an agent learns nothing about it. Use
+  `z.iso.datetime()` for any Date you want to expose via `--llms`.

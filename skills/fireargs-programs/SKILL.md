@@ -67,8 +67,8 @@ Inputs and outputs are plain zod objects, and Fireargs metadata lives on each fi
 
 ```ts
 const pagination = z.object({
-  page: f.option({ short: "p" }).schema(z.coerce.number().int().min(1).default(1)),
-  limit: f.option({ short: "l" }).schema(z.coerce.number().int().max(100).default(20)),
+  page: f.option({ short: "p" }).schema(z.number().int().min(1).default(1)),
+  limit: f.option({ short: "l" }).schema(z.number().int().max(100).default(20)),
 })
 
 const listUsers = f

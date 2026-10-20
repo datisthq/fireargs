@@ -108,6 +108,40 @@ describe("f.program", () => {
     expect(deployTool.inputSchema.properties.env.enum).toEqual(["staging", "prod"])
   })
 
+  it("--llms keeps the whole tree when one leaf parses or transforms input", async () => {
+    let captured = ""
+    const table = f
+      .command({ name: "table" })
+      .input(
+        z.object({
+          missing: f.option({ parse: v => v.split(",") }).schema(z.array(z.string())),
+          list: z
+            .string()
+            .transform(v => v.split(","))
+            .optional(),
+        }),
+      )
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    const cli = f
+      .program({
+        name: "myapp",
+        configureOutput: {
+          writeOut: str => {
+            captured += str
+          },
+        },
+      })
+      .router({ data: f.program({ name: "data" }).router({ table }) })
+
+    await cli.parseAsync(["--llms"], { from: "user" })
+    const tool = JSON.parse(captured).tools[1]
+    expect(tool.name).toBe("data table")
+    expect(tool.inputSchema.properties.missing.type).toBe("array")
+    expect(tool.inputSchema.properties.list.type).toBe("string")
+  })
+
   it("subcommand --llms still works after attachment", async () => {
     let captured = ""
     const greet = f

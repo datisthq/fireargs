@@ -7,6 +7,6 @@ import { createFieldBuilder } from "../field/create.ts"
  * value shape (`.string()`, `.number()`, `.boolean()`, `.enum(...)`,
  * `.array(inner)`, or `.schema(custom)` for arbitrary zod types).
  */
-export function createArgument(config: ArgumentConfig = {}) {
-  return createFieldBuilder({ kind: "argument", ...config })
+export function createArgument<const V = never>(config: ArgumentConfig<V> = {}) {
+  return createFieldBuilder<V>({ kind: "argument", ...config })
 }

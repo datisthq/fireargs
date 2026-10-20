@@ -2,6 +2,7 @@ import { Command as CommanderCommand } from "commander"
 import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
 import { f, type Command, type CommandContext, type RenderContext } from "../../index.ts"
+import { readFieldMeta } from "../field/read.ts"
 
 describe("f.command", () => {
   it("returns a Command instance", () => {
@@ -215,13 +216,13 @@ describe("f.command", () => {
   it("propagates zod validation errors from input", async () => {
     const cmd = f
       .command({ name: "greet" })
-      .input(z.object({ count: z.coerce.number() }))
+      .input(z.object({ count: z.coerce.number().min(10) }))
       .output(z.object({ ok: z.boolean() }))
       .handler(() => ({ ok: true }))
 
-    await expect(
-      cmd.parseAsync(["--count", "not-a-number"], { from: "user" }),
-    ).rejects.toThrow()
+    await expect(cmd.parseAsync(["--count", "3"], { from: "user" })).rejects.toThrow(
+      z.ZodError,
+    )
   })
 
   it("f.option attaches short flag", async () => {
@@ -619,6 +620,244 @@ describe("f.command", () => {
       .handler(() => ({ n: 1 }))
   })
 })
+
+describe("CLI value parsing", () => {
+  it("applies f.option parse to the argv string", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        missing: f.option({ parse: v => v.split(",") }).schema(z.array(z.string())),
+      }),
+    )
+
+    await cmd.parseAsync(["--missing", "a,b"], { from: "user" })
+    expect(read()).toEqual({ missing: ["a", "b"] })
+    expect(cmd.helpInformation()).toContain("--missing <value>")
+    expect(cmd.helpInformation()).not.toContain("<value...>")
+  })
+
+  it("leaves --json input to zod without calling parse", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        missing: f.option({ parse: v => v.split(",") }).schema(z.array(z.string())),
+      }),
+    )
+
+    await cmd.parseAsync(["--json", '{"missing":["a,b"]}'], { from: "user" })
+    expect(read()).toEqual({ missing: ["a,b"] })
+  })
+
+  it("parses a value union such as false | number[]", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        headerRows: f
+          .option({ parse: v => (v === "false" ? false : v.split(",").map(Number)) })
+          .schema(z.union([z.literal(false), z.array(z.number())]).optional()),
+      }),
+    )
+
+    await cmd.parseAsync(["--headerRows", "false"], { from: "user" })
+    expect(read()).toEqual({ headerRows: false })
+    await cmd.parseAsync(["--headerRows", "1,2"], { from: "user" })
+    expect(read()).toEqual({ headerRows: [1, 2] })
+  })
+
+  it("takes a value even when a parsed field is boolean", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        on: f.option({ parse: v => v === "yes" }).schema(z.boolean().optional()),
+      }),
+    )
+
+    await cmd.parseAsync(["--on", "yes"], { from: "user" })
+    expect(read()).toEqual({ on: true })
+  })
+
+  it("applies parse to env values", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        tags: f
+          .option({ env: "FIREARGS_TEST_TAGS", parse: v => v.split(",") })
+          .schema(z.array(z.string()).optional()),
+      }),
+    )
+
+    process.env.FIREARGS_TEST_TAGS = "a,b"
+    try {
+      await cmd.parseAsync([], { from: "user" })
+      expect(read()).toEqual({ tags: ["a", "b"] })
+    } finally {
+      delete process.env.FIREARGS_TEST_TAGS
+    }
+  })
+
+  it("applies f.argument parse to the positional string", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        pairs: f
+          .argument({
+            parse: v => Object.fromEntries(v.split(",").map(p => p.split(":"))),
+          })
+          .schema(z.record(z.string(), z.string())),
+      }),
+    )
+
+    await cmd.parseAsync(["a:int,b:str"], { from: "user" })
+    expect(read()).toEqual({ pairs: { a: "int", b: "str" } })
+    expect(cmd.helpInformation()).toContain("[pairs]")
+  })
+
+  it("reports a throwing parse as an invalid commander argument", async () => {
+    const { cmd } = createCapturingCommand(
+      z.object({
+        props: f.option({ parse: v => JSON.parse(v) }).schema(z.object({}).optional()),
+      }),
+    )
+
+    await expect(
+      cmd.parseAsync(["--props", "{"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "commander.invalidArgument" })
+  })
+
+  it("keeps parse in the field meta", () => {
+    const parse = (v: string) => v.split(",")
+    const schema = f.option({ parse }).schema(z.array(z.string()))
+    expect(readFieldMeta(schema)).toEqual({ kind: "option", parse })
+  })
+
+  it("rejects a schema that cannot accept what parse returns", () => {
+    // @ts-expect-error parse returns string[] but the schema takes a string
+    f.option({ parse: v => v.split(",") }).schema(z.string())
+    f.option({ parse: v => v.split(",") }).schema(z.array(z.string()).optional())
+    f.option().schema(z.string())
+  })
+
+  it("coerces CLI strings for z.number() fields", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        rows: z.number().int().optional(),
+        ratio: f.option({ short: "r" }).number(),
+        page: f.argument().schema(z.int().optional()),
+      }),
+    )
+
+    await cmd.parseAsync(["2", "--rows", "10", "-r", "0.5"], { from: "user" })
+    expect(read()).toEqual({ rows: 10, ratio: 0.5, page: 2 })
+  })
+
+  it("rejects a CLI string that is not a number", async () => {
+    const { cmd } = createCapturingCommand(z.object({ rows: z.number().optional() }))
+
+    for (const value of ["abc", ""]) {
+      await expect(
+        cmd.parseAsync(["--rows", value], { from: "user" }),
+      ).rejects.toMatchObject({ code: "commander.invalidArgument" })
+    }
+  })
+
+  it("coerces each value of a variadic number field", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        ids: f.argument().schema(z.array(z.number()).optional()),
+        rows: z.array(z.number()).default([1]),
+      }),
+    )
+
+    await cmd.parseAsync([], { from: "user" })
+    expect(read()).toEqual({ ids: [], rows: [1] })
+    await cmd.parseAsync(["7", "8", "--rows", "2", "3", "--rows", "4"], { from: "user" })
+    expect(read()).toEqual({ ids: [7, 8], rows: [2, 3, 4] })
+  })
+
+  it("keeps --json number fields strict", async () => {
+    const { cmd } = createCapturingCommand(z.object({ rows: z.number() }))
+
+    await expect(
+      cmd.parseAsync(["--json", '{"rows":"3"}'], { from: "user" }),
+    ).rejects.toThrow(z.ZodError)
+  })
+})
+
+describe("--llms schemas", () => {
+  it("describes a transformed input field by its input type", async () => {
+    const tool = await readLeafTool(
+      z.object({
+        list: z
+          .string()
+          .transform(v => v.split(","))
+          .optional(),
+      }),
+      z.object({}),
+    )
+    expect(tool.inputSchema.properties.list).toEqual({ type: "string" })
+  })
+
+  it("describes a parsed field by its schema type, without meta", async () => {
+    const tool = await readLeafTool(
+      z.object({
+        missing: f.option({ parse: v => v.split(",") }).schema(z.array(z.string())),
+      }),
+      z.object({}),
+    )
+    expect(tool.inputSchema.properties.missing).toEqual({
+      type: "array",
+      items: { type: "string" },
+    })
+  })
+
+  it("leaves defaulted input fields out of required", async () => {
+    const tool = await readLeafTool(
+      z.object({ name: z.string(), times: z.number().default(1) }),
+      z.object({ count: z.number().default(0) }),
+    )
+    expect(tool.inputSchema.required).toEqual(["name"])
+    expect(tool.outputSchema.required).toEqual(["count"])
+  })
+
+  it("writes unrepresentable fields as an unconstrained schema", async () => {
+    const tool = await readLeafTool(
+      z.object({ at: z.date().optional() }),
+      z.object({ size: z.string().transform(v => v.length) }),
+    )
+    expect(tool.inputSchema.properties.at).toEqual({})
+    expect(tool.outputSchema.properties.size).toEqual({})
+  })
+})
+
+function createCapturingCommand<I extends z.ZodObject>(input: I) {
+  let captured: unknown
+  const cmd = f
+    .command({
+      name: "greet",
+      exitOverride: true,
+      configureOutput: { writeOut: () => {}, writeErr: () => {} },
+    })
+    .input(input)
+    .output(z.object({}))
+    .handler(parsed => {
+      captured = parsed
+      return {}
+    })
+  return { cmd, read: () => captured }
+}
+
+async function readLeafTool(input: z.ZodObject, output: z.ZodObject) {
+  let captured = ""
+  const cmd = f
+    .command({
+      name: "greet",
+      configureOutput: {
+        writeOut: str => {
+          captured += str
+        },
+      },
+    })
+    .input(input)
+    .output(output)
+    .handler(() => ({}))
+
+  await cmd.parseAsync(["--llms"], { from: "user" })
+  return JSON.parse(captured).tools[1]
+}
 
 describe("f.command handler context", () => {
   async function runWithContext(argv: string[]) {
