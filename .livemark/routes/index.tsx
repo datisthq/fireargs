@@ -74,15 +74,19 @@ function Hero() {
             Modern CLI builder for the agentic era
           </p>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-5xl">
-            Zod schemas in,
+            Typed CLIs for
             <br />
             <span className="box-decoration-clone bg-linear-to-r from-primary/20 to-primary/20 bg-size-[100%_0.3em] bg-position-[0_88%] bg-no-repeat">
-              CLIs out.
+              people, scripts
+              <br />
+              and agents.
             </span>
           </h1>
           <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-muted-foreground md:text-xl">
             Define each command with an input and an output schema. Get{" "}
-            <code className="font-mono whitespace-nowrap text-foreground">--help</code>{" "}
+            <code className="font-mono whitespace-nowrap text-foreground">
+              --help
+            </code>{" "}
             for people,{" "}
             <code className="font-mono whitespace-nowrap text-foreground">--json</code>{" "}
             for scripts and an MCP-shaped{" "}
