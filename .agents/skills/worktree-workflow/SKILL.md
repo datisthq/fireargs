@@ -32,7 +32,7 @@ another session's server.
 
 ## Running the docs site
 
-Start the server from inside the worktree: `pnpm start` serves the worktree's own `docs/`, and
+Start the server from inside the worktree: `pnpm start` serves the worktree's own docs, and
 `pnpm build:docs` writes into the worktree, never the root.
 
 ## Landing

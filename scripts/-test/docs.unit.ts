@@ -4,7 +4,8 @@ import { describe, expect, it } from "vite-plus/test"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const REPO_SKILLS = join(ROOT, ".agents", "skills")
-const SHIPPED_SKILLS = join(ROOT, "skills")
+const SECTIONS = ["typescript", "python"].filter(name => existsSync(join(ROOT, name)))
+const SHIPPED_SKILLS = SECTIONS.map(name => join(ROOT, name, "skills")).filter(existsSync)
 
 describe("documentation stays true", () => {
   it("wires .claude/skills to .agents/skills", () => {
@@ -40,19 +41,21 @@ describe("documentation stays true", () => {
   })
 
   it("names only pnpm scripts that exist", () => {
-    const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"))
-    const scripts = Object.keys(manifest.scripts ?? {})
+    const scripts = readScripts(ROOT)
     const missing: string[] = []
     for (const doc of readDocs()) {
       const commands = [
         ...doc.text.matchAll(/`([^`\n]*pnpm [^`\n]*)`/g),
         ...doc.text.matchAll(/^\s*(pnpm .+)$/gm),
       ].map(match => match[1] ?? "")
-      for (const [, script = ""] of commands
+      for (const [, section, script = ""] of commands
         .join("\n")
-        .matchAll(/pnpm ([a-z][a-z0-9:-]*)/g)) {
+        .matchAll(/pnpm (?:-C ([a-z]+) )?([a-z][a-z0-9:-]*)/g)) {
         if (PNPM_BUILTINS.includes(script)) continue
-        if (!scripts.includes(script)) missing.push(`${doc.path}: pnpm ${script}`)
+        const known = section ? readScripts(join(ROOT, section)) : scripts
+        if (!known.includes(script)) {
+          missing.push(`${doc.path}: pnpm ${section ? `-C ${section} ` : ""}${script}`)
+        }
       }
     }
     expect(missing).toEqual([])
@@ -60,7 +63,7 @@ describe("documentation stays true", () => {
 
   it("gives every skill a name and a short description", () => {
     const problems: string[] = []
-    for (const directory of [REPO_SKILLS, SHIPPED_SKILLS]) {
+    for (const directory of [REPO_SKILLS, ...SHIPPED_SKILLS]) {
       for (const name of readdirSync(directory)) {
         const path = join(directory, name, "SKILL.md")
         if (!existsSync(path)) {
@@ -86,7 +89,9 @@ describe("documentation stays true", () => {
   it("lists every skill in the AGENTS.md tables, and only those", () => {
     const agents = readFileSync(join(ROOT, "AGENTS.md"), "utf8")
     const listed = [...agents.matchAll(/^\| `([a-z-]+)` +\|/gm)].map(match => match[1])
-    const skills = [...readdirSync(REPO_SKILLS), ...readdirSync(SHIPPED_SKILLS)]
+    const skills = [REPO_SKILLS, ...SHIPPED_SKILLS].flatMap(directory =>
+      readdirSync(directory),
+    )
     expect(listed.toSorted()).toEqual(skills.toSorted())
   })
 })
@@ -105,6 +110,12 @@ const WORKSPACE = new Set([
   ".github",
   ".release",
 ])
+
+function readScripts(directory: string) {
+  const path = join(directory, "package.json")
+  if (!existsSync(path)) return []
+  return Object.keys(JSON.parse(readFileSync(path, "utf8")).scripts ?? {})
+}
 
 function readDocs() {
   const docs = [

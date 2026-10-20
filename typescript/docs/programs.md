@@ -1,6 +1,6 @@
 ---
 title: Programs
-path: /programs/
+path: /typescript/programs/
 icon: folder-tree
 order: 6
 description: f.program() for subcommand trees, including nested programs.
@@ -67,7 +67,7 @@ const cli = f.program({ name: "myapp" }).router({
 ```
 
 `--llms` flattens the tree to space-separated tool names — the inner
-`greet` becomes `"api greet"` in the manifest. See [LLMs mode](/llms-mode/).
+`greet` becomes `"api greet"` in the manifest. See [LLMs mode](/typescript/llms-mode/).
 
 ## `Command`, `Program` and `Route`
 
@@ -110,7 +110,7 @@ f.program({ name: "myapp" }).router({ deploy, users, version })
 Same shape as `CommandConfig` minus the input-side concerns: `arguments`
 (no input fields at the program level) and `jsonOption` (programs dispatch —
 they don't read JSON input). Otherwise everything in
-[CommandConfig](/commands/#commandconfig) applies — identity (`name`,
+[CommandConfig](/typescript/commands/#commandconfig) applies — identity (`name`,
 `description`, `summary`, `aliases`, `usage`, `version`, `helpGroup`), help
 slots (`helpOption`, `helpCommand`, `configureHelp`, `addHelpText`,
 `addHelpCommand`, `addHelpOption`), behavior toggles, hooks, exit/output
@@ -122,7 +122,7 @@ Two of them reach past the program itself:
   version flag.
 - `renderError` set on a program covers every leaf below it that has no hook
   of its own, so one hook formats errors for the whole tree (see
-  [JSON mode](/json-mode/#errors)).
+  [JSON mode](/typescript/json-mode/#errors)).
 
 ## `enablePositionalOptions` defaults to `true` on programs
 

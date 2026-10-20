@@ -1,6 +1,6 @@
 ---
 title: Composability
-path: /composability/
+path: /typescript/composability/
 icon: boxes
 order: 9
 description: Share common parameters across commands by composing zod schemas.
@@ -166,7 +166,7 @@ const cli = f.program({ name: "myapp" }).router({
 ```
 
 Both invocation paths route to the same handler. See
-[Programs](/programs/) for the dispatch and `--llms` flattening details.
+[Programs](/typescript/programs/) for the dispatch and `--llms` flattening details.
 
 ## What carries through
 

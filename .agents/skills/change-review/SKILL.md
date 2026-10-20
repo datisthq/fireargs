@@ -35,12 +35,12 @@ in it.
 **This repo's own invariants** — these are where a generic reviewer is blind, and they matter
 more than the generic checklist:
 
-- a change to `index.ts`, the `exports` map, the `f` namespace or a public model type that
+- a change to `typescript/index.ts`, the `exports` map, the `f` namespace or a public model type that
   breaks an existing CLI built on the package;
-- a renamed `FIREARGS_META_KEY` (`settings.ts`) or a changed meta shape, which silently drops
+- a renamed `FIREARGS_META_KEY` (`typescript/settings.ts`) or a changed meta shape, which silently drops
   every field's argument/option tagging;
 - a builder method, field-config option or CLI behaviour (JSON mode, LLM manifest) added or
-  changed with the matching `docs/` page or shipped skill (`skills/`) left as it was;
+  changed with the matching `typescript/docs/` page or shipped skill (`typescript/skills/`) left as it was;
 - a commit typed `feat` or `fix` that does not change what an installer gets, or a package change
   typed `chore`;
 - a commit marked breaking (`!` or a `BREAKING CHANGE:` footer);

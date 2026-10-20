@@ -40,10 +40,11 @@ Work through the diff asking each of these:
 ### Where to look
 
 - `AGENTS.md` — the only one, at the repo root; the guard enforces that.
-- `.agents/skills/*/SKILL.md` and the shipped `skills/*/SKILL.md` — including the `description`, which is what makes a skill get
+- `.agents/skills/*/SKILL.md` and the shipped `typescript/skills/*/SKILL.md` — including the `description`, which is what makes a skill get
   picked up at all. A skill whose body drifted is bad; a skill whose _description_ drifted is
   invisible.
-- `README.md`, `CONTRIBUTING.md` and the docs site under `docs/`, which is the user manual.
+- `README.md`, `typescript/README.md`, `CONTRIBUTING.md` and the docs site under `typescript/docs/`,
+  which is the user manual.
 - Comments that assert a repo-wide invariant, not just local ones — the doc comment on
   `FIREARGS_META_KEY`, a guard test's explanation of what it protects.
 
@@ -55,8 +56,9 @@ per source folder, and the skills tables. Procedure, rationale and an area's tra
 area's skill, with at most a one-line pointer left in `AGENTS.md`. When a paragraph grows there,
 move it. Keep `AGENTS.md` near 10 KB.
 
-- How to **use** Fireargs (builders, field config, JSON and LLM modes) → the matching `docs/`
-  page and the shipped skill in `skills/`, kept in step, and the README for the first command.
+- How to **use** Fireargs (builders, field config, JSON and LLM modes) → the matching
+  `typescript/docs/` page and the shipped skill in `typescript/skills/`, kept in step, and
+  `typescript/README.md` for the first command.
 - How to **work on** Fireargs (checks, review, conventions) → a repo skill in `.agents/skills/`.
 - How a person contributes (setup, commands, the PR flow) → `CONTRIBUTING.md`.
 

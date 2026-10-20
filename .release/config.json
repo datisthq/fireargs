@@ -1,6 +1,7 @@
 {
+  "separate-pull-requests": false,
   "packages": {
-    ".": {
+    "typescript": {
       "release-type": "node",
       "include-component-in-tag": false
     }

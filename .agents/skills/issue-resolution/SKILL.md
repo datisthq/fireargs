@@ -48,11 +48,11 @@ reason**: wrong output, not a crash in the test setup.
 
 - **Command or program**: build it with `f`, run `parseAsync` on the issue's argv and assert on
   the handler's input, the output or the error.
-- **Field, argument or option**: assert on the meta `actions/field/read.ts` reads back, or the
+- **Field, argument or option**: assert on the meta `typescript/actions/field/read.ts` reads back, or the
   commander option/argument the compiler yields.
 - **Manifest or JSON mode**: assert on the manifest or JSON output for the issue's schema.
 
-Run it with `vp test <path>` and watch it fail.
+Run it with `pnpm -C typescript exec vp test <path>` and watch it fail.
 
 ## 5. Fix it minimally, through the area skill
 
@@ -60,8 +60,8 @@ Run it with `vp test <path>` and watch it fail.
   you did not otherwise change.
 - Never rename `FIREARGS_META_KEY` or a builder method as part of a fix: it breaks every CLI
   built on the package.
-- A behaviour change a CLI author can see updates its `docs/` page and the matching shipped
-  skill in `skills/` in the same commit.
+- A behaviour change a CLI author can see updates its `typescript/docs/` page and the matching
+  shipped skill in `typescript/skills/` in the same commit.
 
 ## 6. Gate it
 

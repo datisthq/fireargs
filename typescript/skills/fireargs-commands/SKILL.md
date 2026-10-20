@@ -143,6 +143,6 @@ Anything commander supports that the config does not surface can be called on th
 
 ## References
 
-- Commands: https://fireargs.dev/commands/
-- Inputs: https://fireargs.dev/inputs/
-- Outputs: https://fireargs.dev/outputs/
+- Commands: https://fireargs.dev/typescript/commands/
+- Inputs: https://fireargs.dev/typescript/inputs/
+- Outputs: https://fireargs.dev/typescript/outputs/

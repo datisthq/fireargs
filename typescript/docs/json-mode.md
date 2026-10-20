@@ -1,6 +1,6 @@
 ---
 title: JSON mode
-path: /json-mode/
+path: /typescript/json-mode/
 icon: file-json
 order: 7
 description: --json drives a fireargs command with JSON in and JSON out.
@@ -109,11 +109,11 @@ myapp api deploy --json '{"env":"prod"}'
 ```
 
 The program (root) doesn't have its own `--json` — programs dispatch to
-subcommands; only leaves take input. See [Programs](/programs/).
+subcommands; only leaves take input. See [Programs](/typescript/programs/).
 
 ## Pairs with `--llms`
 
-Together with [LLMs mode](/llms-mode/), `--json` is the call-time half of
+Together with [LLMs mode](/typescript/llms-mode/), `--json` is the call-time half of
 fireargs's agentic interface: an LLM reads the `--llms` manifest to learn
 the schemas, then calls back through `--json` with a value matching the
 documented `inputSchema`.

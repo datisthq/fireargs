@@ -23,42 +23,46 @@ pnpm test
 
 ```
 fireargs/
-├── actions/           # noun/verb action modules
-│   ├── argument/      #   createArgument — tag fields as positional with per-field config
-│   ├── command/       #   compileCommand, leaf builder, manifest builder
-│   ├── field/         #   shared field-builder, meta read/write helpers
-│   ├── option/        #   createOption — tag fields as --flags with per-field config
-│   └── program/       #   compileProgram — wire subcommand trees
-├── docs/              # docs-site content (Markdown)
-├── .livemark/         # docs-site escapes (theme, landing, screenshots)
-├── models/            # typed records: CommandConfig, ProgramConfig, ArgumentConfig, OptionConfig
-├── index.ts           # public API — exports the `f` namespace
-├── settings.ts        # tunables (FIREARGS_META_KEY)
-├── .agents/skills/    # repo skills for coding agents (see AGENTS.md)
-├── skills/           # shipped agent skills for people who use Fireargs (see AGENTS.md)
-├── scripts/          # repo-wide guards and the `pnpm squash` script
-├── livemark.config.ts # config for the docs site
+├── typescript/          # the npm package `fireargs`
+│   ├── actions/         #   noun/verb action modules
+│   │   ├── argument/    #     createArgument — tag fields as positional with per-field config
+│   │   ├── command/     #     compileCommand, leaf builder, manifest builder
+│   │   ├── field/       #     shared field-builder, meta read/write helpers
+│   │   ├── option/      #     createOption — tag fields as --flags with per-field config
+│   │   └── program/     #     compileProgram — wire subcommand trees
+│   ├── models/          #   typed records: CommandConfig, ProgramConfig, ArgumentConfig, OptionConfig
+│   ├── docs/            #   the TypeScript pages of the docs site (Markdown)
+│   ├── skills/          #   shipped agent skills for people who use Fireargs (see AGENTS.md)
+│   ├── index.ts         #   public API — exports the `f` namespace
+│   ├── settings.ts      #   tunables (FIREARGS_META_KEY)
+│   └── vite.config.ts   #   the package's test config
+├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
+├── .livemark/           # docs-site escapes (theme, landing, screenshots)
+├── scripts/             # repo-wide guards and the `pnpm squash` script
+├── livemark.config.ts   # config for the docs site
 ├── tsconfig.json
-└── vite.config.ts     # vite-plus shared config (lint, format, test)
+└── vite.config.ts       # vite-plus shared config (format, lint, the guards' tests)
 ```
 
-The package ships `build/` (compiled by `tsgo`) and `skills/`. Everything else is for development.
+The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`. Everything else is for development.
 
 ## Local commands
 
-| Command            | What it does                                         |
-| ------------------ | ---------------------------------------------------- |
-| `pnpm install`     | Install dependencies                                 |
-| `pnpm build`       | Compile `actions/`, `models/`, `index.ts` → `build/` |
-| `pnpm check:types` | Type-check via `tsgo --noEmit`                       |
-| `pnpm check:lint`  | Format check + lint (`vp fmt --check && vp lint`)    |
-| `pnpm check`       | `pnpm check:lint && pnpm check:types`                |
-| `pnpm format`      | Auto-fix formatting (`vp fmt`)                       |
-| `pnpm test:unit`   | Run unit tests (Vitest via `vp test`)                |
-| `pnpm test`        | `pnpm check && pnpm test:unit`                       |
-| `pnpm start`       | Run the docs dev server                              |
-| `pnpm build:docs`  | Production build of the docs site                    |
-| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)   |
+Run these at the repo root; each chains into the language sections with `pnpm -C <section>`.
+
+| Command            | What it does                                                  |
+| ------------------ | ------------------------------------------------------------- |
+| `pnpm install`     | Install dependencies                                          |
+| `pnpm build`       | Compile `typescript/` → `typescript/build/`                   |
+| `pnpm check:types` | Type-check via `tsgo --noEmit`                                |
+| `pnpm check:lint`  | Format check + lint (`vp fmt --check && vp lint`)             |
+| `pnpm check`       | `pnpm check:lint && pnpm check:types`                         |
+| `pnpm format`      | Auto-fix formatting (`vp fmt`)                                |
+| `pnpm test:unit`   | Run the repo guards and the unit tests (Vitest via `vp test`) |
+| `pnpm test`        | `pnpm check && pnpm test:unit`                                |
+| `pnpm start`       | Run the docs dev server                                       |
+| `pnpm build:docs`  | Production build of the docs site                             |
+| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)            |
 
 A change is ready to push when `pnpm test` is green.
 
@@ -68,7 +72,7 @@ A change is ready to push when `pnpm test` is green.
 - **Imports**: use full ESM paths with the `.ts(x)` extension (`from "./foo.ts"`). `tsgo` rewrites them to `.js` on emit via `rewriteRelativeImportExtensions`.
 - **Comments**: docstrings on exports only. Skip narrative `//` comments inside function bodies.
 - **File layout**: high-level public items at the top, private helpers at the bottom.
-- **Tests**: unit tests live next to the code as `<module>.unit.ts`. No "Arrange/Act/Assert" comments — the structure should be obvious.
+- **Tests**: unit tests live next to the code as `<module>.unit.ts`; run one from `typescript/` with `vp test <file>`. No "Arrange/Act/Assert" comments — the structure should be obvious.
 - **Formatting**: vite-plus via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
 
 ## Proposing a change

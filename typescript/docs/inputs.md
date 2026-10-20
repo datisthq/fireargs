@@ -1,6 +1,6 @@
 ---
 title: Inputs
-path: /inputs/
+path: /typescript/inputs/
 icon: square-pen
 order: 4
 description: f.argument() and f.option() for per-field commander config.

@@ -1,7 +1,7 @@
 ---
 title: Agent Skills
 description: Teach your coding agent to write commands, build programs and drive Fireargs CLIs.
-path: /agent-skills/
+path: /typescript/agent-skills/
 icon: sparkles
 order: 2
 ---
@@ -46,4 +46,4 @@ You don't need to invoke a skill yourself. Agents read each skill's description 
 
 ## See also
 
-- [LLMs mode](/llms-mode/) — the `--llms` manifest an agent reads at runtime, rather than while writing code.
+- [LLMs mode](/typescript/llms-mode/) — the `--llms` manifest an agent reads at runtime, rather than while writing code.

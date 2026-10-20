@@ -1,13 +1,13 @@
 # fireargs
 
-TypeScript library that builds CLIs from zod schemas on top of commander: typed input and output, JSON I/O and LLM-ready manifests. This repo also hosts Fireargs' own docs site, built with Livemark.
+Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-ready manifests. The TypeScript package (zod on top of commander) lives in `typescript/`; the repo root holds the tooling shared across languages and Fireargs' own docs site, built with Livemark.
 
 ## Terminology
 
-- **package** — what `npm install fireargs` gets: `build/` and `skills/`
-- **builder** — the `f` namespace exported from `index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`)
-- **docs site** — this repo's own `docs/`, `README.md` and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
-- **meta** — per-field metadata stored in zod's registry under `FIREARGS_META_KEY` (`settings.ts`), the only contract between builder and compiler
+- **package** — what `npm install fireargs` gets: `typescript/build/` and `typescript/skills/`
+- **builder** — the `f` namespace exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`)
+- **docs site** — `typescript/docs/`, the READMEs and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
+- **meta** — per-field metadata stored in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), the only contract between builder and compiler
 
 ## Rules
 
@@ -21,7 +21,7 @@ TypeScript library that builds CLIs from zod schemas on top of commander: typed 
 - Start a plan from a summary of the new or changed API (models and signatures) and the hardest points.
 - **Every plan ends by asking how to work it** (`AskUserQuestion`, before finalising): **the current branch** or **a `.worktrees/<name>` branch** (**`worktree-workflow`**).
 - **The meta key and the `f` namespace are public API.** Renaming `FIREARGS_META_KEY`, a builder method or a field-config option silently breaks every CLI built on the package. Treat it like an export change (**`change-review`**).
-- Use full relative import paths with the `.ts` / `.tsx` extension. No barrel re-export files — `index.ts` is the one public façade.
+- Use full relative import paths with the `.ts` / `.tsx` extension. No barrel re-export files — `typescript/index.ts` is the one public façade.
 - Each `actions/<entity>/<verb>.ts` holds one action, named after its verb (`actions/command/create.ts` exports `createCommand`); a new action gets its own file.
 - Don't destructure props in the function signature — use `props.x`. Put higher-level items above the ones they compose, public before private.
 - **Comments must not outnumber code**, and one is at most ~3 lines. The bar is: **name the specific mistake this prevents** — if you cannot, delete it. A file with none is normal. Rationale and history belong in git; only a non-obvious invariant (an ordering types cannot express, a failure that looks like success, a deliberate deviation from a rule here) earns lines.
@@ -44,7 +44,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots      |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch              |
 
-Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; they are published in the package and on fireargs.dev under `/.well-known/agent-skills/`. Read the matching one before changing the behaviour it describes, and update it in the same commit:
+Shipped skills live in `typescript/skills/` and teach coding agents to **use** Fireargs; they are published in the package and on fireargs.dev under `/.well-known/agent-skills/`. Read the matching one before changing the behaviour it describes, and update it in the same commit:
 
 | skill                 | when                                                                 |
 | --------------------- | -------------------------------------------------------------------- |
@@ -58,27 +58,28 @@ Shipped skills live in `skills/` and teach coding agents to **use** Fireargs; th
 
 - `pnpm install` — dependencies, lefthook and the `.claude/skills` symlink
 - `pnpm start` — the dev server over this repo's docs site · `pnpm build:docs` — its production build
-- `pnpm build` — compile the package into `build/` with `tsgo` (`tsconfig.build.json`)
+- `pnpm build` — compile the package into `typescript/build/` with `tsgo` (`typescript/tsconfig.build.json`)
 - `pnpm test` — full gate: lint + type + unit · `pnpm check` — lint + type
 - `pnpm check:lint` — `vp fmt --check && vp lint` · `pnpm format` — `vp fmt` · `pnpm check:types` — `tsgo --noEmit`
-- `pnpm test:unit` — `vp test`. Single test: `vp test path/to/file.unit.ts` or `vp test -t "name"`. While iterating, verify the slice the diff reaches, not the full gate (**`change-verification`**)
+- `pnpm test:unit` — the repo guards, then the package's units. Single test, from `typescript/`: `vp test path/to/file.unit.ts` or `vp test -t "name"`. While iterating, verify the slice the diff reaches, not the full gate (**`change-verification`**)
 - `pnpm measure:coverage` — the unit tests with coverage, which `vp test` leaves off
 - `pnpm scan:leaks` / `pnpm scan:vulns` / `pnpm scan` — gitleaks / semgrep / both
 - `pnpm update:deps` — bump dependencies past a 7-day cooldown
-- `pnpm release` — publish to npm; run by the release workflow only
+- `pnpm -C typescript release` — publish to npm; run by the release workflow only
 - `pnpm squash <branch> -m "<subject>"` — land a worktree branch on local `main` as one commit (**`worktree-workflow`**)
 
 ## Code structure
 
-The package lives at the repo root; `tsgo` compiles it into `build/`, which ships with `skills/` and nothing else.
+The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): format, lint, the docs site, the repo guards and the scripts that chain each language section with `pnpm -C <section>` — never `pnpm -r`. Each section is one published package.
 
-- `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree
-- `models/<entity>.ts` — zod schemas plus derived types for each builder's config
-- Root files are single-concern: `index.ts` (the public façade), `settings.ts`
-- Unit tests sit beside their module as `<module>.unit.ts`; snapshots land in a sibling `fixtures/generated/`
-- `docs/` — the docs site's Markdown, configured by `livemark.config.ts`
-- `skills/` — shipped agent skills for people who build CLIs with Fireargs
-- `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; `tsconfig.build.json` leaves it out of `build/`
+- `typescript/` — the npm package. `tsgo` compiles it into `typescript/build/`, which ships with `typescript/skills/` and nothing else; `typescript/vite.config.ts` holds only its `test` block
+  - `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree
+  - `models/<entity>.ts` — zod schemas plus derived types for each builder's config
+  - Root files are single-concern: `index.ts` (the public façade), `settings.ts`
+  - Unit tests sit beside their module as `<module>.unit.ts`; snapshots land in a sibling `fixtures/generated/`
+  - `docs/` — the section's pages on the docs site; `skills/` — shipped agent skills for people who build CLIs with Fireargs
+- `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; the root `vite.config.ts` holds format, lint and the guards' tests
+- `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the repo overview and the docs site's config
 
 Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config.
 
@@ -95,7 +96,8 @@ Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the 
 
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging that PR cuts the version, tags it and publishes. Merging is the gate — nothing ships without it.
 
-- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `actions/`, `models/`, `index.ts`, `settings.ts`, the `exports` and `files` in `package.json`, and the shipped `skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, `skills/` while it stays out of `files`, the README, the docs site
+- **IMPORTANT: only changes to the published package use `feat` or `fix`** — `typescript/actions/`, `typescript/models/`, `typescript/index.ts`, `typescript/settings.ts`, the `exports` and `files` in `typescript/package.json`, and the shipped `typescript/skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
 - This is not a style preference. release-please reads the commit type: a `fix:` on a workflow file cuts a release and burns a version number on a change no consumer can observe. Version numbers can never be reused
 - When in doubt, ask whether the change alters what someone installing the package gets. If it does not, it is `chore`
-- Release config lives in `.release/config.json` and `.release/manifest.json`. The manifest holds the current version and release-please maintains it — never hand-edit it
+- release-please assigns a commit to every component whose path it touches: a `feat` spanning two sections releases both, so land a change that only moves or shares files as `chore`
+- Release config lives in `.release/config.json` and `.release/manifest.json`. Each section is its own release-please component, keyed by its path, with its own version and changelog (`typescript/CHANGELOG.md`, tags `vX.Y.Z`), and all of them ship through one combined Release PR. The manifest holds the current versions and release-please maintains it — never hand-edit it

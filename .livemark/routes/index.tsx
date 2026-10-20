@@ -109,7 +109,7 @@ function HeroActions() {
       <div className="mt-10 flex flex-wrap gap-3">
         <Link
           to="/$"
-          params={{ _splat: "introduction" }}
+          params={{ _splat: "typescript/introduction" }}
           className={cn(
             buttonVariants({ variant: "default", size: "lg" }),
             "px-5 no-underline",
@@ -583,7 +583,7 @@ const freedoms: FreedomPoint[] = [
         programs inside programs. See{" "}
         <Link
           to="/$"
-          params={{ _splat: "programs" }}
+          params={{ _splat: "typescript/programs" }}
           className="text-primary underline-offset-4 hover:underline"
         >
           Programs
@@ -977,7 +977,7 @@ function FinalCta() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/$"
-              params={{ _splat: "introduction" }}
+              params={{ _splat: "typescript/introduction" }}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
                 "px-5 no-underline",
@@ -988,7 +988,7 @@ function FinalCta() {
             </Link>
             <Link
               to="/$"
-              params={{ _splat: "llms-mode" }}
+              params={{ _splat: "typescript/llms-mode" }}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "lg" }),
                 "px-5 no-underline",

@@ -18,8 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      created: ${{ steps.release.outputs.release_created }}
-      version: ${{ steps.release.outputs.version }}
+      typescript: ${{ steps.release.outputs['typescript--release_created'] }}
 
     permissions:
       contents: write
@@ -42,9 +41,9 @@ jobs:
             --jq '.[] | select(.headRefName | startswith("release-please--")) | .number' |
             xargs -r -I{} gh api "repos/$GITHUB_REPOSITORY/issues/{}/assignees" -f "assignees[]=roll"
 
-  publish:
+  typescript:
     needs: [release]
-    if: needs.release.outputs.created == 'true'
+    if: needs.release.outputs.typescript == 'true'
     environment: release
     runs-on: ubuntu-latest
 
@@ -66,4 +65,4 @@ jobs:
       - name: Build Packages
         run: pnpm build
       - name: Publish Packages
-        run: pnpm release
+        run: pnpm -C typescript release

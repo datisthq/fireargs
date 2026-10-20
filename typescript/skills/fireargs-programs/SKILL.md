@@ -97,5 +97,5 @@ const listUsers = f
 
 ## References
 
-- Programs: https://fireargs.dev/programs/
-- Composability: https://fireargs.dev/composability/
+- Programs: https://fireargs.dev/typescript/programs/
+- Composability: https://fireargs.dev/typescript/composability/

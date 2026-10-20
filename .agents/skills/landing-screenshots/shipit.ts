@@ -1,4 +1,4 @@
-import { f } from "../../../index.ts"
+import { f } from "../../../typescript/index.ts"
 import { z } from "zod"
 
 const deploy = f

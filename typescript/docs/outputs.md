@@ -1,6 +1,6 @@
 ---
 title: Outputs
-path: /outputs/
+path: /typescript/outputs/
 icon: arrow-up-from-line
 order: 5
 description: How the output schema validates handler returns and shapes JSON / LLM responses.
@@ -33,11 +33,11 @@ the CLI is exposed to MCP clients, whose `outputSchema` must be an object.
    `z.string().transform(s => s.toUpperCase())` post-processes the return.
 2. **`--json` serialization** — when `--json` is set, the validated value
    is serialized via `JSON.stringify(value, null, 2)` and written to
-   commander's `writeOut`. See [JSON mode](/json-mode/).
+   commander's `writeOut`. See [JSON mode](/typescript/json-mode/).
 3. **Human rendering** — without `--json`, the validated value goes to
-   `.render(...)` when the command has one. See [Commands](/commands/).
+   `.render(...)` when the command has one. See [Commands](/typescript/commands/).
 4. **`--llms` manifest** — the schema is run through `z.toJSONSchema(...)`
-   and surfaced as the tool's `outputSchema`. See [LLMs mode](/llms-mode/).
+   and surfaced as the tool's `outputSchema`. See [LLMs mode](/typescript/llms-mode/).
 
 ## Serialization
 

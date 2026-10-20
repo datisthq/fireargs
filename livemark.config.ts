@@ -6,15 +6,21 @@ export default defineConfig({
   description: "Modern CLI builder",
   logo: "/logo.svg",
   favicon: "/logo.png",
-  include: ["docs/**/*.md", "README.md", "CONTRIBUTING.md"],
-  skills: "skills/*/SKILL.md",
+  include: [
+    "typescript/README.md",
+    "typescript/docs/**/*.md",
+    "README.md",
+    "CONTRIBUTING.md",
+  ],
+  skills: ["typescript/skills/*/SKILL.md"],
   sections: [
-    { title: "Docs", prefix: "/", icon: "book-open" },
+    { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
+    { title: "Project", prefix: "/", icon: "book-open" },
     {
       title: "Changelog",
       prefix: "/changelog/",
       type: "changelog",
-      source: "CHANGELOG.md",
+      source: "typescript/CHANGELOG.md",
       version: true,
       icon: "history",
     },
@@ -27,13 +33,23 @@ export default defineConfig({
   ],
   patches: [
     {
-      file: "README.md",
+      file: "typescript/README.md",
       article: {
         title: "Introduction",
         description: "Install fireargs and write your first command.",
         icon: "rocket",
         order: 1,
-        path: "/introduction/",
+        path: "/typescript/introduction/",
+      },
+    },
+    {
+      file: "README.md",
+      article: {
+        title: "Overview",
+        description: "One CLI contract, built from schemas, in TypeScript and Python.",
+        icon: "book-open",
+        order: 1,
+        path: "/overview/",
       },
     },
     {
@@ -43,7 +59,7 @@ export default defineConfig({
         description:
           "How to set up fireargs locally, propose changes, and ship a release.",
         icon: "heart-handshake",
-        order: -1,
+        order: 2,
         path: "/contributing/",
       },
     },

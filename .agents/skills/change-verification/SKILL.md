@@ -22,15 +22,16 @@ diff breaking. The full gate belongs to the lefthook pre-push hook and CI. A loc
 | -------------------------------------------- | ---- | ------ | ------------------------------------- |
 | `vp fmt --check <files>` / `vp lint <files>` | ~1 s | ~2     | format, oxlint                        |
 | `pnpm check:lint`                            | ~2 s | ~6     | format and lint everywhere            |
-| `pnpm check:types`                           | ~1 s | ~2     | types everywhere (one package)        |
+| `pnpm check:types`                           | ~1 s | ~2     | types everywhere                      |
 | `vp test <file or dir>`                      | ~2 s | ~3     | the tests named                       |
 | `vp test related <files> --run`              | ~2 s | ~3     | every test importing the files        |
 | `pnpm test:unit`                             | ~3 s | ~5     | every unit test, including the guards |
 | `pnpm build`                                 | ~1 s | ~2     | the `tsgo` emit consumers' Node loads |
 | `pnpm build:docs`                            | ~8 s | ~16    | the real build over this repo's docs  |
 
-All of these run from the repo root (or the worktree root). Raw `vitest` fails to collect
-`vite-plus/test` suites. The changed files come from `git diff --name-only main...` plus
+These run from the repo root (or the worktree root), except `vp test` over the package's own
+tests: the root config collects only the guards, so run those from `typescript/`
+(`pnpm -C typescript exec vp test …`). Raw `vitest` fails to collect `vite-plus/test` suites. The changed files come from `git diff --name-only main...` plus
 `git status --short`.
 
 ## The ladder
@@ -47,7 +48,8 @@ Pick the **highest** rung the diff reaches, and run everything that rung lists.
    runs on its own first (`vp test <file>`), and fails before the fix. When the change is
    visible from a terminal (help text, `--json`, the LLM manifest), also run a scratch CLI built
    with `f` and look at its output.
-4. **Build-shaped** — `index.ts`, `settings.ts`, dependencies, `vite.config.ts`, a `tsconfig`.
+4. **Build-shaped** — `typescript/index.ts`, `typescript/settings.ts`, dependencies, a
+   `vite.config.ts`, a `tsconfig`.
    Run `pnpm test`, then `pnpm build`; add `pnpm build:docs` when docs-site dependencies or
    `livemark.config.ts` changed. No cherry-picking here.
 
@@ -59,13 +61,13 @@ Pick the **highest** rung the diff reaches, and run everything that rung lists.
 
 ## Worked example
 
-The diff is `actions/option/create.ts` (a new `short` alias check):
+The diff is `typescript/actions/option/create.ts` (a new `short` alias check):
 
 ```sh
-vp fmt --check actions/option/create.ts
-vp lint actions/option/create.ts
+vp fmt --check typescript/actions/option/create.ts
+vp lint typescript/actions/option/create.ts
 pnpm check:types
-vp test related actions/option/create.ts --run
+pnpm -C typescript exec vp test related actions/option/create.ts --run
 ```
 
 Then run a scratch CLI with the new option and read its `--help`. The slice covers types and
@@ -78,7 +80,7 @@ gate** once, at the end: `pnpm check` always, then a unit half **you choose**.
 
 - `pnpm check` = `check:lint` + `check:types`, 5–15 s over the whole package.
 - **`pnpm test:unit`** when the diff is build-shaped, changes shared code many modules import
-  (`settings.ts`, a model, `actions/field/`), or you are unsure.
+  (`typescript/settings.ts`, a model, `typescript/actions/field/`), or you are unsure.
 - **Cherry-pick** otherwise: `vp test related <files> --run` plus every guard above the diff
   triggers.
 - Unsure? Run `pnpm test:unit`. Pre-push and CI run everything, but a break they catch has already

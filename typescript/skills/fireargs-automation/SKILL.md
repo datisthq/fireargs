@@ -127,6 +127,6 @@ expect(JSON.parse(out)).toEqual({ greeting: "hello world" })
 
 ## References
 
-- JSON mode: https://fireargs.dev/json-mode/
-- LLMs mode: https://fireargs.dev/llms-mode/
-- Outputs: https://fireargs.dev/outputs/
+- JSON mode: https://fireargs.dev/typescript/json-mode/
+- LLMs mode: https://fireargs.dev/typescript/llms-mode/
+- Outputs: https://fireargs.dev/typescript/outputs/

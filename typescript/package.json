@@ -1,0 +1,55 @@
+{
+  "name": "fireargs",
+  "version": "0.6.0",
+  "description": "Build CLIs from zod schemas",
+  "keywords": [
+    "cli",
+    "commander",
+    "fireargs",
+    "llm",
+    "mcp",
+    "zod"
+  ],
+  "license": "MIT",
+  "author": "Evgeny Karev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datisthq/fireargs.git",
+    "directory": "typescript"
+  },
+  "files": [
+    "build",
+    "skills"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": "./build/index.js",
+  "scripts": {
+    "build": "tsgo --project tsconfig.build.json",
+    "check:types": "tsgo --noEmit",
+    "measure:coverage": "vp test --run --coverage",
+    "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
+    "test": "pnpm check:types && pnpm test:unit",
+    "test:unit": "vp test"
+  },
+  "dependencies": {
+    "cn": "0.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.2.0",
+    "@typescript/native-preview": "7.0.0-dev.20260316.1",
+    "@vitest/coverage-v8": "catalog:",
+    "commander": "^14.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:",
+    "zod": "^4.4.1"
+  },
+  "peerDependencies": {
+    "commander": "^14.0.3",
+    "zod": "^4.4.1"
+  },
+  "engines": {
+    "node": "^24.11.0"
+  }
+}

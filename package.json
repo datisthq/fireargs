@@ -1,46 +1,24 @@
 {
-  "name": "fireargs",
-  "version": "0.6.0",
-  "description": "Build CLIs from zod schemas",
-  "keywords": [
-    "cli",
-    "commander",
-    "fireargs",
-    "llm",
-    "mcp",
-    "zod"
-  ],
-  "license": "MIT",
-  "author": "Evgeny Karev",
-  "repository": "https://github.com/datisthq/fireargs",
-  "files": [
-    "build",
-    "skills"
-  ],
+  "name": "fireargs-repo",
+  "private": true,
   "type": "module",
-  "sideEffects": false,
-  "exports": "./build/index.js",
   "scripts": {
-    "build": "tsgo --project tsconfig.build.json",
+    "build": "pnpm -C typescript build",
     "build:docs": "livemark build",
     "check": "pnpm check:lint && pnpm check:types",
     "check:lint": "vp fmt --check && vp lint",
-    "check:types": "tsgo --noEmit",
+    "check:types": "tsgo --noEmit && pnpm -C typescript check:types",
     "format": "vp fmt --no-error-on-unmatched-pattern",
-    "measure:coverage": "vp test --run --coverage",
+    "measure:coverage": "pnpm -C typescript measure:coverage",
     "prepare": "lefthook install && node scripts/link-skills.ts",
-    "release": "pnpm publish --access public --ignore-scripts --no-git-checks",
     "scan": "pnpm scan:leaks && pnpm scan:vulns",
     "scan:leaks": "gitleaks git --config=.gitleaks.toml --verbose --redact",
     "scan:vulns": "semgrep --config=p/typescript --config=p/nodejs --config=p/owasp-top-ten --config=p/secrets --exclude=\"**/fixtures/**\" --metrics=off",
     "squash": "node scripts/squash-branch.ts",
     "start": "livemark start",
     "test": "pnpm check && pnpm test:unit",
-    "test:unit": "vp test",
-    "update:deps": "ncu -u --cooldown 7d"
-  },
-  "dependencies": {
-    "cn": "0.2.4"
+    "test:unit": "vp test && pnpm -C typescript test:unit",
+    "update:deps": "ncu -ws --root -u --cooldown 7d"
   },
   "devDependencies": {
     "@plausible-analytics/tracker": "^0.4.4",
@@ -49,7 +27,7 @@
     "@types/node": "24.2.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
     "@vitest/coverage-v8": "catalog:",
-    "commander": "^14.0.3",
+    "cn": "0.2.4",
     "lefthook": "2.1.1",
     "livemark": "0.28.0",
     "lucide-react": "0.577.0",
@@ -61,10 +39,6 @@
     "vite-plus": "catalog:",
     "vitest": "catalog:",
     "wrangler": "4.85.0",
-    "zod": "^4.4.1"
-  },
-  "peerDependencies": {
-    "commander": "^14.0.3",
     "zod": "^4.4.1"
   },
   "engines": {

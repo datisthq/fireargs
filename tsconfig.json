@@ -9,7 +9,9 @@
     "${configDir}/**/fixtures/",
     "${configDir}/**/examples/",
     "${configDir}/.livemark/",
-    "${configDir}/docs/"
+    "${configDir}/docs/",
+    "${configDir}/typescript/",
+    "${configDir}/python/"
   ],
 
   "compilerOptions": {

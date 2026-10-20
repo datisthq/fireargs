@@ -1,6 +1,6 @@
 ---
 title: LLMs mode
-path: /llms-mode/
+path: /typescript/llms-mode/
 icon: bot
 order: 8
 description: --llms publishes an MCP-shaped tools manifest for agentic use.
@@ -11,7 +11,7 @@ description: --llms publishes an MCP-shaped tools manifest for agentic use.
 `--llms` prints a manifest describing every tool reachable through this
 binary, in the shape of MCP's [`tools/list`](https://modelcontextprotocol.io/)
 response. An LLM agent reads the manifest once and then calls back through
-[`--json`](/json-mode/) to actually invoke a tool.
+[`--json`](/typescript/json-mode/) to actually invoke a tool.
 
 Enabled by default on every command and program. Disable per-command via
 `llmsOption: false`, or customize the flag string/description with
@@ -85,7 +85,7 @@ Per-property fields in `inputSchema` / `outputSchema` are emitted by Zod's
 
 `inputSchema` describes what `--json` accepts — the input side of each zod
 schema. A defaulted field is optional there, a `.transform()` field shows
-its pre-transform type, and a field with a [`parse`](/inputs/#parsing-cli-values)
+its pre-transform type, and a field with a [`parse`](/typescript/inputs/#parsing-cli-values)
 shows its schema type, since `parse` applies to CLI strings only.
 `outputSchema` describes the validated value the handler's output becomes.
 
