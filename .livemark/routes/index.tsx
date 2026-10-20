@@ -633,7 +633,7 @@ function Freedom() {
             <WindowCard label="shipit">
               <ProgramTree />
             </WindowCard>
-            <p className="mt-3 text-center text-sm text-muted-foreground">
+            <p className="mt-3 text-center text-sm text-muted-foreground/60">
               The layout is only an example: routers take imported commands, not folders.
             </p>
           </Reveal>
