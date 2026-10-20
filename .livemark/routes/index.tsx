@@ -633,6 +633,9 @@ function Freedom() {
             <WindowCard label="shipit">
               <ProgramTree />
             </WindowCard>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              The layout is only an example: routers take imported commands, not folders.
+            </p>
           </Reveal>
         </div>
       </div>
@@ -666,6 +669,7 @@ function ProgramTree() {
         {"\n"}
         <span className={tk.dim}>{"   └─ "}</span>
         <span className={tk.type}>migrate.ts</span>
+        <span className={cn(tk.dim, "hidden sm:inline")}>{"    ← a nested command"}</span>
         {"\n\n"}
         <span className={tk.prompt}>$</span> <span className={tk.func}>shipit</span> db
         migrate <span className={tk.flag}>--json</span>
