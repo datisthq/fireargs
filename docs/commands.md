@@ -34,13 +34,13 @@ schema — an object, an array, a scalar (see [Outputs](/outputs/)). It
 validates whatever the handler returns; mismatches throw at runtime through
 commander's `parseAsync`.
 
-## `.render((output, ctx) => text)`
+## `.render((output, context) => text)`
 
 Optional. Turns the validated output into what a human sees at the shell.
 It runs only without `--json`; with it, the output is written as JSON
 instead. A returned string is written to `writeOut` with a trailing newline;
 return nothing to write the output yourself (spinners, colors, tables).
-`ctx` carries `input` (the parsed input), `json` and `command`. Without
+`context` carries `input` (the parsed input), `json` and `command`. Without
 `.render`, a run without `--json` prints nothing.
 
 ```ts
@@ -51,14 +51,14 @@ f.command({ name: "list" })
   .handler(input => listNames(input.path))
 ```
 
-## `.handler((input, ctx) => result)`
+## `.handler((input, context) => result)`
 
 Receives the parsed, zod-validated input and a context. Must return a value
 matching the output schema. May be async — fireargs awaits it.
 
-`ctx.json` is `true` when `--json` was given, with or without a value: a
+`context.json` is `true` when `--json` was given, with or without a value: a
 handler that drives spinners or progress output keeps quiet then, so stdout
-stays parseable. `ctx.command` is the running `Command`.
+stays parseable. `context.command` is the running `Command`.
 
 The handler is wrapped in commander's `.action(...)`. Input that fails the
 zod schema is reported like a commander parse error — one `error: ...` line
@@ -112,7 +112,7 @@ commander methods. All fields are optional.
 | `executableDir`                                                                                                              | `cmd.executableDir(path)`                                                                          |
 | `on`                                                                                                                         | `Array<{ event, listener }>` — each registered via `cmd.on(event, listener)`                       |
 | `jsonOption`, `llmsOption`                                                                                                   | customize or disable the built-in `--json`/`--llms` flags. See [LLMs mode](/llms-mode/)            |
-| `renderError`                                                                                                                | `(error, ctx) => value` — turn a failed run into output. See [JSON mode](/json-mode/#errors)       |
+| `renderError`                                                                                                                | `(error, context) => value` — turn a failed run into output. See [JSON mode](/json-mode/#errors)   |
 
 Anything commander supports that fireargs hasn't surfaced (yet) you can call
 directly on the returned `Command` — `.handler(...)` returns a real commander

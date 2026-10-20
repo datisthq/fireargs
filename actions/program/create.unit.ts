@@ -366,10 +366,10 @@ describe("f.program renderError", () => {
     const cli = f
       .program({
         name: "myapp",
-        renderError: (error, ctx) => ({
+        renderError: (error, context) => ({
           error: error instanceof Error ? error.message : String(error),
-          json: ctx.json,
-          command: ctx.command.name(),
+          json: context.json,
+          command: context.command.name(),
         }),
       })
       .router({ db })

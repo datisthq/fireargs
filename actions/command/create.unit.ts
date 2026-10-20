@@ -797,9 +797,9 @@ describe("f.command", () => {
     f.command()
       .input(z.object({ name: z.string().default("x") }))
       .output(z.object({ n: z.number().default(0) }))
-      .render((output, ctx) => {
+      .render((output, context) => {
         expectTypeOf(output.n).toEqualTypeOf<number>()
-        expectTypeOf(ctx.input.name).toEqualTypeOf<string>()
+        expectTypeOf(context.input.name).toEqualTypeOf<string>()
         // @ts-expect-error output has no such key
         void output.missing
       })
@@ -1234,8 +1234,8 @@ describe("f.command handler context", () => {
       .command({ name: "greet", configureOutput: { writeOut: () => {} } })
       .input(z.object({ name: z.string().default("world") }))
       .output(z.object({}))
-      .handler((_input, ctx) => {
-        seen = ctx
+      .handler((_input, context) => {
+        seen = context
         return {}
       })
     await cmd.parseAsync(argv, { from: "user" })
@@ -1290,8 +1290,8 @@ describe("f.command .render", () => {
       .command({ name: "echo" })
       .input(z.object({ text: f.argument().string() }))
       .output(z.object({}))
-      .render((_output, ctx) => {
-        seen = ctx
+      .render((_output, context) => {
+        seen = context
       })
       .handler(() => ({}))
 
@@ -1340,7 +1340,7 @@ describe("f.command renderError", () => {
   function buildFailing(props: {
     handler?: () => { ok: boolean }
     render?: () => void
-    renderError?: (error: unknown, ctx: CommandContext) => unknown
+    renderError?: (error: unknown, context: CommandContext) => unknown
   }) {
     const out = { stdout: "", stderr: "" }
     const cmd = f
@@ -1357,8 +1357,8 @@ describe("f.command renderError", () => {
         },
         renderError:
           props.renderError ??
-          ((error, ctx) =>
-            ctx.json
+          ((error, context) =>
+            context.json
               ? { error: describeError(error) }
               : `error: ${describeError(error)}`),
       })

@@ -37,7 +37,7 @@ The flag takes an optional value (`--json [value]`):
 
 1. `JSON.parse`'s the value.
 2. Validates the parsed object through the input zod schema.
-3. Calls the handler with the validated input and `ctx.json === true`.
+3. Calls the handler with the validated input and `context.json === true`.
 4. Validates the handler's return through the output schema.
 5. Writes `JSON.stringify(result, null, 2) + "\n"` to commander's
    `writeOut` — `configureOutput.writeOut` can intercept it (handy for
@@ -50,11 +50,11 @@ collected from the regular CLI parse instead. Steps 3–5 are identical.
 
 The handler's second argument tells it which mode it runs in. In JSON mode,
 anything else written to stdout corrupts the result, so spinners, colors and
-progress output should check `ctx.json`:
+progress output should check `context.json`:
 
 ```ts
-.handler(async (input, ctx) => {
-  const spinner = ctx.json ? undefined : startSpinner("Loading")
+.handler(async (input, context) => {
+  const spinner = context.json ? undefined : startSpinner("Loading")
   // ...
 })
 ```
@@ -80,9 +80,9 @@ into output instead — the hook receives the original `SyntaxError` or
 ```ts
 f.program({
   name: "myapp",
-  renderError: (error, ctx) => {
+  renderError: (error, context) => {
     const message = error instanceof Error ? error.message : String(error)
-    return ctx.json ? { error: message } : `error: ${message}`
+    return context.json ? { error: message } : `error: ${message}`
   },
 })
 ```

@@ -13,14 +13,14 @@ const handlers = new WeakMap<CommanderCommand, RenderError>()
 export async function handleError(
   cmd: CommanderCommand,
   error: unknown,
-  ctx: CommandContext,
+  context: CommandContext,
 ) {
   const renderError = findErrorHandler(cmd)
   if (renderError === undefined) throw error
 
-  const rendered = await renderError(error, ctx)
+  const rendered = await renderError(error, context)
   const output = cmd.configureOutput()
-  if (ctx.json && rendered !== undefined) {
+  if (context.json && rendered !== undefined) {
     const writer = output.writeOut ?? (s => process.stdout.write(s))
     writer(`${JSON.stringify(rendered, null, 2)}\n`)
   } else if (typeof rendered === "string") {

@@ -81,14 +81,14 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 - A commander parse error (unknown option, bad choice, missing positional, too many arguments) prints to stderr and exits with code 1. With `exitOverride: true` it throws a `CommanderError` instead.
 - Without a `renderError` hook, input failures take the same path: a `--json` value that is not JSON (`code: "fireargs.invalidJson"`) and input that fails the zod schema (`code: "fireargs.invalidInput"`), one `error: ...` line per field — `invalid --json input at 'a.b[0]': ...` in JSON mode, commander's own wording at the shell.
 - A zod output failure or an exception from the handler or `.render` rejects the `parseAsync(...)` promise — unless a `renderError` hook is set.
-- `renderError: (error, ctx) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). It also receives input failures, as the original `SyntaxError` or `ZodError`. Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
+- `renderError: (error, context) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). It also receives input failures, as the original `SyntaxError` or `ZodError`. Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
 
 ```ts
 f.program({
   name: "myapp",
-  renderError: (error, ctx) => {
+  renderError: (error, context) => {
     const message = error instanceof Error ? error.message : String(error)
-    return ctx.json ? { error: message } : `error: ${message}`
+    return context.json ? { error: message } : `error: ${message}`
   },
 })
 ```
@@ -116,7 +116,7 @@ expect(JSON.parse(out)).toEqual({ greeting: "hello world" })
 
 1. **Describe every field and command.** Descriptions are the only prose an agent sees in the manifest.
 2. **Keep output schemas JSON-native.** Strings, numbers, booleans, arrays and objects round-trip; `Date`, `BigInt`, `Map` and `Set` do not (use `z.iso.datetime()`, strings, records and arrays).
-3. **Keep stdout clean in JSON mode.** Check the handler's `ctx.json` and skip spinners and colored output; put human output in `.render`, which never runs under `--json`.
+3. **Keep stdout clean in JSON mode.** Check the handler's `context.json` and skip spinners and colored output; put human output in `.render`, which never runs under `--json`.
 4. **Never parse `--help` text.** Use `--llms` for structure and `--json` for results.
 
 ## Verification

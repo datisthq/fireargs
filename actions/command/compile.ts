@@ -48,12 +48,12 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodType>(
 
 export type Handler<I extends z.ZodObject, O extends z.ZodType> = (
   input: z.infer<I>,
-  ctx: CommandContext,
+  context: CommandContext,
 ) => z.infer<O> | Promise<z.infer<O>>
 
 export type Render<I extends z.ZodObject, O extends z.ZodType> = (
   output: z.output<O>,
-  ctx: RenderContext<z.output<I>>,
+  context: RenderContext<z.output<I>>,
 ) => string | void | Promise<string | void>
 
 function applyConfig(cmd: CommanderCommand, config: CommandConfig) {
@@ -333,7 +333,7 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
       return
     }
 
-    const ctx: CommandContext = { json: json !== undefined, command: cmd }
+    const context: CommandContext = { json: json !== undefined, command: cmd }
     let parsed: z.output<I>
     try {
       parsed = input.parse(
@@ -347,24 +347,24 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
         const raw = buildRawFromCli()
         return reportInputError(cmd, error, { mode: "cli", raw, fields })
       }
-      return handleError(cmd, error, ctx)
+      return handleError(cmd, error, context)
     }
 
     try {
-      const validated = output.parse(await handler(parsed, ctx))
+      const validated = output.parse(await handler(parsed, context))
 
-      if (ctx.json) {
+      if (context.json) {
         writer(`${JSON.stringify(validated ?? null, null, 2)}
 `)
         return
       }
 
-      const rendered = await render?.(validated, { ...ctx, input: parsed })
+      const rendered = await render?.(validated, { ...context, input: parsed })
       if (typeof rendered === "string")
         writer(`${rendered}
 `)
     } catch (error) {
-      await handleError(cmd, error, ctx)
+      await handleError(cmd, error, context)
     }
 
     function buildRawFromCli() {

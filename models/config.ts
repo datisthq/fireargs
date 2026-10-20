@@ -40,7 +40,7 @@ export type CommandConfig = {
    * Then the exit code is set to 1. Rethrow to propagate. The nearest hook
    * wins: a leaf's own, then each enclosing program's.
    */
-  renderError?: (error: unknown, ctx: CommandContext) => unknown
+  renderError?: (error: unknown, context: CommandContext) => unknown
   /** Customize the auto-help option. Pass `false` to disable. */
   helpOption?: { flags?: string; description?: string } | false
   /** Customize the auto-help subcommand. Pass `false` to disable. */

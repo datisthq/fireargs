@@ -42,12 +42,12 @@ await greet.parseAsync(process.argv)
 ```
 
 - Input must be `z.object(...)`; a command without input uses `z.object({})`. Output may be any zod schema — `z.array(...)` writes a bare JSON array — but prefer an object when the CLI is served over MCP, whose `outputSchema` must be an object.
-- The handler receives the zod-parsed input and `ctx: { json, command }`, and may be async. Its return value is parsed through the output schema on every run, so output transforms apply and a mismatch throws.
-- `ctx.json` is `true` under `--json`, with or without a value. Anything else written to stdout then corrupts the result: skip spinners, colors and progress output.
+- The handler receives the zod-parsed input and `context: { json, command }`, and may be async. Its return value is parsed through the output schema on every run, so output transforms apply and a mismatch throws.
+- `context.json` is `true` under `--json`, with or without a value. Anything else written to stdout then corrupts the result: skip spinners, colors and progress output.
 
 ## Human output: `.render(...)`
 
-Without `--json` nothing is printed unless the command has `.render((output, ctx) => ...)`. It receives the validated output and `ctx.input`; a returned string is written to `writeOut` with a newline, or it writes itself and returns nothing. It never runs under `--json`, so the handler just returns data:
+Without `--json` nothing is printed unless the command has `.render((output, context) => ...)`. It receives the validated output and `context.input`; a returned string is written to `writeOut` with a newline, or it writes itself and returns nothing. It never runs under `--json`, so the handler just returns data:
 
 ```ts
 f.command({ name: "list" })
@@ -121,7 +121,7 @@ Everything passed to `f.command(config)` is optional and forwarded to commander:
 - **Hooks and events:** `preSubcommand`, `preAction`, `postAction`, `on: [{ event, listener }]`.
 - **Exit and output:** `exitOverride` (`true` throws `CommanderError` instead of exiting), `configureOutput` (`writeOut` / `writeErr`), `executableDir`.
 - **Built-in flags:** `jsonOption` and `llmsOption` — `{ flags?, description? }` or `false`. See `fireargs-automation`.
-- **Errors:** `renderError: (error, ctx) => value` turns a failed run into output and exit code 1. See `fireargs-automation`.
+- **Errors:** `renderError: (error, context) => value` turns a failed run into output and exit code 1. See `fireargs-automation`.
 
 Anything commander supports that the config does not surface can be called on the returned `Command` directly.
 
