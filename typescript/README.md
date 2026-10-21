@@ -25,7 +25,7 @@ const shout = f.option({ short: "s" }).schema(z.boolean().default(false).describ
 const greetInput = z.object({ name, times, shout })
 
 // Typed output, validated on every run
-const greetOutput = z.object({ greeting: z.string() })
+const greetOutput = z.object({ greetings: z.array(z.string()) })
 
 // A commander Command, typed from the schemas
 const greet = f
@@ -33,10 +33,10 @@ const greet = f
   .input(greetInput)
   .output(greetOutput)
   // Output for humans; --json prints the data instead
-  .render(output => output.greeting)
+  .render(output => output.greetings.join(" "))
   .handler(input => {
-    const greeting = Array(input.times).fill(`hello ${input.name}`).join(" ")
-    return { greeting: input.shout ? greeting.toUpperCase() : greeting }
+    const greeting = `hello ${input.name}`
+    return { greetings: Array(input.times).fill(input.shout ? greeting.toUpperCase() : greeting) }
   })
 
 // Use as a normal commander command, e.g. configure or apply plugins
@@ -50,11 +50,16 @@ $ node greet.ts world --times 2 -s        # CLI input, rendered output
 HELLO WORLD HELLO WORLD
 $ node greet.ts world --json              # CLI input, JSON output
 {
-  "greeting": "hello world"
+  "greetings": [
+    "hello world"
+  ]
 }
 $ node greet.ts --json '{"name":"world","times":2}'   # JSON input, JSON output
 {
-  "greeting": "hello world hello world"
+  "greetings": [
+    "hello world",
+    "hello world"
+  ]
 }
 $ node greet.ts world --times 0
 error: option '--times <value>' argument '0' is invalid. Too small: expected number to be >=1
@@ -129,7 +134,11 @@ the input, checked against the input schema, so scripts never assemble argv:
 ```bash
 $ node greet.ts --json '{"name":"world","times":3,"shout":true}'
 {
-  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+  "greetings": [
+    "HELLO WORLD",
+    "HELLO WORLD",
+    "HELLO WORLD"
+  ]
 }
 ```
 
@@ -183,11 +192,14 @@ MCP-`tools/list`-shaped manifest. For `greet.ts` above:
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "greeting": {
-            "type": "string"
+          "greetings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "required": ["greeting"],
+        "required": ["greetings"],
         "additionalProperties": false
       },
       "description": "Greet someone politely."

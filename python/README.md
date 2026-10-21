@@ -35,20 +35,20 @@ class GreetInput(BaseModel):
 
 # Typed output, validated on every run
 class Greeting(BaseModel):
-    greeting: str
+    greetings: list[str]
 
 
 # A click Command, typed from the handler's annotations
 @command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
-    greeting = " ".join([f"hello {input.name}"] * input.times)
-    return Greeting(greeting=greeting.upper() if input.shout else greeting)
+    greeting = f"hello {input.name}"
+    return Greeting(greetings=[greeting.upper() if input.shout else greeting] * input.times)
 
 
 # Output for humans; --json prints the data instead
 @greet.render
 def render_greeting(output: Greeting) -> str:
-    return output.greeting
+    return " ".join(output.greetings)
 
 
 # Use as a normal click command, e.g. configure or apply plugins
@@ -63,11 +63,16 @@ $ python greet.py world --times 2 -s        # CLI input, rendered output
 HELLO WORLD HELLO WORLD
 $ python greet.py world --json              # CLI input, JSON output
 {
-  "greeting": "hello world"
+  "greetings": [
+    "hello world"
+  ]
 }
 $ python greet.py --json '{"name":"world","times":2}'   # JSON input, JSON output
 {
-  "greeting": "hello world hello world"
+  "greetings": [
+    "hello world",
+    "hello world"
+  ]
 }
 $ python greet.py world --times 0
 error: option '--times <value>' argument '0' is invalid. Input should be greater than or equal to 1
@@ -147,7 +152,11 @@ the input, checked against the input schema, so scripts never assemble argv:
 ```bash
 $ python greet.py --json '{"name":"world","times":3,"shout":true}'
 {
-  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+  "greetings": [
+    "HELLO WORLD",
+    "HELLO WORLD",
+    "HELLO WORLD"
+  ]
 }
 ```
 
@@ -164,8 +173,14 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
     {
       "name": "help",
       "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
-      "inputSchema": { "type": "object", "properties": {} },
-      "outputSchema": { "type": "object", "properties": {} }
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {}
+      }
     },
     {
       "name": "greet",
@@ -195,8 +210,16 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
         "type": "object"
       },
       "outputSchema": {
-        "properties": { "greeting": { "title": "Greeting", "type": "string" } },
-        "required": ["greeting"],
+        "properties": {
+          "greetings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Greetings",
+            "type": "array"
+          }
+        },
+        "required": ["greetings"],
         "title": "Greeting",
         "type": "object"
       },
