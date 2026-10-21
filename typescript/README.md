@@ -39,7 +39,7 @@ const greet = f
     return { greeting: input.shout ? greeting.toUpperCase() : greeting }
   })
 
-// Use as a normal commander command, e.g. apply plugins
+// Use as a normal commander command, e.g. configure or apply plugins
 greet.parseAsync(process.argv)
 ```
 
@@ -89,7 +89,7 @@ const cli = f
   .program({ name: "myapp", description: "My CLI", version: "1.0.0" })
   .router({ greet, deploy, db: dbCli })
 
-// Use as a normal commander command, e.g. apply plugins
+// Use as a normal commander command, e.g. configure or apply plugins
 cli.parseAsync(process.argv)
 ```
 

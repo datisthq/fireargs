@@ -51,7 +51,7 @@ def render_greeting(output: Greeting) -> str:
     return output.greeting
 
 
-# Use as a normal click command, e.g. apply plugins
+# Use as a normal click command, e.g. configure or apply plugins
 if __name__ == "__main__":
     greet()
 ```
@@ -106,7 +106,7 @@ cli = Program(
     router={"greet": greet, "deploy": deploy, "db": db},
 )
 
-# Use as a normal click group, e.g. apply plugins
+# Use as a normal click group, e.g. configure or apply plugins
 if __name__ == "__main__":
     cli()
 ```
