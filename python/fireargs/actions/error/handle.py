@@ -7,6 +7,7 @@ from ...models.command import Leaf
 from ...models.context import Context
 from ...models.program import Program
 from ..awaitable.run import run_awaitable
+from ..context.accept import accepts_context
 
 
 def handle_error(ctx: click.Context, error: Exception, context: Context):
@@ -16,7 +17,10 @@ def handle_error(ctx: click.Context, error: Exception, context: Context):
     if renderer is None:
         raise error
 
-    rendered = run_awaitable(renderer(error, context))
+    if accepts_context(renderer):
+        rendered = run_awaitable(renderer(error, context))
+    else:
+        rendered = run_awaitable(renderer(error))
     if context.json and rendered is not None:
         click.echo(json.dumps(to_jsonable_python(rendered), indent=2, ensure_ascii=False))
     elif isinstance(rendered, str):

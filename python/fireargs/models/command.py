@@ -8,8 +8,11 @@ from pydantic import BaseModel, TypeAdapter
 from .context import Context, RenderContext
 from .field import FieldMeta
 
-type Render[I, O] = Callable[[O, RenderContext[I]], str | None | Awaitable[str | None]]
-type RenderError = Callable[[Exception, Context], object]
+type RenderResult = str | None | Awaitable[str | None]
+type Render[I, O] = (
+    Callable[[O], RenderResult] | Callable[[O, RenderContext[I]], RenderResult]
+)
+type RenderError = Callable[[Exception], object] | Callable[[Exception, Context], object]
 
 
 @dataclass(frozen=True, kw_only=True)

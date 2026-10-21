@@ -59,13 +59,14 @@ Optional. Turns the validated output into what a human sees at the shell.
 It runs only without `--json`; with it, the output is written as JSON
 instead. A returned string is written to stdout with a trailing newline;
 return `None` to write the output yourself (spinners, colors, tables).
-`context` is a `RenderContext` carrying `input` (the parsed input), `json`
-and `command`. Without a render, a run without `--json` prints nothing.
+Declare a second parameter to receive a `RenderContext` carrying `input`
+(the parsed input), `json` and `command`. Without a render, a run without
+`--json` prints nothing.
 
 ```python
 from typing import Annotated
 from pydantic import BaseModel
-from fireargs import Argument, RenderContext, command
+from fireargs import Argument, command
 
 
 Path = Annotated[str, Argument()]
@@ -81,7 +82,7 @@ def list_names(input: ListInput) -> list[str]:
 
 
 @list_names.render
-def render_names(output: list[str], context: RenderContext[ListInput]) -> str:
+def render_names(output: list[str]) -> str:
     return "\n".join(f"- {name}" for name in output)
 ```
 
@@ -150,20 +151,20 @@ conflicts, hidden, a flag value, a custom `parse`, …) annotate the field with
 
 The keyword arguments of `@command(...)`. All are optional.
 
-| Field                                     | What it does                                                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `name`                                    | the command name; defaults to the function name in kebab-case                                           |
-| `description`                             | help text, and the tool `description` in `--llms`                                                       |
-| `aliases`                                 | extra names the parent program also routes to this command                                              |
-| `help_group`                              | heading this command is listed under in its parent's help                                               |
-| `version`                                 | adds a `-V, --version` flag printing it                                                                 |
-| `version_option`                          | `{"flags": ..., "description": ...}` for that flag, e.g. `{"flags": "-v, --version"}`                   |
-| `json_option`, `llms_option`              | customize or disable the built-in `--json`/`--llms` flags. See [LLMs mode](/python/llms-mode/)          |
-| `render_error`                            | `(error, context) -> value` — turn a failed run into output. See [JSON mode](/python/json-mode/#errors) |
-| `context_settings`                        | click's `context_settings`, e.g. `{"help_option_names": ["-h", "--help"]}`                              |
-| `epilog`, `short_help`, `options_metavar` | click's help text slots                                                                                 |
-| `add_help_option`, `no_args_is_help`      | click's help toggles                                                                                    |
-| `hidden`, `deprecated`                    | click's: leave out of the parent's help, or mark deprecated                                             |
+| Field                                     | What it does                                                                                              |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `name`                                    | the command name; defaults to the function name in kebab-case                                             |
+| `description`                             | help text, and the tool `description` in `--llms`                                                         |
+| `aliases`                                 | extra names the parent program also routes to this command                                                |
+| `help_group`                              | heading this command is listed under in its parent's help                                                 |
+| `version`                                 | adds a `-V, --version` flag printing it                                                                   |
+| `version_option`                          | `{"flags": ..., "description": ...}` for that flag, e.g. `{"flags": "-v, --version"}`                     |
+| `json_option`, `llms_option`              | customize or disable the built-in `--json`/`--llms` flags. See [LLMs mode](/python/llms-mode/)            |
+| `render_error`                            | `(error[, context]) -> value` — turn a failed run into output. See [JSON mode](/python/json-mode/#errors) |
+| `context_settings`                        | click's `context_settings`, e.g. `{"help_option_names": ["-h", "--help"]}`                                |
+| `epilog`, `short_help`, `options_metavar` | click's help text slots                                                                                   |
+| `add_help_option`, `no_args_is_help`      | click's help toggles                                                                                      |
+| `hidden`, `deprecated`                    | click's: leave out of the parent's help, or mark deprecated                                               |
 
 `render_error` can also be registered with a decorator, like the render:
 `@greet.render_error`.

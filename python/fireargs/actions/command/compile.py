@@ -17,6 +17,7 @@ from ...models.config import CommandConfig, FlagConfig, RouteConfig
 from ...models.context import Context, RenderContext
 from ...models.field import ArgumentMeta, OptionMeta
 from ..awaitable.run import run_awaitable
+from ..context.accept import accepts_context
 from ..error.handle import find_error_handler, handle_error
 from ..field.read import read_field_meta
 from .manifest import build_manifest
@@ -429,8 +430,12 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
             click.echo(json.dumps(dumped, indent=2, ensure_ascii=False))
             return
         if command.renderer is not None:
-            render_context = RenderContext(json=False, command=command, input=parsed)
-            rendered = run_awaitable(command.renderer(validated, render_context))
+            renderer = command.renderer
+            if accepts_context(renderer):
+                context = RenderContext(json=False, command=command, input=parsed)
+                rendered = run_awaitable(renderer(validated, context))
+            else:
+                rendered = run_awaitable(renderer(validated))
             if isinstance(rendered, str):
                 click.echo(rendered)
     except (click.exceptions.Exit, click.ClickException):

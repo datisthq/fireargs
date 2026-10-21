@@ -316,3 +316,23 @@ class TestHelpGroupOrder:
 
         help = invoke(cli, "--help").stdout
         assert help.index("Ops:") < help.index("Commands:")
+
+
+class TestProgramRenderErrorContext:
+    def test_calls_a_program_render_error_that_takes_only_the_error(self):
+        class Empty(BaseModel):
+            pass
+
+        @f.command(name="fail")
+        def fail(input: Empty) -> Empty:
+            raise RuntimeError("boom")
+
+        cli = f.Program(name="app", router={"fail": fail})
+
+        @cli.render_error
+        def render(error: Exception) -> str:
+            return f"failed: {error}"
+
+        result = invoke(cli, "fail")
+        assert result.stderr == "failed: boom\n"
+        assert result.exit_code == 1

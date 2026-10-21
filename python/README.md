@@ -17,7 +17,7 @@ The handler's first parameter annotation is the input model and its return annot
 ```python title="greet.py"
 from typing import Annotated
 from pydantic import BaseModel
-from fireargs import Argument, Option, RenderContext, command
+from fireargs import Argument, Option, command
 
 
 Name = Annotated[str, Argument(description="The user's name.")]
@@ -42,7 +42,7 @@ def greet(input: GreetInput) -> Greeting:
 
 
 @greet.render
-def render_greeting(output: Greeting, context: RenderContext[GreetInput]) -> str:
+def render_greeting(output: Greeting) -> str:
     return output.greeting
 
 

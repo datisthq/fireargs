@@ -60,11 +60,11 @@ if __name__ == "__main__":
 
 ## Human output: `@command.render`
 
-Without `--json` nothing is printed unless the command has a render. It receives the validated output and an `RenderContext[Input]` carrying `input`; a returned string is echoed with a newline, or it writes itself and returns `None`. It never runs under `--json`, so the handler just returns data:
+Without `--json` nothing is printed unless the command has a render. It receives the validated output and, when it declares a second parameter, a `RenderContext[Input]` carrying `input`; a returned string is echoed with a newline, or it writes itself and returns `None`. It never runs under `--json`, so the handler just returns data:
 
 ```python
 @list_names.render
-def render_names(output: list[str], context: RenderContext[ListInput]) -> str:
+def render_names(output: list[str]) -> str:
     return "\n".join(f"- {name}" for name in output)
 ```
 
@@ -128,7 +128,7 @@ Every keyword of `@command(...)` is optional:
 
 - **Identity:** `name`, `description`, `aliases` (extra names the parent program routes here), `help_group`, `version`; `version_option={"flags": "-v, --version"}` renames the version flag (default `-V, --version`).
 - **Built-in flags:** `json_option` and `llms_option` — `{"flags": ..., "description": ...}` or `False`. See `fireargs-python-automation`.
-- **Errors:** `render_error=(error, context) -> value`, or `@command.render_error`, turns a failed run into output and exit code 1. See `fireargs-python-automation`.
+- **Errors:** `render_error=(error[, context]) -> value`, or `@command.render_error`, turns a failed run into output and exit code 1. See `fireargs-python-automation`.
 - **Click pass-throughs:** `context_settings`, `epilog`, `short_help`, `options_metavar`, `add_help_option`, `no_args_is_help`, `hidden`, `deprecated`.
 
 Anything else click supports can be done on the returned command, which is a real `click.Command`.

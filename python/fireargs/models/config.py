@@ -75,7 +75,7 @@ class RouteConfig(TypedDict, total=False):
     version: str
     version_option: FlagConfig
     llms_option: FlagConfig | bool
-    render_error: Callable[[Exception, Context], object]
+    render_error: Callable[[Exception], object] | Callable[[Exception, Context], object]
     context_settings: Mapping[str, object]
     epilog: str
     short_help: str

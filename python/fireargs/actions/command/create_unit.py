@@ -1402,3 +1402,46 @@ class TestParityDetails:
         assert json.loads(invoke(tag, "--tags", "a", "--tags", "b", "--json").stdout) == {
             "tags": ["a", "b"]
         }
+
+
+class TestOptionalHookContext:
+    def test_calls_a_render_that_takes_only_the_output(self):
+        class In(BaseModel):
+            name: str
+
+        class Out(BaseModel):
+            greeting: str
+
+        @f.command(name="greet")
+        def greet(input: In) -> Out:
+            return Out(greeting=f"hello {input.name}")
+
+        @greet.render
+        def render(output: Out) -> str:
+            return output.greeting
+
+        assert invoke(greet, "--name", "ada").stdout == "hello ada\n"
+
+    def test_calls_a_render_error_that_takes_only_the_error(self):
+        @f.command(name="boom", render_error=lambda error: f"failed: {error}")
+        def boom(input: Empty) -> Empty:
+            raise RuntimeError("boom")
+
+        result = invoke(boom)
+        assert result.stderr == "failed: boom\n"
+        assert result.exit_code == 1
+
+    def test_still_passes_the_context_to_a_two_argument_hook(self):
+        seen: list[bool] = []
+
+        @f.command(name="show")
+        def show(input: Empty) -> Empty:
+            return Empty()
+
+        @show.render
+        def render(output: Empty, context: f.RenderContext[Empty]) -> str:
+            seen.append(context.json)
+            return "ok"
+
+        assert invoke(show).stdout == "ok\n"
+        assert seen == [False]
