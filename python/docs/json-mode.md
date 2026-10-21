@@ -65,15 +65,15 @@ colors and progress output should check `context.json`:
 ```python
 import click
 from pydantic import BaseModel
-import fireargs as fa
+from fireargs import Context, command
 
 
 class SyncInput(BaseModel):
     source: str
 
 
-@fa.command()
-def sync(input: SyncInput, context: fa.Context) -> list[str]:
+@command()
+def sync(input: SyncInput, context: Context) -> list[str]:
     if not context.json:
         click.echo(f"Syncing {input.source}…", err=True)
     return [input.source]
@@ -101,14 +101,14 @@ or pydantic `ValidationError` for input failures, and the exception itself
 for output, handler and render failures:
 
 ```python
-import fireargs as fa
+from fireargs import Context, Program
 
 
-def render_error(error: Exception, context: fa.Context) -> object:
+def render_error(error: Exception, context: Context) -> object:
     return {"error": str(error)} if context.json else f"error: {error}"
 
 
-cli = fa.Program(name="myapp", render_error=render_error, router={"greet": greet})
+cli = Program(name="myapp", render_error=render_error, router={"greet": greet})
 ```
 
 - In JSON mode a returned value is written as JSON to stdout; otherwise a

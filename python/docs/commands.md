@@ -3,20 +3,20 @@ title: Commands
 path: /python/commands/
 icon: terminal
 order: 3
-description: The @fa.command(...) decorator and the leaf it builds from a handler.
+description: The @command(...) decorator and the leaf it builds from a handler.
 ---
 
 # Commands
 
-`@fa.command(**config)` turns a handler function into a `Command`, a subclass
+`@command(**config)` turns a handler function into a `Command`, a subclass
 of click's `Command`. The handler's first parameter annotation is the input
 model, its return annotation is the output type, and an optional second
-parameter receives a `Context`. Always call the decorator — `@fa.command()`,
+parameter receives a `Context`. Always call the decorator — `@command()`,
 even without config.
 
 ```python
 from pydantic import BaseModel
-import fireargs as fa
+from fireargs import command
 
 
 class GreetInput(BaseModel):
@@ -27,7 +27,7 @@ class Greeting(BaseModel):
     greeting: str
 
 
-@fa.command()
+@command()
 def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=f"hello {input.name}")
 
@@ -65,23 +65,23 @@ and `command`. Without a render, a run without `--json` prints nothing.
 ```python
 from typing import Annotated
 from pydantic import BaseModel
-import fireargs as fa
+from fireargs import Argument, RenderContext, command
 
 
-Path = Annotated[str, fa.Argument()]
+Path = Annotated[str, Argument()]
 
 
 class ListInput(BaseModel):
     path: Path
 
 
-@fa.command()
+@command()
 def list_names(input: ListInput) -> list[str]:
     return [f"{input.path}/a", f"{input.path}/b"]
 
 
 @list_names.render
-def render_names(output: list[str], context: fa.RenderContext[ListInput]) -> str:
+def render_names(output: list[str], context: RenderContext[ListInput]) -> str:
     return "\n".join(f"- {name}" for name in output)
 ```
 
@@ -102,15 +102,15 @@ running event loop.
 ```python
 import asyncio
 from pydantic import BaseModel
-import fireargs as fa
+from fireargs import Context, command
 
 
 class FetchInput(BaseModel):
     url: str
 
 
-@fa.command(description="Fetch a URL")
-async def fetch(input: FetchInput, context: fa.Context) -> dict[str, str]:
+@command(description="Fetch a URL")
+async def fetch(input: FetchInput, context: Context) -> dict[str, str]:
     await asyncio.sleep(0)
     return {"url": input.url, "mode": "json" if context.json else "text"}
 ```
@@ -129,7 +129,7 @@ For each field of the input model:
 | ----------------------------------- | --------------------------------------------------------------------------- |
 | `str` / `int` / `float`             | `--key <value>`, required unless defaulted; a number's CLI string is parsed |
 | `bool`                              | `--key` flag                                                                |
-| `Annotated[T, fa.Argument()]`       | positional `<key>`; `[key]` when it has a default                           |
+| `Annotated[T, Argument()]`          | positional `<key>`; `[key]` when it has a default                           |
 | a default value                     | shown as `[default: …]` in `--help`; pydantic fills it                      |
 | `Literal["a", "b"]` / a string Enum | a click `Choice`: `--key [a\|b]`                                            |
 | `list[T]`                           | `--key <value>`, repeated `--key a --key b`; positional variadic `<key...>` |
@@ -144,11 +144,11 @@ handler, `--json` and `--llms` keep `header_rows`. See
 
 For per-field click config that pydantic doesn't model (short flag, env var,
 conflicts, hidden, a flag value, a custom `parse`, …) annotate the field with
-[`fa.Argument(...)` or `fa.Option(...)`](/python/inputs/).
+[`Argument(...)` or `Option(...)`](/python/inputs/).
 
 ## `CommandConfig`
 
-The keyword arguments of `@fa.command(...)`. All are optional.
+The keyword arguments of `@command(...)`. All are optional.
 
 | Field                                     | What it does                                                                                            |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |

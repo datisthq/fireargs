@@ -5,8 +5,8 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 ## Terminology
 
 - **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), or `pip install fireargs` (`python/fireargs/` and `python/skills/`)
-- **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `fa.Option()`
-- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the `fireargs` module imported as `fa` (`fa.command`, `fa.Argument`, `fa.Option`, `fa.Program`)
+- **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `Option()`
+- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the names `fireargs` exports, imported directly (`command`, `Argument`, `Option`, `Program`)
 - **docs site** — `python/docs/`, `typescript/docs/`, each section's README and its copy of `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
 - **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`)
 

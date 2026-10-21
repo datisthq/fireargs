@@ -80,8 +80,8 @@ property they include:
 - `type` — derived from the Python type; `X | None` is an `anyOf` with
   `null`.
 - `title` — pydantic adds one per field and per model.
-- `description` — from `description=` on `Field(...)`, `fa.Argument(...)` or
-  `fa.Option(...)`.
+- `description` — from `description=` on `Field(...)`, `Argument(...)` or
+  `Option(...)`.
 - `default` — from the field's default.
 - `enum` — from `Literal[...]`, or an `Enum` under `$defs`.
 - `format`, `pattern`, `minimum`, `maxLength`, … — from the type
@@ -101,7 +101,7 @@ A type pydantic cannot describe — an arbitrary class allowed with
 `PydanticInvalidForJsonSchema`. Keep input and output types to what JSON
 Schema can express.
 
-Fireargs config attached by `fa.Argument()` / `fa.Option()` (short flags,
+Fireargs config attached by `Argument()` / `Option()` (short flags,
 env vars, conflicts, …) is **not** part of the JSON Schema in the manifest —
 it's CLI-only and irrelevant to a JSON-mode call.
 
