@@ -21,7 +21,7 @@ from fireargs import Argument, Option, command
 
 
 Name = Annotated[str, Argument(description="The user's name.")]
-Times = Annotated[int, Option(default=1, ge=1, description="Repeat the greeting n times.")]
+Times = Annotated[int, Option(default=1, ge=1, description="Repeat it n times.")]
 Shout = Annotated[bool, Option(short="s", default=False, description="Use capitals.")]
 
 
@@ -78,7 +78,7 @@ Arguments:
   name  The user's name.
 
 Options:
-  --times <value>  Repeat the greeting n times.  [default: 1]
+  --times <value>  Repeat it n times.  [default: 1]
   -s, --shout      Use capitals.
   --json [value]   write output as JSON; pass a JSON string to also drive
                    input
@@ -156,7 +156,7 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
           },
           "times": {
             "default": 1,
-            "description": "Repeat the greeting n times.",
+            "description": "Repeat it n times.",
             "minimum": 1,
             "title": "Times",
             "type": "integer"

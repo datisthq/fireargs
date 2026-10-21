@@ -92,9 +92,7 @@ print in the order their first route appears.
 
 ```ts
 const deploy = f.command({ description: "Deploy", helpGroup: "Ops:" }) // ...
-const users = f
-  .program({ description: "Manage users", helpGroup: "Ops:" })
-  .router({ list })
+const users = f.program({ description: "Manage users", helpGroup: "Ops:" }).router({ list })
 
 f.program({ name: "myapp" }).router({ deploy, users, version })
 // Ops:

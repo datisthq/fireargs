@@ -8,6 +8,8 @@ export default defineConfig({
     printWidth: 90,
     arrowParens: "avoid",
     ignorePatterns: [...ignorePatterns, "**/CHANGELOG.md"],
+    // Docs code snippets may run to 100 columns, the width the docs guard allows
+    overrides: [{ files: ["**/*.md"], options: { printWidth: 100 } }],
   },
   lint: {
     ignorePatterns,

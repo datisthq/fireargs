@@ -17,12 +17,8 @@ import { f } from "fireargs"
 import { z } from "zod"
 
 const name = f.argument().schema(z.string().describe("The user's name."))
-const times = f
-  .option()
-  .schema(z.number().min(1).default(1).describe("Repeat the greeting n times."))
-const shout = f
-  .option({ short: "s" })
-  .schema(z.boolean().default(false).describe("Use capitals."))
+const times = f.option().schema(z.number().min(1).default(1).describe("Repeat it n times."))
+const shout = f.option({ short: "s" }).schema(z.boolean().default(false).describe("Use capitals."))
 
 const greet = f
   .command({ name: "greet", description: "Greet someone politely." })
@@ -68,7 +64,7 @@ Options:
   --json [value]   write output as JSON; pass a JSON string to also drive input
   --llms           print this command's schema (name, input, output) as JSON for
                    LLM tool-use
-  --times <value>  Repeat the greeting n times. (default: 1)
+  --times <value>  Repeat it n times. (default: 1)
   -s, --shout      Use capitals. (default: false)
   -h, --help       display help for command
 ```

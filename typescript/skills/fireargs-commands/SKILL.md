@@ -31,7 +31,7 @@ const greet = f
   .input(
     z.object({
       name: f.argument().string().describe("The user's name."),
-      times: z.number().default(1).describe("Repeat the greeting n times."),
+      times: z.number().default(1).describe("Repeat it n times."),
       verbose: f.option({ short: "v" }).schema(z.boolean().default(false)),
     }),
   )

@@ -55,9 +55,7 @@ Set `helpGroup` on a command's or nested program's config to list it under its o
 
 ```ts
 const deploy = f.command({ description: "Deploy", helpGroup: "Ops:" }) // ...
-const users = f
-  .program({ description: "Manage users", helpGroup: "Ops:" })
-  .router({ list })
+const users = f.program({ description: "Manage users", helpGroup: "Ops:" }).router({ list })
 f.program({ name: "myapp" }).router({ deploy, users, version })
 ```
 
