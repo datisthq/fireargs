@@ -51,7 +51,7 @@ def render_greeting(output: Greeting) -> str:
     return output.greeting
 
 
-# Use as a normal click command
+# Use as a normal click command, e.g. apply plugins
 if __name__ == "__main__":
     greet()
 ```
