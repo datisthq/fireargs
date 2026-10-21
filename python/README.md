@@ -103,8 +103,33 @@ if __name__ == "__main__":
     cli()
 ```
 
+That gives:
+
+```bash
+$ myapp --help
+Usage: myapp [OPTIONS] [COMMAND] [ARGS]...
+
+  My CLI
+
+Options:
+  -V, --version  output the version number
+  --llms         print the program manifest (subcommand schemas) as JSON for
+                 LLM tool-use
+  --help         Show this message and exit.
+
+Commands:
+  greet   Greet someone politely.
+  deploy  Deploy the current build.
+  db      Database tasks.
+
+$ myapp db migrate --json '{}'
+{
+  "applied": 0
+}
+```
+
 Programs nest — `router` accepts other programs the same way it accepts
-leaves. `myapp db migrate --json '...'` routes through both levels.
+leaves. `myapp db migrate` routes through both levels.
 
 ## LLM tool-use
 

@@ -55,8 +55,33 @@ const cli = f
 cli.parseAsync(process.argv)
 ```
 
+That gives:
+
+```bash
+$ myapp --help
+Usage: myapp [options] [command]
+
+My CLI
+
+Options:
+  -V, --version           output the version number
+  --llms                  print the program manifest (subcommand schemas) as
+                          JSON for LLM tool-use
+  -h, --help              display help for command
+
+Commands:
+  greet [options] <name>  Greet someone politely.
+  deploy [options] <env>  Deploy the current build.
+  db [options]            Database tasks.
+
+$ myapp db migrate --json '{}'
+{
+  "applied": 0
+}
+```
+
 Programs nest — `router` accepts other programs the same way it accepts
-leaves. `myapp db migrate --json '...'` routes through both levels.
+leaves. `myapp db migrate` routes through both levels.
 
 ## LLM tool-use
 
