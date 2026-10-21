@@ -31,7 +31,7 @@ dev = [
   "pytest==9.0.2",
   "pytest-cov>=7.0.0",
   "ruff==0.15.0",
-  "ty==0.0.90",
+  "ty==0.0.87",
 ]
 
 [build-system]
@@ -48,6 +48,11 @@ exclude = ["**/*_unit.py", "fireargs/_test"]
 [tool.hatch.build.targets.sdist]
 include = ["fireargs", "skills", "README.md", "LICENSE.md"]
 exclude = ["**/*_unit.py", "fireargs/_test"]
+
+[tool.uv]
+# Same seven-day quarantine as minimumReleaseAge in pnpm-workspace.yaml; pin a hotfix
+# through exclude-newer-package instead of shortening this for the whole tree
+exclude-newer = "7 days"
 
 [tool.ruff]
 line-length = 90
