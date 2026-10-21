@@ -941,7 +941,7 @@ function FeatureCard({ icon: Icon, title, description }: Feature) {
 const sources: Record<Lang, string> = {
   python: `from typing import Annotated
 from pydantic import BaseModel
-from fireargs import Argument, Option, command
+from fireargs import Argument, Option, Program, command
 
 # Composable arguments and options
 Name = Annotated[str, Argument(description="Who to greet")]
@@ -966,9 +966,12 @@ def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=" ".join(words))
 
 
-# Use as a normal click command, e.g. configure or apply plugins
+# Composable commands: a router of leaves and nested programs
+cli = Program(name="myapp", router={"greet": greet})
+
+# Use as a normal click group, e.g. configure or apply plugins
 if __name__ == "__main__":
-    greet()`,
+    cli()`,
   typescript: `import { f } from "fireargs"
 import { z } from "zod"
 
@@ -992,8 +995,11 @@ const greet = f
     return { greeting: words.join(" ") }
   })
 
+// Composable commands: a router of leaves and nested programs
+const cli = f.program({ name: "myapp" }).router({ greet })
+
 // Use as a normal commander command, e.g. configure or apply plugins
-greet.parseAsync(process.argv)`,
+cli.parseAsync(process.argv)`,
 }
 
 function SourceSample() {
@@ -1005,59 +1011,91 @@ function SourceSample() {
   )
 }
 
-function ManifestSample() {
+const terminal = `$ myapp greet world --times 2 --json
+{
+  "greeting": "hello world hello world"
+}
+$ myapp greet --json '{"name":"world"}'
+{
+  "greeting": "hello world"
+}
+$ myapp --llms
+{
+  "tools": [
+    { "name": "help", ... },
+    {
+      "name": "greet",
+      "description": "Greet politely",
+      "inputSchema": { ... },
+      "outputSchema": { ... }
+    }
+  ]
+}`
+
+function TerminalSample() {
   return (
     <pre className="p-5 text-sm leading-relaxed font-mono overflow-x-auto">
       <code className={tk.body}>
-        <span className={tk.prompt}>$</span> <span className={tk.func}>greet</span>{" "}
-        <span className={tk.flag}>--llms</span>
-        {"\n"}
-        <span className={tk.punct}>{"{"}</span>
-        {"\n  "}
-        <span className={tk.key}>"tools"</span>
-        <span className={tk.punct}>: [</span>
-        {"\n    "}
-        <span className={tk.punct}>{"{ "}</span>
-        <span className={tk.key}>"name"</span>
-        <span className={tk.punct}>:</span> <span className={tk.string}>"help"</span>
-        <span className={tk.punct}>,</span> <span className={tk.dim}>...</span>
-        <span className={tk.punct}>{" }, "}</span>
-        {"\n    "}
-        <span className={tk.punct}>{"{"}</span>
-        {"\n      "}
-        <span className={tk.key}>"name"</span>
-        <span className={tk.punct}>:</span> <span className={tk.string}>"greet"</span>
-        <span className={tk.punct}>,</span>
-        {"\n      "}
-        <span className={tk.key}>"description"</span>
-        <span className={tk.punct}>:</span>{" "}
-        <span className={tk.string}>"Greet politely"</span>
-        <span className={tk.punct}>,</span>
-        {"\n      "}
-        <span className={tk.key}>"inputSchema"</span>
-        <span className={tk.punct}>:</span> <span className={tk.punct}>{"{ "}</span>
-        <span className={tk.key}>"type"</span>
-        <span className={tk.punct}>:</span> <span className={tk.string}>"object"</span>
-        <span className={tk.punct}>,</span> <span className={tk.dim}>...</span>
-        <span className={tk.punct}>{" }"}</span>
-        <span className={tk.punct}>,</span>
-        {"\n      "}
-        <span className={tk.key}>"outputSchema"</span>
-        <span className={tk.punct}>:</span> <span className={tk.punct}>{"{ "}</span>
-        <span className={tk.key}>"type"</span>
-        <span className={tk.punct}>:</span> <span className={tk.string}>"object"</span>
-        <span className={tk.punct}>,</span> <span className={tk.dim}>...</span>
-        <span className={tk.punct}>{" }"}</span>
-        {"\n    "}
-        <span className={tk.punct}>{"}"}</span>
-        {"\n  "}
-        <span className={tk.punct}>]</span>
-        {"\n"}
-        <span className={tk.punct}>{"}"}</span>
-        {"\n"}
+        {terminal.split("\n").map((line, i) => (
+          <span key={i}>
+            {line.startsWith("$ ") ? highlightCommand(line) : highlightJson(line)}
+            {"\n"}
+          </span>
+        ))}
       </code>
     </pre>
   )
+}
+
+const COMMAND_TOKEN = /(^\$)|('[^']*')|(--[\w-]+)|((?<=^\$ )\S+)|(\s+|\S+)/g
+
+function highlightCommand(line: string) {
+  return [...line.matchAll(COMMAND_TOKEN)].map(match => {
+    const [text, prompt, string, flag, program] = match
+    const className = prompt
+      ? tk.prompt
+      : string
+        ? tk.string
+        : flag
+          ? tk.flag
+          : program
+            ? tk.func
+            : undefined
+    return className ? (
+      <span key={match.index} className={className}>
+        {text}
+      </span>
+    ) : (
+      text
+    )
+  })
+}
+
+const JSON_TOKEN =
+  /("[^"]*"(?=:))|("[^"]*")|(\b\d+\b)|(\.\.\.)|([{}[\],:])|(\s+|[^\s"{}[\],:.]+|\.)/g
+
+function highlightJson(line: string) {
+  return [...line.matchAll(JSON_TOKEN)].map(match => {
+    const [text, key, string, number, ellipsis, punct] = match
+    const className = key
+      ? tk.key
+      : string
+        ? tk.string
+        : number
+          ? tk.type
+          : ellipsis
+            ? tk.dim
+            : punct
+              ? tk.punct
+              : undefined
+    return className ? (
+      <span key={match.index} className={className}>
+        {text}
+      </span>
+    ) : (
+      text
+    )
+  })
 }
 
 function Showcase() {
@@ -1085,8 +1123,8 @@ function Showcase() {
             <WindowCard label={langs[lang].file}>
               <SourceSample />
             </WindowCard>
-            <WindowCard label="greet --llms">
-              <ManifestSample />
+            <WindowCard label="terminal">
+              <TerminalSample />
             </WindowCard>
           </div>
         </Reveal>
