@@ -7,18 +7,17 @@ export default defineConfig({
   logo: "/logo.svg",
   favicon: "/logo.png",
   include: [
-    "typescript/README.md",
-    "typescript/docs/**/*.md",
     "python/README.md",
     "python/docs/**/*.md",
-    "README.md",
-    "CONTRIBUTING.md",
+    "python/CONTRIBUTING.md",
+    "typescript/README.md",
+    "typescript/docs/**/*.md",
+    "typescript/CONTRIBUTING.md",
   ],
-  skills: ["typescript/skills/*/SKILL.md", "python/skills/*/SKILL.md"],
+  skills: ["python/skills/*/SKILL.md", "typescript/skills/*/SKILL.md"],
   sections: [
-    { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
     { title: "Python", prefix: "/python/", icon: "code" },
-    { title: "Project", prefix: "/", icon: "book-open" },
+    { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
     {
       title: "Changelog",
       prefix: "/changelog/",
@@ -36,16 +35,6 @@ export default defineConfig({
   ],
   patches: [
     {
-      file: "typescript/README.md",
-      article: {
-        title: "Introduction",
-        description: "Install fireargs and write your first command.",
-        icon: "rocket",
-        order: 1,
-        path: "/typescript/introduction/",
-      },
-    },
-    {
       file: "python/README.md",
       article: {
         title: "Introduction",
@@ -56,24 +45,35 @@ export default defineConfig({
       },
     },
     {
-      file: "README.md",
-      article: {
-        title: "Overview",
-        description: "One CLI contract, built from schemas, in TypeScript and Python.",
-        icon: "book-open",
-        order: 1,
-        path: "/overview/",
-      },
-    },
-    {
-      file: "CONTRIBUTING.md",
+      file: "python/CONTRIBUTING.md",
       article: {
         title: "Contributing",
         description:
           "How to set up fireargs locally, propose changes, and ship a release.",
         icon: "heart-handshake",
-        order: 2,
-        path: "/contributing/",
+        order: -1,
+        path: "/python/contributing/",
+      },
+    },
+    {
+      file: "typescript/README.md",
+      article: {
+        title: "Introduction",
+        description: "Install fireargs and write your first command.",
+        icon: "rocket",
+        order: 1,
+        path: "/typescript/introduction/",
+      },
+    },
+    {
+      file: "typescript/CONTRIBUTING.md",
+      article: {
+        title: "Contributing",
+        description:
+          "How to set up fireargs locally, propose changes, and ship a release.",
+        icon: "heart-handshake",
+        order: -1,
+        path: "/typescript/contributing/",
       },
     },
   ],

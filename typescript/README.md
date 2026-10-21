@@ -85,7 +85,7 @@ An LLM agent reads the manifest, picks a tool, and invokes it with
 - [JSON mode](/typescript/json-mode/) — `--json` for programmatic and pipeline use.
 - [LLMs mode](/typescript/llms-mode/) — `--llms` and the MCP-shaped manifest.
 - [Composability](/typescript/composability/) — share common params across commands by composing zod schemas.
-- [Contributing](/contributing/) — local setup, conventions, release flow.
+- [Contributing](/typescript/contributing/) — local setup, conventions, release flow.
 
 ## License
 

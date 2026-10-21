@@ -169,7 +169,7 @@ An LLM agent reads the manifest, picks a tool, and invokes it with
 - [LLMs mode](/python/llms-mode/) — `--llms` and the MCP-shaped manifest.
 - [Composability](/python/composability/) — share common params across commands by composing pydantic models.
 - [Agent Skills](/python/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
-- [Contributing](/contributing/) — local setup, conventions, release flow.
+- [Contributing](/python/contributing/) — local setup, conventions, release flow.
 
 ## License
 

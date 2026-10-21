@@ -29,6 +29,14 @@ describe("documentation stays true", () => {
     expect(stray).toEqual([])
   })
 
+  it("keeps each section's CONTRIBUTING.md a copy of the root one", () => {
+    const root = readFileSync(join(ROOT, "CONTRIBUTING.md"), "utf8")
+    const drifted = SECTIONS.filter(
+      name => readFileSync(join(ROOT, name, "CONTRIBUTING.md"), "utf8") !== root,
+    )
+    expect(drifted).toEqual([])
+  })
+
   it("names only paths that exist", () => {
     const missing: string[] = []
     for (const doc of readDocs()) {

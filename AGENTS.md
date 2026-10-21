@@ -7,7 +7,7 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 - **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), or `pip install fireargs` (`python/fireargs/` and `python/skills/`)
 - **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `f.Option()`
 - **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the `fireargs` module imported as `f` (`f.command`, `f.Argument`, `f.Option`, `f.Program`)
-- **docs site** — `typescript/docs/`, `python/docs/`, the READMEs and `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
+- **docs site** — `python/docs/`, `typescript/docs/`, each section's README and its copy of `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
 - **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`)
 
 ## Rules
@@ -85,7 +85,7 @@ The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): fo
 - `python/` — the PyPI package, a uv project; `python/fireargs/` mirrors `typescript/` module for module, with `docs/` and `skills/` beside it (**`python-development`**)
 - `testsuite/` — language-neutral JSON cases both packages run against twin fixture CLIs
 - `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; the root `vite.config.ts` holds format, lint and the guards' tests
-- `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the repo overview and the docs site's config
+- `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the GitHub overview, the contributor guide (copied into each section for its docs-site page; the docs guard keeps the copies equal) and the docs site's config
 
 Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config.
 
