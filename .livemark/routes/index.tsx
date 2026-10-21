@@ -757,6 +757,9 @@ function Freedom() {
       <div className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="mb-6">
+              <LangTabs />
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
               Still just {langs[lang].schema} and {langs[lang].cli}
             </h2>
@@ -764,9 +767,6 @@ function Freedom() {
               Fireargs fills in the boring parts and gets out of the way. Your{" "}
               {langs[lang].models} and your {langs[lang].cli} setup stay yours.
             </p>
-            <div className="mt-6">
-              <LangTabs />
-            </div>
           </div>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
@@ -1067,6 +1067,9 @@ function Showcase() {
       <div className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="mb-6">
+              <LangTabs />
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
               One schema, every interface
             </h2>
@@ -1075,9 +1078,6 @@ function Showcase() {
               drives <code className="font-mono">--help</code>,{" "}
               <code className="font-mono">--json</code>, and the LLM manifest.
             </p>
-            <div className="mt-6">
-              <LangTabs />
-            </div>
           </div>
         </Reveal>
         <Reveal>
