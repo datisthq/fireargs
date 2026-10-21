@@ -1,6 +1,6 @@
 [project]
 name = "fireargs"
-version = "0.0.0"
+version = "0.1.0"
 description = "Build CLIs from pydantic models"
 readme = "README.md"
 license = "MIT"
