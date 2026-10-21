@@ -121,7 +121,21 @@ $ myapp db migrate --json '{}'
 Programs nest — `router` accepts other programs the same way it accepts
 leaves. `myapp db migrate` routes through both levels.
 
-## LLM tool-use
+## JSON mode
+
+Every command takes `--json`. Bare, it switches the output to JSON; given a value, that value is
+the input, checked against the input schema, so scripts never assemble argv:
+
+```bash
+$ node greet.ts world --json | jq -r .greeting
+hello world
+$ node greet.ts --json '{"name":"world","times":"2"}'
+error: invalid --json input at 'times': Invalid input: expected number, received string
+```
+
+Input errors go to stderr with exit code 1, so stdout only ever carries the data.
+
+## LLMs mode
 
 Every command and program ships with `--llms`, which prints an
 MCP-`tools/list`-shaped manifest:
