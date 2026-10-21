@@ -16,19 +16,23 @@ npm install fireargs
 import { f } from "fireargs"
 import { z } from "zod"
 
+const name = f.argument().schema(z.string().describe("The user's name."))
+const times = f
+  .option()
+  .schema(z.number().min(1).default(1).describe("Repeat the greeting n times."))
+const shout = f
+  .option({ short: "s" })
+  .schema(z.boolean().default(false).describe("Use capitals."))
+
 const greet = f
   .command({ name: "greet", description: "Greet someone politely." })
-  .input(
-    z.object({
-      name: f.argument().string().describe("The user's name."),
-      times: z.number().default(1).describe("Repeat the greeting n times."),
-      verbose: f.option({ short: "v" }).boolean(),
-    }),
-  )
+  .input(z.object({ name, times, shout }))
   .output(z.object({ greeting: z.string() }))
-  .handler(input => ({
-    greeting: `hello ${input.name}`.repeat(input.times),
-  }))
+  .render(output => output.greeting)
+  .handler(input => {
+    const greeting = Array(input.times).fill(`hello ${input.name}`).join(" ")
+    return { greeting: input.shout ? greeting.toUpperCase() : greeting }
+  })
 
 greet.parseAsync(process.argv)
 ```
@@ -36,11 +40,37 @@ greet.parseAsync(process.argv)
 That gets you:
 
 ```bash
-$ greet world --times 3
-$ greet world --json                 # CLI input, JSON output
-$ greet --json '{"name":"world"}'    # JSON input, JSON output
-$ greet --llms                       # MCP-shaped manifest for LLMs
-$ greet --help
+$ node greet.ts world --times 2 -s        # CLI input, rendered output
+HELLO WORLD HELLO WORLD
+$ node greet.ts world --json              # CLI input, JSON output
+{
+  "greeting": "hello world"
+}
+$ node greet.ts --json '{"name":"world","times":2}'   # JSON input, JSON output
+{
+  "greeting": "hello world hello world"
+}
+$ node greet.ts world --times 0
+error: option '--times <value>' argument '0' is invalid. Too small: expected number to be >=1
+```
+
+`--help` comes from commander:
+
+```text
+Usage: greet [options] <name>
+
+Greet someone politely.
+
+Arguments:
+  name             The user's name.
+
+Options:
+  --json [value]   write output as JSON; pass a JSON string to also drive input
+  --llms           print this command's schema (name, input, output) as JSON for
+                   LLM tool-use
+  --times <value>  Repeat the greeting n times. (default: 1)
+  -s, --shout      Use capitals. (default: false)
+  -h, --help       display help for command
 ```
 
 ## Subcommand trees
