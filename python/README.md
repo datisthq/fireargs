@@ -20,27 +20,32 @@ from pydantic import BaseModel
 from fireargs import Argument, Option, command
 
 
+# Composable arguments and options
 Name = Annotated[str, Argument(description="The user's name.")]
 Times = Annotated[int, Option(default=1, ge=1, description="Repeat it n times.")]
 Shout = Annotated[bool, Option(short="s", default=False, description="Use capitals.")]
 
 
+# Composable groups of them
 class GreetInput(BaseModel):
     name: Name
     times: Times
     shout: Shout
 
 
+# Typed output, validated on every run
 class Greeting(BaseModel):
     greeting: str
 
 
+# A click Command, typed from the handler's annotations
 @command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
     greeting = " ".join([f"hello {input.name}"] * input.times)
     return Greeting(greeting=greeting.upper() if input.shout else greeting)
 
 
+# Output for humans; --json prints the data instead
 @greet.render
 def render_greeting(output: Greeting) -> str:
     return output.greeting

@@ -16,14 +16,23 @@ npm install fireargs
 import { f } from "fireargs"
 import { z } from "zod"
 
+// Composable arguments and options
 const name = f.argument().schema(z.string().describe("The user's name."))
 const times = f.option().schema(z.number().min(1).default(1).describe("Repeat it n times."))
 const shout = f.option({ short: "s" }).schema(z.boolean().default(false).describe("Use capitals."))
 
+// Composable groups of them
+const greetInput = z.object({ name, times, shout })
+
+// Typed output, validated on every run
+const greetOutput = z.object({ greeting: z.string() })
+
+// A commander Command, typed from the schemas
 const greet = f
   .command({ name: "greet", description: "Greet someone politely." })
-  .input(z.object({ name, times, shout }))
-  .output(z.object({ greeting: z.string() }))
+  .input(greetInput)
+  .output(greetOutput)
+  // Output for humans; --json prints the data instead
   .render(output => output.greeting)
   .handler(input => {
     const greeting = Array(input.times).fill(`hello ${input.name}`).join(" ")
