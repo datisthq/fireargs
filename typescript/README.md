@@ -148,14 +148,60 @@ stdout only ever carries the data, so a script can parse it without checking for
 ## LLMs mode
 
 Every command and program ships with `--llms`, which prints an
-MCP-`tools/list`-shaped manifest:
+MCP-`tools/list`-shaped manifest. For `greet.ts` above:
 
 ```json
 {
   "tools": [
-    { "name": "help", "description": "Documentation tool, not callable. ...", "inputSchema": {}, "outputSchema": {} },
-    { "name": "greet",      "description": "...", "inputSchema": { ... }, "outputSchema": { ... } },
-    { "name": "db migrate", "description": "...", "inputSchema": { ... }, "outputSchema": { ... } }
+    {
+      "name": "help",
+      "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "greet",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The user's name."
+          },
+          "times": {
+            "default": 1,
+            "description": "Repeat it n times.",
+            "type": "number",
+            "minimum": 1
+          },
+          "shout": {
+            "default": false,
+            "description": "Use capitals.",
+            "type": "boolean"
+          }
+        },
+        "required": ["name"]
+      },
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "greeting": {
+            "type": "string"
+          }
+        },
+        "required": ["greeting"],
+        "additionalProperties": false
+      },
+      "description": "Greet someone politely."
+    }
   ]
 }
 ```
