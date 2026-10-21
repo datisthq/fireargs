@@ -499,7 +499,7 @@ function SourceChip(props: { source: Slide["source"] }) {
       </span>
       <div className="min-w-0">
         <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">
-          Defined with a zod schema
+          Defined with a schema
         </p>
         <figcaption className="mt-1 font-mono text-xs text-muted-foreground">
           {props.source.file}
