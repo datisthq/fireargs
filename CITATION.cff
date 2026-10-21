@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: Fireargs
-abstract: CLI builder that defines commands with typed Zod input and output schemas for humans, pipelines, and agents.
+abstract: CLI builder that defines commands with typed Zod input and output schemas for humans, agents, and scripts.
 authors:
   - family-names: Karev
     given-names: Evgeny

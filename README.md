@@ -1,7 +1,7 @@
 # Fireargs
 
-Build CLIs from schemas: typed input and output, composable arguments and options, `--json`
-I/O for pipelines and `--llms` manifests for agents.
+Build CLIs from schemas for humans, agents, and scripts: typed input and output, composable
+arguments and options, `--llms` manifests and `--json` I/O.
 
 | Language   | Package                                              | Built on         | Docs                                                          |
 | ---------- | ---------------------------------------------------- | ---------------- | ------------------------------------------------------------- |

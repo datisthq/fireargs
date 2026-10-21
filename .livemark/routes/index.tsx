@@ -971,7 +971,7 @@ function FinalCta() {
             <span className="text-primary">Write a schema.</span>
           </h2>
           <p className="mt-6 text-lg text-muted-foreground">
-            Install, write a command, ship a CLI that humans, scripts, and LLMs can all
+            Install, write a command, ship a CLI that humans, agents, and scripts can all
             call.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
