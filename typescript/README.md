@@ -79,7 +79,7 @@ Options:
   -h, --help       display help for command
 ```
 
-## Subcommand trees
+## A first program
 
 Group leaves with `f.program(...).router({ ... })`:
 

@@ -93,7 +93,7 @@ Options:
   --help           Show this message and exit.
 ```
 
-## Subcommand trees
+## A first program
 
 Group leaves with `Program(router={...})`:
 
