@@ -77,9 +77,9 @@ function Hero() {
             Typed CLIs for
             <br />
             <span className="box-decoration-clone bg-linear-to-r from-primary/20 to-primary/20 bg-size-[100%_0.3em] bg-position-[0_88%] bg-no-repeat">
-              people, scripts
+              humans, agents
               <br />
-              and agents.
+              and scripts.
             </span>
           </h1>
           <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-muted-foreground md:text-xl">
@@ -87,11 +87,11 @@ function Hero() {
             <code className="font-mono whitespace-nowrap text-foreground">
               --help
             </code>{" "}
-            for people,{" "}
-            <code className="font-mono whitespace-nowrap text-foreground">--json</code>{" "}
-            for scripts and an MCP-shaped{" "}
+            for humans, an MCP-shaped{" "}
             <code className="font-mono whitespace-nowrap text-foreground">--llms</code>{" "}
-            manifest for agents, all from one definition.
+            manifest for agents and{" "}
+            <code className="font-mono whitespace-nowrap text-foreground">--json</code>{" "}
+            for scripts, all from one definition.
           </p>
           <HeroActions />
         </div>
@@ -713,7 +713,7 @@ const features: Feature[] = [
     icon: FileJson,
     title: "Built-in --json",
     description:
-      "Every command takes JSON in and emits JSON out via --json. Drive it from a script, a pipeline, or another agent — same binary.",
+      "Every command takes JSON in and emits JSON out via --json. Drive it from a script or an agent — same binary.",
   },
   {
     icon: Bot,
