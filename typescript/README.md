@@ -39,6 +39,7 @@ const greet = f
     return { greeting: input.shout ? greeting.toUpperCase() : greeting }
   })
 
+// Use as a normal commander command
 greet.parseAsync(process.argv)
 ```
 

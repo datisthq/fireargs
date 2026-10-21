@@ -51,6 +51,7 @@ def render_greeting(output: Greeting) -> str:
     return output.greeting
 
 
+# Use as a normal click command
 if __name__ == "__main__":
     greet()
 ```
