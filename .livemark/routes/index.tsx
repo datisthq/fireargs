@@ -1015,10 +1015,12 @@ const terminal = `$ myapp greet world --times 2 --json
 {
   "greeting": "hello world hello world"
 }
+
 $ myapp greet --json '{"name":"world"}'
 {
   "greeting": "hello world"
 }
+
 $ myapp --llms
 {
   "tools": [
