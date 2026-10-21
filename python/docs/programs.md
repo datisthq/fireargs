@@ -118,9 +118,7 @@ the order their first route appears.
 def deploy(input: DeployInput) -> Deployed: ...
 
 
-users = Program(
-    description="Manage users", help_group="Ops", router={"list": list_users}
-)
+users = Program(description="Manage users", help_group="Ops", router={"list": list_users})
 
 Program(name="myapp", router={"deploy": deploy, "users": users, "version": version})
 # Ops:

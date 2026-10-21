@@ -29,9 +29,7 @@ from fireargs import Argument, Option, command
 
 
 Name = Annotated[str, Argument(description="The user's name.")]
-Times = Annotated[
-    int, Option(default=1, ge=1, description="Repeat the greeting n times.")
-]
+Times = Annotated[int, Option(default=1, ge=1, description="Repeat the greeting n times.")]
 Verbose = Annotated[bool, Option(short="v", default=False)]
 
 

@@ -60,12 +60,8 @@ Set `help_group` on a command's or nested program's config to list it under its 
 def deploy(input: DeployInput) -> Deployed: ...
 
 
-users = Program(
-    description="Manage users", help_group="Ops", router={"list": list_users}
-)
-cli = Program(
-    name="myapp", router={"deploy": deploy, "users": users, "version": version}
-)
+users = Program(description="Manage users", help_group="Ops", router={"list": list_users})
+cli = Program(name="myapp", router={"deploy": deploy, "users": users, "version": version})
 ```
 
 ## Composing across commands

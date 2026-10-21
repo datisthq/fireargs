@@ -46,7 +46,8 @@ Work through the diff asking each of these:
 - `README.md`, `python/README.md`, `typescript/README.md`, `CONTRIBUTING.md` and the docs site
   under `python/docs/` and `typescript/docs/`, which is the user manual. Edit `CONTRIBUTING.md`
   at the root, then copy it over `python/CONTRIBUTING.md` and `typescript/CONTRIBUTING.md`:
-  the docs guard fails while a copy differs.
+  the docs guard fails while a copy differs. Code snippets (Python and TypeScript fences) stay within 100 columns, also
+  guarded; wrap a longer line the way ruff or vp fmt would.
 - Comments that assert a repo-wide invariant, not just local ones — the doc comment on
   `FIREARGS_META_KEY`, a guard test's explanation of what it protects.
 

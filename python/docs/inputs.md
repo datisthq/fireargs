@@ -183,14 +183,10 @@ def parse_header_rows(value: str) -> Literal[False] | list[int]:
 
 
 # --missing-values a,b → ["a", "b"]
-MissingValues = Annotated[
-    list[str] | None, Option(parse=lambda value: value.split(","))
-]
+MissingValues = Annotated[list[str] | None, Option(parse=lambda value: value.split(","))]
 
 # --header-rows false → False, --header-rows 1,2 → [1, 2]
-HeaderRows = Annotated[
-    Literal[False] | list[int] | None, Option(parse=parse_header_rows)
-]
+HeaderRows = Annotated[Literal[False] | list[int] | None, Option(parse=parse_header_rows)]
 
 # --props '{"a":1}' → {"a": 1}
 Props = Annotated[dict[str, int], Option(parse=json.loads)]

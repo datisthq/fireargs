@@ -37,6 +37,19 @@ describe("documentation stays true", () => {
     expect(drifted).toEqual([])
   })
 
+  it("keeps code snippets within 100 columns", () => {
+    const long: string[] = []
+    for (const path of readSnippetDocs()) {
+      const text = readFileSync(join(ROOT, path), "utf8")
+      for (const [, code = ""] of text.matchAll(SNIPPET)) {
+        for (const line of code.split("\n")) {
+          if (line.length > 100) long.push(`${path}: ${line.trim().slice(0, 60)}`)
+        }
+      }
+    }
+    expect(long).toEqual([])
+  })
+
   it("names only paths that exist", () => {
     const missing: string[] = []
     for (const doc of readDocs()) {
@@ -119,6 +132,23 @@ const WORKSPACE = new Set([
   ".release",
   ".scripts",
 ])
+
+// Code only: text and shell blocks hold real CLI output, which is as wide as it is
+const SNIPPET = /```(?:python|py|ts|tsx|typescript|js)\b[^\n]*\n([\s\S]*?)```/g
+
+function readSnippetDocs() {
+  const paths = ["README.md"]
+  for (const section of SECTIONS) {
+    paths.push(join(section, "README.md"))
+    for (const directory of [join(section, "docs"), join(section, "skills")]) {
+      if (!existsSync(join(ROOT, directory))) continue
+      for (const entry of readdirSync(join(ROOT, directory), { recursive: true })) {
+        if (String(entry).endsWith(".md")) paths.push(join(directory, String(entry)))
+      }
+    }
+  }
+  return paths
+}
 
 function readScripts(directory: string) {
   const path = join(directory, "package.json")

@@ -26,9 +26,7 @@ from typing import Annotated
 from fireargs import Option
 
 Page = Annotated[int, Option(short="p", default=1, ge=1, description="Page number")]
-Limit = Annotated[
-    int, Option(short="l", default=20, ge=1, le=100, description="Page size")
-]
+Limit = Annotated[int, Option(short="l", default=20, ge=1, le=100, description="Page size")]
 Verbose = Annotated[bool, Option(short="v", default=False)]
 ```
 
