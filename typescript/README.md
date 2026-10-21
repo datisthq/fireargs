@@ -84,10 +84,12 @@ Options:
 Group leaves with `f.program(...).router({ ... })`:
 
 ```ts
+// Composable commands: a router of leaves and nested programs
 const cli = f
   .program({ name: "myapp", description: "My CLI", version: "1.0.0" })
   .router({ greet, deploy, db: dbCli })
 
+// Use as a normal commander command, e.g. apply plugins
 cli.parseAsync(process.argv)
 ```
 

@@ -98,6 +98,7 @@ Options:
 Group leaves with `Program(router={...})`:
 
 ```python
+# Composable commands: a router of leaves and nested programs
 cli = Program(
     name="myapp",
     description="My CLI",
@@ -105,6 +106,7 @@ cli = Program(
     router={"greet": greet, "deploy": deploy, "db": db},
 )
 
+# Use as a normal click group, e.g. apply plugins
 if __name__ == "__main__":
     cli()
 ```
