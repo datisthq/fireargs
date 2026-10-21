@@ -966,6 +966,12 @@ def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=" ".join(words))
 
 
+# Output for humans; --json prints the data instead
+@greet.render
+def render_greeting(output: Greeting) -> str:
+    return output.greeting
+
+
 # Composable commands: a router of leaves and nested programs
 cli = Program(name="myapp", router={"greet": greet})
 
@@ -990,6 +996,8 @@ const greet = f
   .command({ name: "greet", description: "Greet politely" })
   .input(greetInput)
   .output(greetOutput)
+  // Output for humans; --json prints the data instead
+  .render(output => output.greeting)
   .handler(input => {
     const words = Array(input.times).fill(\`hello \${input.name}\`)
     return { greeting: words.join(" ") }
@@ -1011,16 +1019,11 @@ function SourceSample() {
   )
 }
 
-const terminal = `$ myapp greet world --times 2 --json
-{
-  "greeting": "hello world hello world"
-}
+const terminal = `# For humans
+$ myapp greet world --times 2
+hello world hello world
 
-$ myapp greet --json '{"name":"world"}'
-{
-  "greeting": "hello world"
-}
-
+# For agents
 $ myapp --llms
 {
   "tools": [
@@ -1032,6 +1035,12 @@ $ myapp --llms
       "outputSchema": { ... }
     }
   ]
+}
+
+# For scripts
+$ myapp greet --json '{"name":"world"}'
+{
+  "greeting": "hello world"
 }`
 
 function TerminalSample() {
@@ -1040,7 +1049,13 @@ function TerminalSample() {
       <code className={tk.body}>
         {terminal.split("\n").map((line, i) => (
           <span key={i}>
-            {line.startsWith("$ ") ? highlightCommand(line) : highlightJson(line)}
+            {line.startsWith("# ") ? (
+              <span className={tk.comment}>{line}</span>
+            ) : line.startsWith("$ ") ? (
+              highlightCommand(line)
+            ) : (
+              highlightJson(line)
+            )}
             {"\n"}
           </span>
         ))}
