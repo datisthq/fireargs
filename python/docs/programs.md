@@ -15,9 +15,7 @@ arguments are the program's config. A `Program` is a subclass of click's
 
 ```python
 from typing import Literal
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 

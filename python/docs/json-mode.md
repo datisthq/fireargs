@@ -65,7 +65,6 @@ colors and progress output should check `context.json`:
 ```python
 import click
 from pydantic import BaseModel
-
 import fireargs as f
 
 

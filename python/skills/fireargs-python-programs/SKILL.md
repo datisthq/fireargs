@@ -69,11 +69,12 @@ cli = f.Program(name="myapp", router={"deploy": deploy, "users": users, "version
 Inputs and outputs are plain pydantic models, and Fireargs config lives on each field, so everything composes and the `f.Option(...)` config rides along:
 
 ```python
+Page = Annotated[int, f.Option(short="p", ge=1)]
 Limit = Annotated[int, f.Option(short="l", ge=1, le=100)]
 
 
 class Pagination(BaseModel):
-    page: Annotated[int, f.Option(short="p", ge=1)] = 1
+    page: Page = 1
     limit: Limit = 20
 
 

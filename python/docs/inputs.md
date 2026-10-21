@@ -22,14 +22,15 @@ annotate it with `f.Argument()`:
 
 ```python
 from typing import Annotated
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 
+Name = Annotated[str, f.Argument()]  # <name> positional
+
+
 class GreetInput(BaseModel):
-    name: Annotated[str, f.Argument()]  # <name> positional
+    name: Name
     verbose: bool = False  # --verbose option (default routing)
 ```
 
@@ -45,16 +46,18 @@ The handler, `--json` input and the `--llms` manifest keep the field name
 
 ```python
 from typing import Annotated
-
 from pydantic import BaseModel
-
 import fireargs as f
+
+
+ToPath = Annotated[str, f.Option(name="to")]  # --to <value>
+DryRun = Annotated[bool, f.Option(name="dryRun")]  # --dryRun
 
 
 class CopyInput(BaseModel):
     header_rows: int = 1  # --header-rows <value>
-    to_path: Annotated[str, f.Option(name="to")] = "."  # --to <value>
-    dry_run: Annotated[bool, f.Option(name="dryRun")] = False  # --dryRun
+    to_path: ToPath = "."
+    dry_run: DryRun = False
 ```
 
 A name starting with `no_` gives a plain `--no-…` flag, not a negation:
@@ -94,9 +97,7 @@ checker sees nothing new:
 
 ```python
 from typing import Annotated
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 Limit = Annotated[int, f.Option(short="l", ge=1, description="Max rows")]
@@ -173,9 +174,7 @@ send that value directly:
 ```python
 import json
 from typing import Annotated, Literal
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 
@@ -183,19 +182,24 @@ def parse_header_rows(value: str) -> Literal[False] | list[int]:
     return False if value == "false" else [int(row) for row in value.split(",")]
 
 
+# --missing-values a,b → ["a", "b"]
+MissingValues = Annotated[
+    list[str] | None, f.Option(parse=lambda value: value.split(","))
+]
+
+# --header-rows false → False, --header-rows 1,2 → [1, 2]
+HeaderRows = Annotated[
+    Literal[False] | list[int] | None, f.Option(parse=parse_header_rows)
+]
+
+# --props '{"a":1}' → {"a": 1}
+Props = Annotated[dict[str, int], f.Option(parse=json.loads)]
+
+
 class ReadInput(BaseModel):
-    # --missing-values a,b → ["a", "b"]
-    missing_values: Annotated[
-        list[str] | None, f.Option(parse=lambda value: value.split(","))
-    ] = None
-
-    # --header-rows false → False, --header-rows 1,2 → [1, 2]
-    header_rows: Annotated[
-        Literal[False] | list[int] | None, f.Option(parse=parse_header_rows)
-    ] = None
-
-    # --props '{"a":1}' → {"a": 1}
-    props: Annotated[dict[str, int], f.Option(parse=json.loads)] = {}
+    missing_values: MissingValues = None
+    header_rows: HeaderRows = None
+    props: Props = {}
 ```
 
 A field with `parse` always takes exactly one value (`--key <value>`), even
@@ -216,35 +220,39 @@ which string syntax it expects.
 
 ```python
 from typing import Annotated, Literal
-
 from pydantic import BaseModel, Field
-
 import fireargs as f
 
 
+# positional, required: <name>
+Name = Annotated[str, f.Argument(description="user's name")]
+
+# positional, optional: [greeting]; keep required positionals first
+Greeting = Annotated[str | None, f.Argument()]
+
+# option with short flag and env fallback
+Port = Annotated[int, f.Option(short="p", envvar="PORT")]
+
+# booleans with explicit conflicts
+Rgb = Annotated[bool, f.Option(conflicts="cmyk")]
+
+# hidden internal option
+Secret = Annotated[str | None, f.Option(hidden=True)]
+
+# flag value: --level alone is "info", --level debug is "debug"
+Level = Annotated[str | None, f.Option(flag_value="info")]
+
+
 class ServeInput(BaseModel):
-    # positional, required: <name>
-    name: Annotated[str, f.Argument(description="user's name")]
-
-    # positional, optional: [greeting]; keep required positionals first
-    greeting: Annotated[str | None, f.Argument()] = None
-
-    # option with short flag and env fallback
-    port: Annotated[int, f.Option(short="p", envvar="PORT")] = 8080
-
-    # booleans with explicit conflicts
-    rgb: Annotated[bool, f.Option(conflicts="cmyk")] = False
+    name: Name
+    greeting: Greeting = None
+    port: Port = 8080
+    rgb: Rgb = False
     cmyk: bool = False
-
-    # hidden internal option
-    secret: Annotated[str | None, f.Option(hidden=True)] = None
-
+    secret: Secret = None
     # repeated, with choices: --formats json --formats yaml
     formats: list[Literal["json", "yaml", "toml"]] = []
-
-    # flag value: --level alone is "info", --level debug is "debug"
-    level: Annotated[str | None, f.Option(flag_value="info")] = None
-
+    level: Level = None
     # a plain pydantic Field works too
     retries: int = Field(3, ge=0, description="Retry this many times")
 ```

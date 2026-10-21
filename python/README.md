@@ -16,16 +16,19 @@ The handler's first parameter annotation is the input model and its return annot
 
 ```python title="greet.py"
 from typing import Annotated
-
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel
 import fireargs as f
 
 
+Name = Annotated[str, f.Argument(description="The user's name.")]
+Times = Annotated[int, f.Option(ge=1, description="Repeat the greeting n times.")]
+Shout = Annotated[bool, f.Option(short="s", description="Use capitals.")]
+
+
 class GreetInput(BaseModel):
-    name: Annotated[str, f.Argument(description="The user's name.")]
-    times: int = Field(1, ge=1, description="Repeat the greeting n times.")
-    shout: Annotated[bool, f.Option(short="s", description="Use capitals.")] = False
+    name: Name
+    times: Times = 1
+    shout: Shout = False
 
 
 class Greeting(BaseModel):

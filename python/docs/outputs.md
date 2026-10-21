@@ -15,7 +15,6 @@ is pure data shape.
 
 ```python
 from pydantic import BaseModel
-
 import fireargs as f
 
 

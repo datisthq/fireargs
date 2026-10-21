@@ -16,7 +16,6 @@ even without config.
 
 ```python
 from pydantic import BaseModel
-
 import fireargs as f
 
 
@@ -65,14 +64,15 @@ and `command`. Without a render, a run without `--json` prints nothing.
 
 ```python
 from typing import Annotated
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 
+Path = Annotated[str, f.Argument()]
+
+
 class ListInput(BaseModel):
-    path: Annotated[str, f.Argument()]
+    path: Path
 
 
 @f.command()
@@ -101,9 +101,7 @@ running event loop.
 
 ```python
 import asyncio
-
 from pydantic import BaseModel
-
 import fireargs as f
 
 

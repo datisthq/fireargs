@@ -21,7 +21,6 @@ travels with it; give the default at each use site:
 
 ```python
 from typing import Annotated
-
 import fireargs as f
 
 Page = Annotated[int, f.Option(short="p", ge=1, description="Page number")]

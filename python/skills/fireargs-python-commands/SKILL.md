@@ -24,16 +24,19 @@ Invoke when the user asks to:
 
 ```python
 from typing import Annotated
-
 from pydantic import BaseModel, Field
-
 import fireargs as f
 
 
+Name = Annotated[str, f.Argument(description="The user's name.")]
+Times = Annotated[int, f.Option(ge=1, description="Repeat the greeting n times.")]
+Verbose = Annotated[bool, f.Option(short="v")]
+
+
 class GreetInput(BaseModel):
-    name: Annotated[str, f.Argument(description="The user's name.")]
-    times: int = Field(1, ge=1, description="Repeat the greeting n times.")
-    verbose: Annotated[bool, f.Option(short="v")] = False
+    name: Name
+    times: Times = 1
+    verbose: Verbose = False
 
 
 class Greeting(BaseModel):

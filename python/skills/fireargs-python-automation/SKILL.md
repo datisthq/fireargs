@@ -102,7 +102,6 @@ cli = f.Program(name="myapp", render_error=render_error, router={...})
 
 ```python
 import json
-
 from click.testing import CliRunner
 
 
