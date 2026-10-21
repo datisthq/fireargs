@@ -21,14 +21,16 @@ from fireargs import Argument, Option, command
 
 
 Name = Annotated[str, Argument(description="The user's name.")]
-Times = Annotated[int, Option(ge=1, description="Repeat the greeting n times.")]
-Shout = Annotated[bool, Option(short="s", description="Use capitals.")]
+Times = Annotated[
+    int, Option(default=1, ge=1, description="Repeat the greeting n times.")
+]
+Shout = Annotated[bool, Option(short="s", default=False, description="Use capitals.")]
 
 
 class GreetInput(BaseModel):
     name: Name
-    times: Times = 1
-    shout: Shout = False
+    times: Times
+    shout: Shout
 
 
 class Greeting(BaseModel):

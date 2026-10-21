@@ -17,15 +17,19 @@ attached via `Argument()` / `Option()`.
 ## Reusable fields
 
 An `Annotated` alias is a field you can drop into any model. Its CLI config
-travels with it; give the default at each use site:
+and its default travel with it, and a use site can still override the default.
+Type checkers see only `= value` defaults, so a model you build by hand in code
+(a test, say) needs those fields spelled out:
 
 ```python
 from typing import Annotated
 from fireargs import Option
 
-Page = Annotated[int, Option(short="p", ge=1, description="Page number")]
-Limit = Annotated[int, Option(short="l", ge=1, le=100, description="Page size")]
-Verbose = Annotated[bool, Option(short="v")]
+Page = Annotated[int, Option(short="p", default=1, ge=1, description="Page number")]
+Limit = Annotated[
+    int, Option(short="l", default=20, ge=1, le=100, description="Page size")
+]
+Verbose = Annotated[bool, Option(short="v", default=False)]
 ```
 
 ## Reusable parameter blocks
@@ -38,12 +42,12 @@ from pydantic import BaseModel
 
 
 class Pagination(BaseModel):
-    page: Page = 1
-    limit: Limit = 20
+    page: Page
+    limit: Limit
 
 
 class Verbosity(BaseModel):
-    verbose: Verbose = False
+    verbose: Verbose
 ```
 
 The metadata you attached with `Option(...)` lives on the field, so when
