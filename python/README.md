@@ -12,17 +12,17 @@ uv add fireargs
 
 ## A first command
 
-The handler's first parameter annotation is the input model and its return annotation the output type. Fields become arguments and options; `f.Argument(...)` and `f.Option(...)` are pydantic `Field()`s that also carry CLI config.
+The handler's first parameter annotation is the input model and its return annotation the output type. Fields become arguments and options; `fa.Argument(...)` and `fa.Option(...)` are pydantic `Field()`s that also carry CLI config.
 
 ```python title="greet.py"
 from typing import Annotated
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
-Name = Annotated[str, f.Argument(description="The user's name.")]
-Times = Annotated[int, f.Option(ge=1, description="Repeat the greeting n times.")]
-Shout = Annotated[bool, f.Option(short="s", description="Use capitals.")]
+Name = Annotated[str, fa.Argument(description="The user's name.")]
+Times = Annotated[int, fa.Option(ge=1, description="Repeat the greeting n times.")]
+Shout = Annotated[bool, fa.Option(short="s", description="Use capitals.")]
 
 
 class GreetInput(BaseModel):
@@ -35,14 +35,14 @@ class Greeting(BaseModel):
     greeting: str
 
 
-@f.command(description="Greet someone politely.")
+@fa.command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
     greeting = " ".join([f"hello {input.name}"] * input.times)
     return Greeting(greeting=greeting.upper() if input.shout else greeting)
 
 
 @greet.render
-def render_greeting(output: Greeting, context: f.RenderContext[GreetInput]) -> str:
+def render_greeting(output: Greeting, context: fa.RenderContext[GreetInput]) -> str:
     return output.greeting
 
 
@@ -89,10 +89,10 @@ Options:
 
 ## Subcommand trees
 
-Group leaves with `f.Program(router={...})`:
+Group leaves with `fa.Program(router={...})`:
 
 ```python
-cli = f.Program(
+cli = fa.Program(
     name="myapp",
     description="My CLI",
     version="1.0.0",
@@ -164,8 +164,8 @@ An LLM agent reads the manifest, picks a tool, and invokes it with
 
 ## Learn more
 
-- [Commands](/python/commands/) — the `@f.command(...)` decorator and the leaf it builds.
-- [Inputs](/python/inputs/) — `f.Argument()` / `f.Option()` and per-field click config.
+- [Commands](/python/commands/) — the `@fa.command(...)` decorator and the leaf it builds.
+- [Inputs](/python/inputs/) — `fa.Argument()` / `fa.Option()` and per-field click config.
 - [Outputs](/python/outputs/) — the output type, serialization, and JSON Schema in `--llms`.
 - [Programs](/python/programs/) — subcommand trees, nesting, and program-level config.
 - [JSON mode](/python/json-mode/) — `--json` for programmatic and pipeline use.

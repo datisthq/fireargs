@@ -91,11 +91,11 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 - `render_error=(error, context) -> value` on a command, or once on the root program for the whole tree (the nearest hook wins); `@cli.render_error` registers it as a decorator, and it may be async. It receives input failures as the original `json.JSONDecodeError` or `ValidationError`, and output, handler and render exceptions as raised. Under `--json` its return is printed as JSON on stdout; otherwise a returned string goes to stderr. The run then exits with code 1. Return `None` to write it yourself; raise to propagate.
 
 ```python
-def render_error(error: Exception, context: f.Context) -> object:
+def render_error(error: Exception, context: fa.Context) -> object:
     return {"error": str(error)} if context.json else f"error: {error}"
 
 
-cli = f.Program(name="myapp", render_error=render_error, router={...})
+cli = fa.Program(name="myapp", render_error=render_error, router={...})
 ```
 
 ## Testing a command

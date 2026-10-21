@@ -3,7 +3,7 @@ title: Inputs
 path: /python/inputs/
 icon: square-pen
 order: 4
-description: f.Argument() and f.Option() for per-field click config.
+description: fa.Argument() and fa.Option() for per-field click config.
 ---
 
 # Inputs
@@ -13,20 +13,20 @@ defaults via `Field(...)`, constraints such as `ge` or `pattern`, choices via
 `Literal[...]` or an `Enum`, repeated values via `list[...]`, optionality via
 `X | None = None`. For click behavior that has no pydantic equivalent (short
 flags, env vars, conflicts, hidden, a custom value parser, …) annotate the
-field with `f.Argument(...)` or `f.Option(...)`.
+field with `fa.Argument(...)` or `fa.Option(...)`.
 
 ## Default routing
 
 Plain fields of the input model are `--options`. To make a field positional,
-annotate it with `f.Argument()`:
+annotate it with `fa.Argument()`:
 
 ```python
 from typing import Annotated
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
-Name = Annotated[str, f.Argument()]  # <name> positional
+Name = Annotated[str, fa.Argument()]  # <name> positional
 
 
 class GreetInput(BaseModel):
@@ -34,7 +34,7 @@ class GreetInput(BaseModel):
     verbose: bool = False  # --verbose option (default routing)
 ```
 
-You can also use `f.Option()` explicitly to attach per-field option config —
+You can also use `fa.Option()` explicitly to attach per-field option config —
 even though plain fields are already options.
 
 ## Flag names
@@ -47,11 +47,11 @@ The handler, `--json` input and the `--llms` manifest keep the field name
 ```python
 from typing import Annotated
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
-ToPath = Annotated[str, f.Option(name="to")]  # --to <value>
-DryRun = Annotated[bool, f.Option(name="dryRun")]  # --dryRun
+ToPath = Annotated[str, fa.Option(name="to")]  # --to <value>
+DryRun = Annotated[bool, fa.Option(name="dryRun")]  # --dryRun
 
 
 class CopyInput(BaseModel):
@@ -90,7 +90,7 @@ other unknown key.
 
 ## The wrappers
 
-`f.Argument(**config)` and `f.Option(**config)` return a pydantic
+`fa.Argument(**config)` and `fa.Option(**config)` return a pydantic
 `FieldInfo` — what `Field(...)` returns — with fireargs' config attached. Use
 them inside `Annotated[...]`, so the type stays the field's own and a type
 checker sees nothing new:
@@ -98,9 +98,9 @@ checker sees nothing new:
 ```python
 from typing import Annotated
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
-Limit = Annotated[int, f.Option(short="l", ge=1, description="Max rows")]
+Limit = Annotated[int, fa.Option(short="l", ge=1, description="Max rows")]
 
 
 class ListInput(BaseModel):
@@ -118,7 +118,7 @@ pydantic merges them.
 
 ## `OptionConfig`
 
-`f.Option(...)` accepts, beyond the pydantic settings:
+`fa.Option(...)` accepts, beyond the pydantic settings:
 
 | Field                 | What it does                                                        |
 | --------------------- | ------------------------------------------------------------------- |
@@ -175,7 +175,7 @@ send that value directly:
 import json
 from typing import Annotated, Literal
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
 def parse_header_rows(value: str) -> Literal[False] | list[int]:
@@ -184,16 +184,16 @@ def parse_header_rows(value: str) -> Literal[False] | list[int]:
 
 # --missing-values a,b → ["a", "b"]
 MissingValues = Annotated[
-    list[str] | None, f.Option(parse=lambda value: value.split(","))
+    list[str] | None, fa.Option(parse=lambda value: value.split(","))
 ]
 
 # --header-rows false → False, --header-rows 1,2 → [1, 2]
 HeaderRows = Annotated[
-    Literal[False] | list[int] | None, f.Option(parse=parse_header_rows)
+    Literal[False] | list[int] | None, fa.Option(parse=parse_header_rows)
 ]
 
 # --props '{"a":1}' → {"a": 1}
-Props = Annotated[dict[str, int], f.Option(parse=json.loads)]
+Props = Annotated[dict[str, int], fa.Option(parse=json.loads)]
 
 
 class ReadInput(BaseModel):
@@ -221,26 +221,26 @@ which string syntax it expects.
 ```python
 from typing import Annotated, Literal
 from pydantic import BaseModel, Field
-import fireargs as f
+import fireargs as fa
 
 
 # positional, required: <name>
-Name = Annotated[str, f.Argument(description="user's name")]
+Name = Annotated[str, fa.Argument(description="user's name")]
 
 # positional, optional: [greeting]; keep required positionals first
-Greeting = Annotated[str | None, f.Argument()]
+Greeting = Annotated[str | None, fa.Argument()]
 
 # option with short flag and env fallback
-Port = Annotated[int, f.Option(short="p", envvar="PORT")]
+Port = Annotated[int, fa.Option(short="p", envvar="PORT")]
 
 # booleans with explicit conflicts
-Rgb = Annotated[bool, f.Option(conflicts="cmyk")]
+Rgb = Annotated[bool, fa.Option(conflicts="cmyk")]
 
 # hidden internal option
-Secret = Annotated[str | None, f.Option(hidden=True)]
+Secret = Annotated[str | None, fa.Option(hidden=True)]
 
 # flag value: --level alone is "info", --level debug is "debug"
-Level = Annotated[str | None, f.Option(flag_value="info")]
+Level = Annotated[str | None, fa.Option(flag_value="info")]
 
 
 class ServeInput(BaseModel):

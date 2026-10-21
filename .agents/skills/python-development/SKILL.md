@@ -7,7 +7,7 @@ description: Use when working in `python/` — the PyPI package built on click a
 
 `python/` is the PyPI package `fireargs`, the twin of `typescript/`: the same contract, built on
 pydantic (for zod) and click (for commander). A uv project with one package; nothing else in the
-repo is Python.
+repo is Python. Docs import it as `fa` (`import fireargs as fa`); TypeScript keeps `f`, beside zod's `z`.
 
 ## Commands
 
@@ -41,7 +41,7 @@ The root `pnpm check` and `pnpm test:unit` chain these after the TypeScript ones
   `# ty: ignore` without permission
 - click's and pydantic's signatures are typed: pass their settings as explicit keyword
   arguments, or through a `TypedDict` splat. A `dict[str, object]` splat fails `ty`
-- `@f.command` reads the input model and output type from the handler's annotations; its
+- `@fa.command` reads the input model and output type from the handler's annotations; its
   overloads in `actions/command/create.py` are what lets `ty` type `input` in a handler
 
 ## Twins
@@ -51,7 +51,7 @@ copy:
 
 | TypeScript                               | Python                                                  |
 | ---------------------------------------- | ------------------------------------------------------- |
-| `f.option({ short }).schema(z.number())` | `Annotated[int, f.Option(short=...)]`                   |
+| `f.option({ short }).schema(z.number())` | `Annotated[int, fa.Option(short=...)]`                  |
 | zod `.optional()`                        | `X \| None = None` — left out of `--json` output        |
 | shape spread / `.extend()`               | mixin models — `class C(A, B)` lists B's fields first   |
 | commander pass-throughs                  | click pass-throughs (`envvar`, `flag_value`, `epilog`…) |

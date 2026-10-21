@@ -9,13 +9,13 @@ description: How the output type validates handler returns and shapes JSON / LLM
 # Outputs
 
 The handler's return annotation defines the shape of whatever it returns.
-There's no `f.Argument()` / `f.Option()` equivalent for outputs — outputs
+There's no `fa.Argument()` / `fa.Option()` equivalent for outputs — outputs
 aren't CLI inputs, so click has no per-field surface to configure. The type
 is pure data shape.
 
 ```python
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
 class GreetInput(BaseModel):
@@ -27,7 +27,7 @@ class Greeting(BaseModel):
     iterations: int
 
 
-@f.command()
+@fa.command()
 def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=f"hello {input.name}", iterations=1)
 ```
@@ -112,10 +112,10 @@ Per property, the JSON Schema in the manifest carries:
 - `required` — every field without a default, plus each defaulted field
   except `X | None = None` ones.
 
-There's no CLI-side metadata on outputs — `f.Argument()` / `f.Option()` are
+There's no CLI-side metadata on outputs — `fa.Argument()` / `fa.Option()` are
 inputs-only — so every key pydantic emits passes through.
 
-## Why no separate slots like `f.Argument()`/`f.Option()`?
+## Why no separate slots like `fa.Argument()`/`fa.Option()`?
 
 Click's `Command` has no output abstraction. CLI users see whatever the
 render prints (or what `--json` serializes); there's nothing for fireargs to

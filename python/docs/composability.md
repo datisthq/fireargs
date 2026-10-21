@@ -12,7 +12,7 @@ Inputs and outputs in fireargs are pydantic models, so anything pydantic can
 compose works here too — inheritance, `Annotated` field aliases, generic
 models, nested models. Define common parameters once and reuse them across
 every command that needs them, including the per-field click config you
-attached via `f.Argument()` / `f.Option()`.
+attached via `fa.Argument()` / `fa.Option()`.
 
 ## Reusable fields
 
@@ -21,11 +21,11 @@ travels with it; give the default at each use site:
 
 ```python
 from typing import Annotated
-import fireargs as f
+import fireargs as fa
 
-Page = Annotated[int, f.Option(short="p", ge=1, description="Page number")]
-Limit = Annotated[int, f.Option(short="l", ge=1, le=100, description="Page size")]
-Verbose = Annotated[bool, f.Option(short="v")]
+Page = Annotated[int, fa.Option(short="p", ge=1, description="Page number")]
+Limit = Annotated[int, fa.Option(short="l", ge=1, le=100, description="Page size")]
+Verbose = Annotated[bool, fa.Option(short="v")]
 ```
 
 ## Reusable parameter blocks
@@ -46,7 +46,7 @@ class Verbosity(BaseModel):
     verbose: Verbose = False
 ```
 
-The metadata you attached with `f.Option(...)` lives on the field, so when
+The metadata you attached with `fa.Option(...)` lives on the field, so when
 you reuse `Pagination` in another command, `--page` / `-p` still come along
 for free.
 
@@ -70,7 +70,7 @@ class UsersOutput(BaseModel):
     total: int
 
 
-@f.command(description="List users")
+@fa.command(description="List users")
 def list_users(input: UsersInput) -> UsersOutput:
     return UsersOutput(users=[], total=0)
 ```
@@ -108,7 +108,7 @@ class Post(BaseModel):
     title: str
 
 
-@f.command(description="List posts")
+@fa.command(description="List posts")
 def list_posts(input: Pagination) -> Paginated[Post]:
     return Paginated(items=[], total=0, page=input.page, limit=input.limit)
 ```
@@ -134,7 +134,7 @@ def paginate[T](items: list[T], input: Pagination) -> Paginated[T]:
     )
 
 
-@f.command(description="List members")
+@fa.command(description="List members")
 def list_members(input: UsersInput) -> Paginated[User]:
     return paginate([User(id="1", name="Ada")], input)
 ```
@@ -144,12 +144,12 @@ differs.
 
 ## Programs as another composition layer
 
-Beyond model composition, `f.Program(...)` composes _commands themselves_
+Beyond model composition, `fa.Program(...)` composes _commands themselves_
 into trees. Mounting the same leaf under different router keys is a valid
 form of reuse:
 
 ```python
-cli = f.Program(name="myapp", router={"users": list_users, "members": list_users})
+cli = fa.Program(name="myapp", router={"users": list_users, "members": list_users})
 ```
 
 Both invocation paths route to the same handler. See
@@ -162,7 +162,7 @@ When you reuse a field or a block, every per-field detail rides along:
 
 - **Pydantic's own metadata** — `description`, defaults, constraints,
   `alias`, `Literal` choices, validators.
-- **fireargs config** — `f.Argument()` / `f.Option()` (name, short, envvar,
+- **fireargs config** — `fa.Argument()` / `fa.Option()` (name, short, envvar,
   conflicts, hidden, flag_value, help_group, default_description, parse).
 
 Both surface in click's `--help` and in the `--llms` manifest exactly as if

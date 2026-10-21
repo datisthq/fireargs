@@ -3,12 +3,12 @@ title: Programs
 path: /python/programs/
 icon: folder-tree
 order: 6
-description: f.Program() for subcommand trees, including nested programs.
+description: fa.Program() for subcommand trees, including nested programs.
 ---
 
 # Programs
 
-`f.Program(router={...}, **config)` builds a CLI tree: `router` maps each
+`fa.Program(router={...}, **config)` builds a CLI tree: `router` maps each
 subcommand name to a command or a nested program, and the remaining keyword
 arguments are the program's config. A `Program` is a subclass of click's
 `Group`.
@@ -16,7 +16,7 @@ arguments are the program's config. A `Program` is a subclass of click's
 ```python
 from typing import Literal
 from pydantic import BaseModel
-import fireargs as f
+import fireargs as fa
 
 
 class GreetInput(BaseModel):
@@ -27,7 +27,7 @@ class Greeting(BaseModel):
     greeting: str
 
 
-@f.command(description="Greet someone")
+@fa.command(description="Greet someone")
 def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=f"hello {input.name}")
 
@@ -40,12 +40,12 @@ class Deployed(BaseModel):
     ok: bool
 
 
-@f.command(description="Deploy the app")
+@fa.command(description="Deploy the app")
 def deploy(input: DeployInput) -> Deployed:
     return Deployed(ok=True)
 
 
-cli = f.Program(
+cli = fa.Program(
     name="myapp",
     description="My CLI",
     version="1.0.0",
@@ -69,14 +69,14 @@ attach time.
 
 ## Nesting
 
-A route is either a `Command` (from `@f.command(...)`) or a `Program`, so a
+A route is either a `Command` (from `@fa.command(...)`) or a `Program`, so a
 program can be a subcommand of another program:
 
 ```python
-api = f.Program(description="API tasks", router={"greet": greet, "deploy": deploy})
-db = f.Program(description="Database tasks", router={"migrate": migrate, "seed": seed})
+api = fa.Program(description="API tasks", router={"greet": greet, "deploy": deploy})
+db = fa.Program(description="Database tasks", router={"migrate": migrate, "seed": seed})
 
-cli = f.Program(name="myapp", router={"api": api, "db": db, "status": status})
+cli = fa.Program(name="myapp", router={"api": api, "db": db, "status": status})
 
 # myapp api greet --name world
 # myapp db migrate
@@ -108,19 +108,21 @@ listed.
 ## Grouping commands in help
 
 Set `help_group` on a command or a nested program to list it under its own
-heading in the parent's `--help`, the same way `f.Option(help_group=...)`
+heading in the parent's `--help`, the same way `fa.Option(help_group=...)`
 groups options. Click adds the trailing colon, so write `"Ops"`, not
 `"Ops:"`. Routes without one stay under `Commands`, and headings print in
 the order their first route appears.
 
 ```python
-@f.command(description="Deploy", help_group="Ops")
+@fa.command(description="Deploy", help_group="Ops")
 def deploy(input: DeployInput) -> Deployed: ...
 
 
-users = f.Program(description="Manage users", help_group="Ops", router={"list": list_users})
+users = fa.Program(
+    description="Manage users", help_group="Ops", router={"list": list_users}
+)
 
-f.Program(name="myapp", router={"deploy": deploy, "users": users, "version": version})
+fa.Program(name="myapp", router={"deploy": deploy, "users": users, "version": version})
 # Ops:
 #   deploy  Deploy
 #   users   Manage users

@@ -5,8 +5,8 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 ## Terminology
 
 - **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), or `pip install fireargs` (`python/fireargs/` and `python/skills/`)
-- **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `f.Option()`
-- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the `fireargs` module imported as `f` (`f.command`, `f.Argument`, `f.Option`, `f.Program`)
+- **twin** — the same behaviour's counterpart in the other package: `compileCommand` ↔ `compile_command`, `f.option()` ↔ `fa.Option()`
+- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), and in Python the `fireargs` module imported as `fa` (`fa.command`, `fa.Argument`, `fa.Option`, `fa.Program`)
 - **docs site** — `python/docs/`, `typescript/docs/`, each section's README and its copy of `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
 - **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`)
 
@@ -22,7 +22,7 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 - Start a plan from a summary of the new or changed API (models and signatures) and the hardest points.
 - **Every plan ends by asking how to work it** (`AskUserQuestion`, before finalising): **the current branch** or **a `.worktrees/<name>` branch** (**`worktree-workflow`**).
 - **A behaviour change lands on both twins in the same branch**, with the same names (case-converted), defaults and output, and a behaviour both share gets a `testsuite/` case, not only a unit test per package. A twin left out on purpose is named in the commit body with why. **`python-development`** holds the Python side.
-- **The meta key and the `f` namespace are public API.** Renaming `FIREARGS_META_KEY`, a builder method or a field-config option silently breaks every CLI built on the package. Treat it like an export change (**`change-review`**).
+- **The meta key and the builder are public API.** Renaming `FIREARGS_META_KEY`, a builder method or a field-config option silently breaks every CLI built on the package. Treat it like an export change (**`change-review`**).
 - Use full relative import paths with the `.ts` / `.tsx` extension. No barrel re-export files — `typescript/index.ts` is the one public façade.
 - Each `actions/<entity>/<verb>.ts` holds one action, named after its verb (`actions/command/create.ts` exports `createCommand`); a new action gets its own file.
 - Don't destructure props in the function signature — use `props.x`. Put higher-level items above the ones they compose, public before private.

@@ -1,6 +1,6 @@
 ---
 name: fireargs-python-commands
-description: Use when writing or editing a Python Fireargs command — @f.command(...) on a typed handler, how pydantic fields become arguments and --options, f.Argument()/f.Option() config and parse, renders, CommandConfig, and traps.
+description: Use when writing or editing a Python Fireargs command — @fa.command(...) on a typed handler, how pydantic fields become arguments and --options, fa.Argument()/fa.Option() config and parse, renders, CommandConfig, and traps.
 ---
 
 # Fireargs Python Commands
@@ -20,17 +20,17 @@ Invoke when the user asks to:
 
 ## The decorator
 
-`@f.command(**config)` turns a handler into a `Command`, a real click `Command`. The handler's first parameter annotation is the input model, its return annotation the output type; an optional second parameter receives `f.Context`. Always call the decorator, even bare: `@f.command()`.
+`@fa.command(**config)` turns a handler into a `Command`, a real click `Command`. The handler's first parameter annotation is the input model, its return annotation the output type; an optional second parameter receives `fa.Context`. Always call the decorator, even bare: `@fa.command()`.
 
 ```python
 from typing import Annotated
 from pydantic import BaseModel, Field
-import fireargs as f
+import fireargs as fa
 
 
-Name = Annotated[str, f.Argument(description="The user's name.")]
-Times = Annotated[int, f.Option(ge=1, description="Repeat the greeting n times.")]
-Verbose = Annotated[bool, f.Option(short="v")]
+Name = Annotated[str, fa.Argument(description="The user's name.")]
+Times = Annotated[int, fa.Option(ge=1, description="Repeat the greeting n times.")]
+Verbose = Annotated[bool, fa.Option(short="v")]
 
 
 class GreetInput(BaseModel):
@@ -43,7 +43,7 @@ class Greeting(BaseModel):
     greeting: str
 
 
-@f.command(description="Greet someone politely.")
+@fa.command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
     return Greeting(greeting=" ".join([f"hello {input.name}"] * input.times))
 
@@ -60,11 +60,11 @@ if __name__ == "__main__":
 
 ## Human output: `@command.render`
 
-Without `--json` nothing is printed unless the command has a render. It receives the validated output and an `f.RenderContext[Input]` carrying `input`; a returned string is echoed with a newline, or it writes itself and returns `None`. It never runs under `--json`, so the handler just returns data:
+Without `--json` nothing is printed unless the command has a render. It receives the validated output and an `fa.RenderContext[Input]` carrying `input`; a returned string is echoed with a newline, or it writes itself and returns `None`. It never runs under `--json`, so the handler just returns data:
 
 ```python
 @list_names.render
-def render_names(output: list[str], context: f.RenderContext[ListInput]) -> str:
+def render_names(output: list[str], context: fa.RenderContext[ListInput]) -> str:
     return "\n".join(f"- {name}" for name in output)
 ```
 
@@ -72,25 +72,25 @@ def render_names(output: list[str], context: f.RenderContext[ListInput]) -> str:
 
 Every field of the input model becomes a CLI field, shown in kebab-case (`dry_run` → `--dry-run`, `<dry-run>`). The handler, `--json` and `--llms` keep the field name — or its alias, when the model sets one.
 
-| Pydantic                     | CLI                                                        |
-| ---------------------------- | ---------------------------------------------------------- |
-| plain field                  | `--key <value>` option                                     |
-| `Annotated[T, f.Argument()]` | positional `<key>`, declared in field order before options |
-| `bool`                       | `--key` flag, no value                                     |
-| `int` / `float`              | CLI string parsed as a number before pydantic validates    |
-| `list[T]`                    | `--key <value>`, repeated; positional variadic `<key...>`  |
-| `Literal[...]` / string Enum | choices, checked by click before the handler runs          |
-| a default                    | shown as `[default: …]` in `--help`; pydantic fills it     |
-| `X \| None = None`           | optional; a positional shows as `[key]`                    |
-| `description=`               | help text, and `description` in the `--llms` manifest      |
+| Pydantic                      | CLI                                                        |
+| ----------------------------- | ---------------------------------------------------------- |
+| plain field                   | `--key <value>` option                                     |
+| `Annotated[T, fa.Argument()]` | positional `<key>`, declared in field order before options |
+| `bool`                        | `--key` flag, no value                                     |
+| `int` / `float`               | CLI string parsed as a number before pydantic validates    |
+| `list[T]`                     | `--key <value>`, repeated; positional variadic `<key...>`  |
+| `Literal[...]` / string Enum  | choices, checked by click before the handler runs          |
+| a default                     | shown as `[default: …]` in `--help`; pydantic fills it     |
+| `X \| None = None`            | optional; a positional shows as `[key]`                    |
+| `description=`                | help text, and `description` in the `--llms` manifest      |
 
 A field without a default is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails pydantic prints one commander-style `error: ...` line per field and exits 1. Click's own parse errors (unknown option, bad choice, extra argument) keep click's wording and exit 2.
 
-## `f.Argument()` and `f.Option()`
+## `fa.Argument()` and `fa.Option()`
 
-Both return a pydantic `FieldInfo` — what `Field()` returns — with Fireargs config attached; use them inside `Annotated[T, ...]`. They accept pydantic's `Field` settings (`default`, `default_factory`, `alias`, `title`, `description`, `examples`, `gt`/`ge`/`lt`/`le`, `multiple_of`, `min_length`/`max_length`, `pattern`, `strict`, `deprecated`) plus their own. Plain fields are already options — reach for `f.Option()` only when a slot below is needed.
+Both return a pydantic `FieldInfo` — what `Field()` returns — with Fireargs config attached; use them inside `Annotated[T, ...]`. They accept pydantic's `Field` settings (`default`, `default_factory`, `alias`, `title`, `description`, `examples`, `gt`/`ge`/`lt`/`le`, `multiple_of`, `min_length`/`max_length`, `pattern`, `strict`, `deprecated`) plus their own. Plain fields are already options — reach for `fa.Option()` only when a slot below is needed.
 
-`f.Option(...)`:
+`fa.Option(...)`:
 
 | Field                 | Effect                                                         |
 | --------------------- | -------------------------------------------------------------- |
@@ -106,7 +106,7 @@ Both return a pydantic `FieldInfo` — what `Field()` returns — with Fireargs 
 | `default_description` | text shown for the default in `--help` instead of the literal  |
 | `parse`               | `(value: str) -> value` for the CLI string; see below          |
 
-Click's own `is_flag`, `count`, `show_default`, `metavar`, `prompt`, `hide_input` and `confirmation_prompt` pass through. `f.Argument(...)` takes only `name`, `parse`, `envvar`, `metavar` and `default_description` beyond the pydantic settings; a positional's default shows under `Arguments` as `[default: …]`.
+Click's own `is_flag`, `count`, `show_default`, `metavar`, `prompt`, `hide_input` and `confirmation_prompt` pass through. `fa.Argument(...)` takes only `name`, `parse`, `envvar`, `metavar` and `default_description` beyond the pydantic settings; a positional's default shows under `Arguments` as `[default: …]`.
 
 ## Parsing CLI strings
 
@@ -114,9 +114,9 @@ Click's own `is_flag`, `count`, `show_default`, `metavar`, `prompt`, `hide_input
 
 ```python
 missing_values: Annotated[
-    list[str] | None, f.Option(parse=lambda value: value.split(","))
+    list[str] | None, fa.Option(parse=lambda value: value.split(","))
 ] = None
-props: Annotated[dict[str, int], f.Option(parse=json.loads)] = {}
+props: Annotated[dict[str, int], fa.Option(parse=json.loads)] = {}
 ```
 
 - A field with `parse` takes exactly one value (`--key <value>`), even for a list or bool type, and skips click's choices check.
@@ -124,7 +124,7 @@ props: Annotated[dict[str, int], f.Option(parse=json.loads)] = {}
 
 ## `CommandConfig`
 
-Every keyword of `@f.command(...)` is optional:
+Every keyword of `@fa.command(...)` is optional:
 
 - **Identity:** `name`, `description`, `aliases` (extra names the parent program routes here), `help_group`, `version`; `version_option={"flags": "-v, --version"}` renames the version flag (default `-V, --version`).
 - **Built-in flags:** `json_option` and `llms_option` — `{"flags": ..., "description": ...}` or `False`. See `fireargs-python-automation`.
@@ -141,7 +141,7 @@ Anything else click supports can be done on the returned command, which is a rea
 4. **Write snake_case fields; set `name` only to change the flag.** `header_rows` already gives `--header-rows`. Reach for `name` for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name="dryRun"`). A `no_…` field gives a plain `--no-…` flag, never a negation. `conflicts` and `implies` name fields, not flags.
 5. **Share wire keys with a TypeScript twin through aliases.** `alias="headerRows"`, or `ConfigDict(alias_generator=to_camel, validate_by_name=True)` on a base model, makes `--json` and `--llms` use camelCase while the flag stays `--header-rows`.
 6. **Order positionals required first.** They are declared in field order — including fields inherited from mixin bases, which come first — so an optional one before a required one takes the first value. A variadic that may be empty needs `= []`.
-7. **Define reusable fields as `Annotated` aliases** (`Limit = Annotated[int, f.Option(short="l", ge=1)]`) and give the default at the use site.
+7. **Define reusable fields as `Annotated` aliases** (`Limit = Annotated[int, fa.Option(short="l", ge=1)]`) and give the default at the use site.
 
 ## Verification
 

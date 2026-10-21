@@ -1,6 +1,6 @@
 ---
 name: fireargs-python-programs
-description: Use when building a multi-command Python Fireargs CLI — f.Program(router=...), nested programs, aliases, help groups, ProgramConfig, and sharing parameters, outputs and commands across the tree by composing pydantic models.
+description: Use when building a multi-command Python Fireargs CLI — fa.Program(router=...), nested programs, aliases, help groups, ProgramConfig, and sharing parameters, outputs and commands across the tree by composing pydantic models.
 ---
 
 # Fireargs Python Programs
@@ -18,14 +18,14 @@ Invoke when the user asks to:
 
 ## The router
 
-`f.Program(router={...}, **config)` returns a `Program`, a click `Group`:
+`fa.Program(router={...}, **config)` returns a `Program`, a click `Group`:
 
 ```python
-import fireargs as f
+import fireargs as fa
 
-db = f.Program(description="Database tasks", router={"migrate": migrate, "seed": seed})
+db = fa.Program(description="Database tasks", router={"migrate": migrate, "seed": seed})
 
-cli = f.Program(
+cli = fa.Program(
     name="myapp",
     description="My CLI",
     version="1.0.0",
@@ -53,24 +53,28 @@ Two settings belong on the root program:
 
 ## Help groups
 
-Set `help_group` on a command's or nested program's config to list it under its own heading in the parent's `--help`. Write the heading without a colon — click adds it. Routes without one stay under `Commands`; headings appear in the order their first route does. `f.Option(help_group=...)` does the same for options.
+Set `help_group` on a command's or nested program's config to list it under its own heading in the parent's `--help`. Write the heading without a colon — click adds it. Routes without one stay under `Commands`; headings appear in the order their first route does. `fa.Option(help_group=...)` does the same for options.
 
 ```python
-@f.command(description="Deploy", help_group="Ops")
+@fa.command(description="Deploy", help_group="Ops")
 def deploy(input: DeployInput) -> Deployed: ...
 
 
-users = f.Program(description="Manage users", help_group="Ops", router={"list": list_users})
-cli = f.Program(name="myapp", router={"deploy": deploy, "users": users, "version": version})
+users = fa.Program(
+    description="Manage users", help_group="Ops", router={"list": list_users}
+)
+cli = fa.Program(
+    name="myapp", router={"deploy": deploy, "users": users, "version": version}
+)
 ```
 
 ## Composing across commands
 
-Inputs and outputs are plain pydantic models, and Fireargs config lives on each field, so everything composes and the `f.Option(...)` config rides along:
+Inputs and outputs are plain pydantic models, and Fireargs config lives on each field, so everything composes and the `fa.Option(...)` config rides along:
 
 ```python
-Page = Annotated[int, f.Option(short="p", ge=1)]
-Limit = Annotated[int, f.Option(short="l", ge=1, le=100)]
+Page = Annotated[int, fa.Option(short="p", ge=1)]
+Limit = Annotated[int, fa.Option(short="l", ge=1, le=100)]
 
 
 class Pagination(BaseModel):
@@ -82,7 +86,7 @@ class UsersInput(Pagination):
     role: Literal["admin", "user"] | None = None
 
 
-@f.command(description="List users")
+@fa.command(description="List users")
 def list_users(input: UsersInput) -> Paginated[User]:
     return paginate(fetch_users(input.role), input)
 ```
