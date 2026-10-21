@@ -35,20 +35,20 @@ class GreetInput(BaseModel):
 
 # Typed output, validated on every run
 class Greeting(BaseModel):
-    greetings: list[str]
+    greeting: str
 
 
 # A click Command, typed from the handler's annotations
 @command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
-    greeting = f"hello {input.name}"
-    return Greeting(greetings=[greeting.upper() if input.shout else greeting] * input.times)
+    greeting = " ".join([f"hello {input.name}"] * input.times)
+    return Greeting(greeting=greeting.upper() if input.shout else greeting)
 
 
 # Output for humans; --json prints the data instead
 @greet.render
 def render_greeting(output: Greeting) -> str:
-    return " ".join(output.greetings)
+    return output.greeting
 
 
 # Use as a normal click command, e.g. configure or apply plugins
@@ -63,16 +63,11 @@ $ python greet.py world --times 2 -s        # CLI input, rendered output
 HELLO WORLD HELLO WORLD
 $ python greet.py world --json              # CLI input, JSON output
 {
-  "greetings": [
-    "hello world"
-  ]
+  "greeting": "hello world"
 }
 $ python greet.py --json '{"name":"world","times":2}'   # JSON input, JSON output
 {
-  "greetings": [
-    "hello world",
-    "hello world"
-  ]
+  "greeting": "hello world hello world"
 }
 $ python greet.py world --times 0
 error: option '--times <value>' argument '0' is invalid. Input should be greater than or equal to 1
@@ -150,17 +145,23 @@ Every command takes `--json`. Bare, it switches the output to JSON; given a valu
 the input, checked against the input schema, so scripts never assemble argv:
 
 ```bash
-$ python greet.py --json '{"name":"world","times":3,"shout":true}'
+$ python greet.py world --times 2 --json        # CLI input, JSON output
 {
-  "greetings": [
-    "HELLO WORLD",
-    "HELLO WORLD",
-    "HELLO WORLD"
-  ]
+  "greeting": "hello world hello world"
 }
+$ python greet.py --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
+{
+  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+}
+$ python greet.py world --json | jq -r .greeting   # pipe it into other tools
+hello world
+$ python greet.py --json '{"times":2}'           # input errors go to stderr, exit code 1
+error: invalid --json input at 'name': Field required
+$ python greet.py --json '{"name":"world","times":"2"}'
+error: invalid --json input at 'times': Input should be a valid integer
 ```
 
-Input errors go to stderr with exit code 1, so stdout only ever carries the data.
+stdout only ever carries the data, so a script can parse it without checking for noise.
 
 ## LLMs mode
 
@@ -173,14 +174,8 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
     {
       "name": "help",
       "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {}
-      },
-      "outputSchema": {
-        "type": "object",
-        "properties": {}
-      }
+      "inputSchema": { "type": "object", "properties": {} },
+      "outputSchema": { "type": "object", "properties": {} }
     },
     {
       "name": "greet",
@@ -210,16 +205,8 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
         "type": "object"
       },
       "outputSchema": {
-        "properties": {
-          "greetings": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Greetings",
-            "type": "array"
-          }
-        },
-        "required": ["greetings"],
+        "properties": { "greeting": { "title": "Greeting", "type": "string" } },
+        "required": ["greeting"],
         "title": "Greeting",
         "type": "object"
       },

@@ -25,7 +25,7 @@ const shout = f.option({ short: "s" }).schema(z.boolean().default(false).describ
 const greetInput = z.object({ name, times, shout })
 
 // Typed output, validated on every run
-const greetOutput = z.object({ greetings: z.array(z.string()) })
+const greetOutput = z.object({ greeting: z.string() })
 
 // A commander Command, typed from the schemas
 const greet = f
@@ -33,10 +33,10 @@ const greet = f
   .input(greetInput)
   .output(greetOutput)
   // Output for humans; --json prints the data instead
-  .render(output => output.greetings.join(" "))
+  .render(output => output.greeting)
   .handler(input => {
-    const greeting = `hello ${input.name}`
-    return { greetings: Array(input.times).fill(input.shout ? greeting.toUpperCase() : greeting) }
+    const greeting = Array(input.times).fill(`hello ${input.name}`).join(" ")
+    return { greeting: input.shout ? greeting.toUpperCase() : greeting }
   })
 
 // Use as a normal commander command, e.g. configure or apply plugins
@@ -50,16 +50,11 @@ $ node greet.ts world --times 2 -s        # CLI input, rendered output
 HELLO WORLD HELLO WORLD
 $ node greet.ts world --json              # CLI input, JSON output
 {
-  "greetings": [
-    "hello world"
-  ]
+  "greeting": "hello world"
 }
 $ node greet.ts --json '{"name":"world","times":2}'   # JSON input, JSON output
 {
-  "greetings": [
-    "hello world",
-    "hello world"
-  ]
+  "greeting": "hello world hello world"
 }
 $ node greet.ts world --times 0
 error: option '--times <value>' argument '0' is invalid. Too small: expected number to be >=1
@@ -132,17 +127,23 @@ Every command takes `--json`. Bare, it switches the output to JSON; given a valu
 the input, checked against the input schema, so scripts never assemble argv:
 
 ```bash
-$ node greet.ts --json '{"name":"world","times":3,"shout":true}'
+$ node greet.ts world --times 2 --json        # CLI input, JSON output
 {
-  "greetings": [
-    "HELLO WORLD",
-    "HELLO WORLD",
-    "HELLO WORLD"
-  ]
+  "greeting": "hello world hello world"
 }
+$ node greet.ts --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
+{
+  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+}
+$ node greet.ts world --json | jq -r .greeting   # pipe it into other tools
+hello world
+$ node greet.ts --json '{"times":2}'           # input errors go to stderr, exit code 1
+error: invalid --json input at 'name': Invalid input: expected string, received undefined
+$ node greet.ts --json '{"name":"world","times":"2"}'
+error: invalid --json input at 'times': Invalid input: expected number, received string
 ```
 
-Input errors go to stderr with exit code 1, so stdout only ever carries the data.
+stdout only ever carries the data, so a script can parse it without checking for noise.
 
 ## LLMs mode
 
@@ -192,14 +193,11 @@ MCP-`tools/list`-shaped manifest. For `greet.ts` above:
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
-          "greetings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "greeting": {
+            "type": "string"
           }
         },
-        "required": ["greetings"],
+        "required": ["greeting"],
         "additionalProperties": false
       },
       "description": "Greet someone politely."
