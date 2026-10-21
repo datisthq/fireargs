@@ -52,8 +52,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       livemark:
-        specifier: 0.28.3
-        version: 0.28.3(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
+        specifier: 0.28.4
+        version: 0.28.4(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.3.0)
@@ -385,12 +385,6 @@ packages:
       '@content-collections/core': 0.x
       react: '>= 18'
       react-dom: '>= 18'
-
-  '@content-collections/vite@0.3.1':
-    resolution: {integrity: sha512-iDVLDAmihnXh1n2U8G/QV9Dd50tbd8IqRz4sYE2IiHte/YHWkQiTFuXLbYzwJz/ogxI8Pay2/vl3cxGWbPOWVg==}
-    peerDependencies:
-      '@content-collections/core': ^0.x
-      vite: ^6 || ^7 || ^8
 
   '@corvu/utils@0.4.2':
     resolution: {integrity: sha512-Ox2kYyxy7NoXdKWdHeDEjZxClwzO4SKM8plAaVwmAJPxHMqA0rLOoAsa+hBDwRLpctf+ZRnAd/ykguuJidnaTA==}
@@ -4474,8 +4468,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  livemark@0.28.3:
-    resolution: {integrity: sha512-Y7oMJzV3tPxZ6tOYS8ZAm/Efy7ndcvNPZbZdNKJPZv1Lvz+l7O5iRXzNGcPFAFS+JRL52GpxknEQ5WdWaBGF7g==}
+  livemark@0.28.4:
+    resolution: {integrity: sha512-U85sLn435muv5PsZA3wA5ZH8dWH+OjAViidkSAdYC4DV2Of+QYkMy6I8PdEKcOG77+v+3fkioz7UtxnPOXIojA==}
     engines: {node: ^24.11.0, pnpm: ^11.0.0}
     hasBin: true
     peerDependencies:
@@ -6365,12 +6359,6 @@ snapshots:
       unified: 11.0.5
     transitivePeerDependencies:
       - supports-color
-
-  '@content-collections/vite@0.3.1(@content-collections/core@0.15.3(typescript@5.9.3))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.2.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.1))':
-    dependencies:
-      '@content-collections/core': 0.15.3(typescript@5.9.3)
-      '@content-collections/integrations': 0.5.0(@content-collections/core@0.15.3(typescript@5.9.3))
-      vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.2.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.1)'
 
   '@corvu/utils@0.4.2(solid-js@1.9.17)':
     dependencies:
@@ -10163,13 +10151,13 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  livemark@0.28.3(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
+  livemark@0.28.4(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.4.1)(@types/react@19.3.0)(date-fns@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clack/prompts': 1.8.1
       '@content-collections/core': 0.15.3(typescript@5.9.3)
+      '@content-collections/integrations': 0.5.0(@content-collections/core@0.15.3(typescript@5.9.3))
       '@content-collections/mdx': 0.2.2(@content-collections/core@0.15.3(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)
-      '@content-collections/vite': 0.3.1(@content-collections/core@0.15.3(typescript@5.9.3))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.2.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.1))
       '@orama/orama': 3.1.18
       '@shikijs/rehype': 4.5.0
       '@shikijs/twoslash': 4.5.0(supports-color@10.2.2)(typescript@5.9.3)
