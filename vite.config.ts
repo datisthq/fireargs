@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["scripts/-test/*.unit.ts"],
+    include: [".scripts/-test/*.unit.ts"],
     env: { NODE_OPTIONS: "--no-warnings" },
     testTimeout: 60 * 1000,
     silent: "passed-only",

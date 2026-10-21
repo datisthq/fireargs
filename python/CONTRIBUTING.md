@@ -43,7 +43,7 @@ fireargs/
 ├── testsuite/           # language-neutral cases both packages must pass
 ├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
 ├── .livemark/           # docs-site escapes (theme, landing, screenshots)
-├── scripts/             # repo-wide guards and the `pnpm squash` script
+├── .scripts/            # repo-wide guards and the `pnpm squash` script
 ├── livemark.config.ts   # config for the docs site
 ├── tsconfig.json
 └── vite.config.ts       # vite-plus shared config (format, lint, the guards' tests)

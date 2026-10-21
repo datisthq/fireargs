@@ -58,7 +58,7 @@ Shipped skills live in `typescript/skills/` and `python/skills/` and teach codin
 | `fireargs-python-programs`   | the Python twin of `fireargs-programs`                               |
 | `fireargs-python-automation` | the Python twin of `fireargs-automation`                             |
 
-**There is exactly one `AGENTS.md`, at the root.** `scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the two tables above.
+**There is exactly one `AGENTS.md`, at the root.** `.scripts/-test/docs.unit.ts` enforces that, along with every path and `pnpm` command these documents name and the two tables above.
 
 ## Commands
 
@@ -84,10 +84,9 @@ The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): fo
   - Unit tests sit beside their module as `<module>.unit.ts`; `docs/` the section's pages, `skills/` its shipped skills
 - `python/` — the PyPI package, a uv project; `python/fireargs/` mirrors `typescript/` module for module, with `docs/` and `skills/` beside it (**`python-development`**)
 - `testsuite/` — language-neutral JSON cases both packages run against twin fixture CLIs
-- `scripts/` — repo-wide guards (`scripts/-test/`) and the `pnpm squash` script; the root `vite.config.ts` holds format, lint and the guards' tests
 - `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the GitHub overview, the contributor guide (copied into each section for its docs-site page; the docs guard keeps the copies equal) and the docs site's config
 
-Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config.
+Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the docs site's escapes, `.release/` release-please config, `.scripts/` repo-wide guards (`.scripts/-test/`) and the `pnpm squash` script, whose tests the root `vite.config.ts` runs.
 
 ## Conventions
 

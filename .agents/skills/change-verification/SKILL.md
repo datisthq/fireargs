@@ -39,7 +39,7 @@ tests: the root config collects only the guards, so run those from `typescript/`
 Pick the **highest** rung the diff reaches, and run everything that rung lists.
 
 1. **Markdown, copy, CSS.** `vp fmt --check` on the files. For `AGENTS.md`, `README.md`,
-   `CONTRIBUTING.md` or a skill in either directory, add `vp test scripts/-test/docs.unit.ts`:
+   `CONTRIBUTING.md` or a skill in either directory, add `vp test .scripts/-test/docs.unit.ts`:
    it checks every backticked path and `pnpm` command those documents name.
 2. **The docs site's own UI** — a file under `.livemark/` or `livemark.config.ts`. fmt + lint on
    the files, `pnpm check:types`, and **look at it**: `pnpm start`, then open the page in Claude
@@ -63,7 +63,7 @@ anything under `testsuite/` or either fixture CLI, also runs both runners:
 
 ## Guards `related` cannot see
 
-`scripts/-test/docs.unit.ts` reads documents from disk and imports nothing, so
+`.scripts/-test/docs.unit.ts` reads documents from disk and imports nothing, so
 `vp test related` never selects it. Add it by path whenever the diff touches `AGENTS.md`,
 `README.md`, `CONTRIBUTING.md`, a skill, a renamed path or a renamed script.
 
