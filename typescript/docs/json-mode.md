@@ -1,7 +1,7 @@
 ---
 title: JSON mode
 path: /typescript/json-mode/
-icon: file-json
+icon: file-braces
 order: 7
 description: --json drives a fireargs command with JSON in and JSON out.
 ---
