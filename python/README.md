@@ -2,7 +2,7 @@
 
 Define each command with typed input and output models. Get composability, structured JSON I/O, and LLM-ready manifests baked in — for humans, agents, and scripts alike. Built on pydantic and click; Python 3.12+.
 
-## Install
+## Installation
 
 ```bash
 pip install fireargs

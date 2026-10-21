@@ -2,7 +2,7 @@
 
 Define each command with typed input and output schemas. Get composability, structured JSON I/O, and LLM-ready manifests baked in — for humans, agents, and scripts alike.
 
-## Install
+## Installation
 
 ```bash
 pnpm add fireargs
