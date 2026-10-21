@@ -10,22 +10,16 @@ export default defineConfig({
     "python/README.md",
     "python/docs/**/*.md",
     "python/CONTRIBUTING.md",
+    "python/CHANGELOG.md",
     "typescript/README.md",
     "typescript/docs/**/*.md",
     "typescript/CONTRIBUTING.md",
+    "typescript/CHANGELOG.md",
   ],
   skills: ["python/skills/*/SKILL.md", "typescript/skills/*/SKILL.md"],
   sections: [
     { title: "Python", prefix: "/python/", icon: "code" },
     { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
-    {
-      title: "Changelog",
-      prefix: "/changelog/",
-      type: "changelog",
-      source: "typescript/CHANGELOG.md",
-      version: true,
-      icon: "history",
-    },
     {
       title: "GitHub",
       type: "custom",
@@ -51,8 +45,18 @@ export default defineConfig({
         description:
           "How to set up fireargs locally, propose changes, and ship a release.",
         icon: "heart-handshake",
-        order: -1,
+        order: -2,
         path: "/python/contributing/",
+      },
+    },
+    {
+      file: "python/CHANGELOG.md",
+      article: {
+        title: "Changelog",
+        description: "What changed in each release of the Python package.",
+        icon: "history",
+        order: -1,
+        path: "/python/changelog/",
       },
     },
     {
@@ -72,8 +76,18 @@ export default defineConfig({
         description:
           "How to set up fireargs locally, propose changes, and ship a release.",
         icon: "heart-handshake",
-        order: -1,
+        order: -2,
         path: "/typescript/contributing/",
+      },
+    },
+    {
+      file: "typescript/CHANGELOG.md",
+      article: {
+        title: "Changelog",
+        description: "What changed in each release of the TypeScript package.",
+        icon: "history",
+        order: -1,
+        path: "/typescript/changelog/",
       },
     },
   ],
