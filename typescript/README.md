@@ -27,7 +27,7 @@ const greetInput = z.object({ name, times, shout })
 // Typed output, validated on every run
 const greetOutput = z.object({ greeting: z.string() })
 
-// A commander Command, typed from the schemas
+// A commander command, typed from the schemas
 const greet = f
   .command({ name: "greet", description: "Greet someone politely." })
   .input(greetInput)

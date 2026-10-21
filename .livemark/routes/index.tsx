@@ -18,6 +18,8 @@ import {
   type ComponentType,
   type ReactNode,
   type SVGProps,
+  createContext,
+  useContext,
   useRef,
   useState,
 } from "react"
@@ -33,8 +35,9 @@ export const Route = createFileRoute("/")({
 })
 
 function Landing() {
+  const [lang, setLang] = useState<Lang>("python")
   return (
-    <>
+    <LangContext.Provider value={{ lang, setLang }}>
       <Banner />
       <Header />
       <main className="flex flex-col">
@@ -46,7 +49,7 @@ function Landing() {
         <Datist />
       </main>
       <BackToTop />
-    </>
+    </LangContext.Provider>
   )
 }
 
@@ -64,6 +67,110 @@ const tk = {
   key: "text-[#1e66f5] dark:text-[#89b4fa]",
 }
 
+type Lang = "python" | "typescript"
+
+const langIds: Lang[] = ["python", "typescript"]
+
+const langs: Record<
+  Lang,
+  { label: string; models: string; schema: string; cli: string; file: string }
+> = {
+  python: {
+    label: "Python",
+    models: "models",
+    schema: "pydantic",
+    cli: "click",
+    file: "greet.py",
+  },
+  typescript: {
+    label: "TypeScript",
+    models: "schemas",
+    schema: "zod",
+    cli: "commander",
+    file: "greet.ts",
+  },
+}
+
+const LangContext = createContext<{ lang: Lang; setLang: (lang: Lang) => void }>({
+  lang: "python",
+  setLang: () => {},
+})
+
+function useLang() {
+  return useContext(LangContext)
+}
+
+function LangTabs() {
+  const { lang, setLang } = useLang()
+  return (
+    <div
+      role="tablist"
+      aria-label="Language"
+      className="inline-flex gap-1 rounded-control border border-border bg-card p-1"
+    >
+      {langIds.map(id => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={lang === id}
+          onClick={() => setLang(id)}
+          className={cn(
+            "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+            lang === id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {langs[id].label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const keywords: Record<Lang, Set<string>> = {
+  python: new Set(["from", "import", "class", "def", "return", "if", "async", "await"]),
+  typescript: new Set(["import", "from", "const", "return", "async", "await", "new"]),
+}
+
+const TOKEN =
+  /(#.*|\/\/.*)|(f?"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|(@\w+)|(\b\d+\b)|([A-Za-z_]\w*)|([^\sA-Za-z_\d"`#@]+)|(\s+)|([\s\S])/g
+
+function highlightCode(code: string, lang: Lang) {
+  return [...code.matchAll(TOKEN)].map(match => {
+    const [text, comment, string, decorator, number, word, punct] = match
+    const next = code[match.index + text.length]
+    const className = comment
+      ? tk.comment
+      : string
+        ? tk.string
+        : decorator
+          ? tk.func
+          : number
+            ? tk.type
+            : word
+              ? readWordClass(word, next, lang)
+              : punct
+                ? tk.punct
+                : undefined
+    return className ? (
+      <span key={match.index} className={className}>
+        {text}
+      </span>
+    ) : (
+      text
+    )
+  })
+}
+
+function readWordClass(word: string, next: string | undefined, lang: Lang) {
+  if (keywords[lang].has(word)) return tk.keyword
+  if (next === "(") return tk.func
+  if (/^[A-Z]/.test(word)) return tk.type
+  return undefined
+}
+
 function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-border">
@@ -71,7 +178,7 @@ function Hero() {
       <div className="relative mx-auto w-full max-w-6xl px-6 py-20 md:py-28 lg:grid lg:grid-cols-[27rem_minmax(0,1fr)] lg:items-center lg:gap-14">
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ease-out">
           <p className="text-primary text-xs font-semibold tracking-[0.18em] uppercase">
-            Modern CLI builder for Python and TypeScript
+            For Python and TypeScript
           </p>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-5xl">
             Typed CLIs for
@@ -104,12 +211,13 @@ function Hero() {
 }
 
 function HeroActions() {
+  const { lang } = useLang()
   return (
     <>
       <div className="mt-10 flex flex-wrap gap-3">
         <Link
           to="/$"
-          params={{ _splat: "typescript/introduction" }}
+          params={{ _splat: `${lang}/introduction` }}
           className={cn(
             buttonVariants({ variant: "default", size: "lg" }),
             "px-5 no-underline",
@@ -131,7 +239,11 @@ function HeroActions() {
           View source
         </a>
       </div>
-      <div className="mt-6 hidden sm:inline-flex items-center gap-3 rounded-control border border-border bg-card/50 backdrop-blur px-4 py-2 font-mono text-sm text-muted-foreground">
+      <div className="mt-6 hidden sm:inline-grid grid-cols-[auto_auto] gap-x-3 gap-y-1 rounded-control border border-border bg-card/50 backdrop-blur px-4 py-2 font-mono text-sm text-muted-foreground">
+        <span className="text-primary select-none">$</span>
+        <span>
+          <span className="text-foreground">pip install</span> fireargs
+        </span>
         <span className="text-primary select-none">$</span>
         <span>
           <span className="text-foreground">npm install</span> fireargs
@@ -549,79 +661,129 @@ interface FreedomPoint {
   description: ReactNode
 }
 
-const freedoms: FreedomPoint[] = [
-  {
-    icon: Layers,
-    title: "Plain zod schemas",
-    description: (
-      <>
-        Inputs and outputs are ordinary{" "}
-        <code className="font-mono text-foreground">z.object(...)</code> schemas. Share
-        fields with <code className="font-mono text-foreground">.extend</code> or a shape
-        spread; there is no DSL to learn.
-      </>
-    ),
-  },
-  {
-    icon: Terminal,
-    title: "A real commander Command",
-    description: (
-      <>
-        Every builder compiles to a commander{" "}
-        <code className="font-mono text-foreground">Command</code>. Hooks, help
-        configuration and the rest of commander's API stay within reach.
-      </>
-    ),
-  },
-  {
-    icon: Network,
-    title: "Programs all the way down",
-    description: (
-      <>
-        Group commands with{" "}
-        <code className="font-mono text-foreground">f.program().router()</code> and nest
-        programs inside programs. See{" "}
-        <Link
-          to="/$"
-          params={{ _splat: "typescript/programs" }}
-          className="text-primary underline-offset-4 hover:underline"
-        >
-          Programs
-        </Link>
-        .
-      </>
-    ),
-  },
-]
+const freedoms: Record<Lang, FreedomPoint[]> = {
+  python: [
+    {
+      icon: Layers,
+      title: "Plain pydantic models",
+      description: (
+        <>
+          Inputs and outputs are ordinary{" "}
+          <code className="font-mono text-foreground">BaseModel</code> classes. Share
+          fields as <code className="font-mono text-foreground">Annotated</code> aliases
+          and groups as mixins; there is no DSL to learn.
+        </>
+      ),
+    },
+    {
+      icon: Terminal,
+      title: "A real click command",
+      description: (
+        <>
+          Every command is a click{" "}
+          <code className="font-mono text-foreground">Command</code> and every program a{" "}
+          <code className="font-mono text-foreground">Group</code>. Contexts, plugins and
+          the rest of click's API stay within reach.
+        </>
+      ),
+    },
+    {
+      icon: Network,
+      title: "Programs all the way down",
+      description: (
+        <>
+          Group commands with{" "}
+          <code className="font-mono text-foreground">Program(router=...)</code> and nest
+          programs inside programs. See <ProgramsLink />.
+        </>
+      ),
+    },
+  ],
+  typescript: [
+    {
+      icon: Layers,
+      title: "Plain zod schemas",
+      description: (
+        <>
+          Inputs and outputs are ordinary{" "}
+          <code className="font-mono text-foreground">z.object(...)</code> schemas. Share
+          fields with <code className="font-mono text-foreground">.extend</code> or a
+          shape spread; there is no DSL to learn.
+        </>
+      ),
+    },
+    {
+      icon: Terminal,
+      title: "A real commander command",
+      description: (
+        <>
+          Every builder compiles to a commander{" "}
+          <code className="font-mono text-foreground">Command</code>. Hooks, help
+          configuration and the rest of commander's API stay within reach.
+        </>
+      ),
+    },
+    {
+      icon: Network,
+      title: "Programs all the way down",
+      description: (
+        <>
+          Group commands with{" "}
+          <code className="font-mono text-foreground">f.program().router()</code> and nest
+          programs inside programs. See <ProgramsLink />.
+        </>
+      ),
+    },
+  ],
+}
+
+function ProgramsLink() {
+  const { lang } = useLang()
+  return (
+    <Link
+      to="/$"
+      params={{ _splat: `${lang}/programs` }}
+      className="text-primary underline-offset-4 hover:underline"
+    >
+      Programs
+    </Link>
+  )
+}
 
 function Freedom() {
+  const { lang } = useLang()
   return (
     <section className="border-b border-border">
       <div className="mx-auto max-w-6xl px-6 py-24">
         <Reveal>
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Still just zod and commander
+              Still just {langs[lang].schema} and {langs[lang].cli}
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              Fireargs fills in the boring parts and gets out of the way. Your schemas and
-              your commander setup stay yours.
+              Fireargs fills in the boring parts and gets out of the way. Your{" "}
+              {langs[lang].models} and your {langs[lang].cli} setup stay yours.
             </p>
+            <div className="mt-6">
+              <LangTabs />
+            </div>
           </div>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
           <ul className="space-y-8">
-            {freedoms.map((f, i) => (
-              <li key={f.title}>
+            {freedoms[lang].map((point, i) => (
+              <li key={point.title}>
                 <Reveal delayMs={i * 60}>
                   <div className="flex gap-4">
                     <div className="shrink-0 inline-flex items-center justify-center size-10 rounded-lg bg-primary/10 text-primary">
-                      <f.icon className="size-5" />
+                      <point.icon className="size-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">{f.title}</h3>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {point.title}
+                      </h3>
                       <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                        {f.description}
+                        {point.description}
                       </p>
                     </div>
                   </div>
@@ -643,34 +805,43 @@ function Freedom() {
   )
 }
 
+const programTrees: Record<Lang, [string, string, string, string][]> = {
+  python: [
+    ["", "cli.py", "file", "Program()"],
+    ["", "commands/", "dir", ""],
+    ["├─ ", "deploy.py", "file", "@command()"],
+    ["└─ ", "db/", "dir", ""],
+    ["   ├─ ", "__init__.py", "file", "a nested program"],
+    ["   └─ ", "migrate.py", "file", "a nested command"],
+  ],
+  typescript: [
+    ["", "cli.ts", "file", "f.program()"],
+    ["", "commands/", "dir", ""],
+    ["├─ ", "deploy.ts", "file", "f.command()"],
+    ["└─ ", "db/", "dir", ""],
+    ["   ├─ ", "index.ts", "file", "a nested program"],
+    ["   └─ ", "migrate.ts", "file", "a nested command"],
+  ],
+}
+
 function ProgramTree() {
+  const { lang } = useLang()
   return (
     <pre className="p-5 text-sm leading-relaxed font-mono overflow-x-auto">
       <code className={tk.body}>
-        <span className={tk.type}>cli.ts</span>
-        <span className={cn(tk.dim, "hidden sm:inline")}>
-          {"              ← f.program()"}
-        </span>
+        {programTrees[lang].map(([prefix, name, kind, note]) => (
+          <span key={name}>
+            <span className={tk.dim}>{prefix}</span>
+            <span className={kind === "dir" ? tk.flag : tk.type}>{name}</span>
+            {note && (
+              <span className={cn(tk.dim, "hidden sm:inline")}>
+                {`${" ".repeat(Math.max(1, 20 - prefix.length - name.length))}← ${note}`}
+              </span>
+            )}
+            {"\n"}
+          </span>
+        ))}
         {"\n"}
-        <span className={tk.flag}>commands/</span>
-        {"\n"}
-        <span className={tk.dim}>├─ </span>
-        <span className={tk.type}>deploy.ts</span>
-        <span className={cn(tk.dim, "hidden sm:inline")}>{"        ← f.command()"}</span>
-        {"\n"}
-        <span className={tk.dim}>└─ </span>
-        <span className={tk.flag}>db/</span>
-        {"\n"}
-        <span className={tk.dim}>{"   ├─ "}</span>
-        <span className={tk.type}>index.ts</span>
-        <span className={cn(tk.dim, "hidden sm:inline")}>
-          {"      ← a nested program"}
-        </span>
-        {"\n"}
-        <span className={tk.dim}>{"   └─ "}</span>
-        <span className={tk.type}>migrate.ts</span>
-        <span className={cn(tk.dim, "hidden sm:inline")}>{"    ← a nested command"}</span>
-        {"\n\n"}
         <span className={tk.prompt}>$</span> <span className={tk.func}>shipit</span> db
         migrate <span className={tk.flag}>--json</span>
         {"\n"}
@@ -695,19 +866,19 @@ const features: Feature[] = [
     icon: Zap,
     title: "Schema-first",
     description:
-      "Inputs and outputs are zod schemas. Descriptions, defaults, choices, and variadics propagate to commander automatically.",
+      "Inputs and outputs are pydantic models or zod schemas. Descriptions, defaults, choices, and lists propagate to the CLI automatically.",
   },
   {
     icon: ShieldCheck,
     title: "Validated end-to-end",
     description:
-      "Zod validates every input before your handler runs and every output before it ships. One source of truth for types and runtime.",
+      "Every input is validated before your handler runs and every output before it ships. One source of truth for types and runtime.",
   },
   {
     icon: Boxes,
     title: "Fully composable",
     description:
-      "Share common parameters via zod composition (.extend, .merge, shape spread). Group leaves into programs and nest programs in programs — same builder shape at every level.",
+      "Share arguments, options and groups of them across commands. Group leaves into programs and nest programs in programs — same shape at every level.",
   },
   {
     icon: FileJson,
@@ -723,9 +894,9 @@ const features: Feature[] = [
   },
   {
     icon: Terminal,
-    title: "Powered by Commander",
+    title: "Powered by click and commander",
     description:
-      "The thing you get back is a commander Command. Every commander API stays available — fireargs just fills in the boring parts.",
+      "What you get back is a click or commander command. Their whole API stays available — fireargs just fills in the boring parts.",
   },
 ]
 
@@ -767,79 +938,69 @@ function FeatureCard({ icon: Icon, title, description }: Feature) {
   )
 }
 
+const sources: Record<Lang, string> = {
+  python: `from typing import Annotated
+from pydantic import BaseModel
+from fireargs import Argument, Option, command
+
+# Composable arguments and options
+Name = Annotated[str, Argument(description="Who to greet")]
+Times = Annotated[int, Option(default=1, ge=1)]
+
+
+# Composable groups of them
+class GreetInput(BaseModel):
+    name: Name
+    times: Times
+
+
+# Typed output, validated on every run
+class Greeting(BaseModel):
+    greeting: str
+
+
+# A click command, typed from the handler's annotations
+@command(description="Greet politely")
+def greet(input: GreetInput) -> Greeting:
+    words = [f"hello {input.name}"] * input.times
+    return Greeting(greeting=" ".join(words))
+
+
+# Use as a normal click command, e.g. configure or apply plugins
+if __name__ == "__main__":
+    greet()`,
+  typescript: `import { f } from "fireargs"
+import { z } from "zod"
+
+// Composable arguments and options
+const name = f.argument().string().describe("Who to greet")
+const times = f.option().schema(z.number().min(1).default(1))
+
+// Composable groups of them
+const greetInput = z.object({ name, times })
+
+// Typed output, validated on every run
+const greetOutput = z.object({ greeting: z.string() })
+
+// A commander command, typed from the schemas
+const greet = f
+  .command({ name: "greet", description: "Greet politely" })
+  .input(greetInput)
+  .output(greetOutput)
+  .handler(input => {
+    const words = Array(input.times).fill(\`hello \${input.name}\`)
+    return { greeting: words.join(" ") }
+  })
+
+// Use as a normal commander command, e.g. configure or apply plugins
+greet.parseAsync(process.argv)`,
+}
+
 function SourceSample() {
+  const { lang } = useLang()
   return (
     <pre className="p-5 text-sm leading-relaxed font-mono overflow-x-auto">
-      <code className={tk.body}>
-        <span className={tk.keyword}>import</span>{" "}
-        <span className={tk.punct}>{"{ "}</span>f<span className={tk.punct}>{" }"}</span>{" "}
-        <span className={tk.keyword}>from</span>{" "}
-        <span className={tk.string}>"fireargs"</span>
-        {"\n"}
-        <span className={tk.keyword}>import</span>{" "}
-        <span className={tk.punct}>{"{ "}</span>z<span className={tk.punct}>{" }"}</span>{" "}
-        <span className={tk.keyword}>from</span> <span className={tk.string}>"zod"</span>
-        {"\n\n"}
-        <span className={tk.keyword}>const</span> greet{" "}
-        <span className={tk.punct}>=</span> f{"\n  "}
-        <span className={tk.punct}>.</span>
-        <span className={tk.func}>command</span>
-        <span className={tk.punct}>{"({ "}</span>name
-        <span className={tk.punct}>:</span> <span className={tk.string}>"greet"</span>
-        <span className={tk.punct}>{" })"}</span>
-        {"\n  "}
-        <span className={tk.punct}>.</span>
-        <span className={tk.func}>input</span>
-        <span className={tk.punct}>(</span>z<span className={tk.punct}>.</span>
-        <span className={tk.func}>object</span>
-        <span className={tk.punct}>{"({"}</span>
-        {"\n    "}
-        name<span className={tk.punct}>:</span> f<span className={tk.punct}>.</span>
-        <span className={tk.func}>argument</span>
-        <span className={tk.punct}>().</span>
-        <span className={tk.func}>string</span>
-        <span className={tk.punct}>(),</span>
-        {"\n    "}
-        times<span className={tk.punct}>:</span> z<span className={tk.punct}>.</span>
-        <span className={tk.func}>number</span>
-        <span className={tk.punct}>().</span>
-        <span className={tk.func}>default</span>
-        <span className={tk.punct}>(</span>
-        <span className={tk.type}>1</span>
-        <span className={tk.punct}>),</span>
-        {"\n  "}
-        <span className={tk.punct}>{"})) "}</span>
-        {"\n  "}
-        <span className={tk.punct}>.</span>
-        <span className={tk.func}>output</span>
-        <span className={tk.punct}>(</span>z<span className={tk.punct}>.</span>
-        <span className={tk.func}>object</span>
-        <span className={tk.punct}>{"({ "}</span>
-        greeting<span className={tk.punct}>:</span> z<span className={tk.punct}>.</span>
-        <span className={tk.func}>string</span>
-        <span className={tk.punct}>{"() })) "}</span>
-        {"\n  "}
-        <span className={tk.punct}>.</span>
-        <span className={tk.func}>handler</span>
-        <span className={tk.punct}>(</span>input{" "}
-        <span className={tk.punct}>{"=> ({"}</span>
-        {"\n    "}
-        greeting<span className={tk.punct}>:</span>{" "}
-        <span className={tk.string}>{"`hello ${input.name}`"}</span>
-        <span className={tk.punct}>.</span>
-        <span className={tk.func}>repeat</span>
-        <span className={tk.punct}>(</span>input
-        <span className={tk.punct}>.</span>times
-        <span className={tk.punct}>),</span>
-        {"\n  "}
-        <span className={tk.punct}>{"}))"}</span>
-        {"\n\n"}
-        greet<span className={tk.punct}>.</span>
-        <span className={tk.func}>parseAsync</span>
-        <span className={tk.punct}>(</span>process
-        <span className={tk.punct}>.</span>argv
-        <span className={tk.punct}>)</span>
-      </code>
+      <code className={tk.body}>{highlightCode(sources[lang], lang)}</code>
     </pre>
   )
 }
@@ -870,7 +1031,7 @@ function ManifestSample() {
         {"\n      "}
         <span className={tk.key}>"description"</span>
         <span className={tk.punct}>:</span>{" "}
-        <span className={tk.string}>"Greet someone politely"</span>
+        <span className={tk.string}>"Greet politely"</span>
         <span className={tk.punct}>,</span>
         {"\n      "}
         <span className={tk.key}>"inputSchema"</span>
@@ -900,6 +1061,7 @@ function ManifestSample() {
 }
 
 function Showcase() {
+  const { lang } = useLang()
   return (
     <section className="border-b border-border bg-primary/5">
       <div className="mx-auto max-w-6xl px-6 py-24">
@@ -909,14 +1071,18 @@ function Showcase() {
               One schema, every interface
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              The same zod schema drives <code className="font-mono">--help</code>,{" "}
+              The same {langs[lang].schema} {lang === "python" ? "model" : "schema"}{" "}
+              drives <code className="font-mono">--help</code>,{" "}
               <code className="font-mono">--json</code>, and the LLM manifest.
             </p>
+            <div className="mt-6">
+              <LangTabs />
+            </div>
           </div>
         </Reveal>
         <Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <WindowCard label="greet.ts">
+          <div className="grid grid-cols-1 md:grid-cols-[4fr_3fr] gap-4 md:gap-6">
+            <WindowCard label={langs[lang].file}>
               <SourceSample />
             </WindowCard>
             <WindowCard label="greet --llms">
@@ -926,8 +1092,10 @@ function Showcase() {
         </Reveal>
         <Reveal delayMs={120}>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Bullet text="JSDoc descriptions surface in --help and the JSON Schema." />
-            <Bullet text="Defaults, choices, and optionality flow to commander automatically." />
+            <Bullet text="Descriptions surface in --help and the JSON Schema." />
+            <Bullet
+              text={`Defaults, choices, and optionality flow to ${langs[lang].cli} automatically.`}
+            />
             <Bullet text="Every leaf gets --json '<value>' and --llms for free." />
           </div>
         </Reveal>
@@ -962,6 +1130,7 @@ function WindowCard(props: { label: string; children: ReactNode }) {
 }
 
 function FinalCta() {
+  const { lang } = useLang()
   return (
     <section className="relative overflow-hidden">
       <div className="relative mx-auto max-w-3xl px-6 py-24 text-center">
@@ -977,7 +1146,7 @@ function FinalCta() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/$"
-              params={{ _splat: "typescript/introduction" }}
+              params={{ _splat: `${lang}/introduction` }}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
                 "px-5 no-underline",
@@ -988,7 +1157,7 @@ function FinalCta() {
             </Link>
             <Link
               to="/$"
-              params={{ _splat: "typescript/llms-mode" }}
+              params={{ _splat: `${lang}/llms-mode` }}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "lg" }),
                 "px-5 no-underline",

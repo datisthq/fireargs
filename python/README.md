@@ -38,7 +38,7 @@ class Greeting(BaseModel):
     greeting: str
 
 
-# A click Command, typed from the handler's annotations
+# A click command, typed from the handler's annotations
 @command(description="Greet someone politely.")
 def greet(input: GreetInput) -> Greeting:
     greeting = " ".join([f"hello {input.name}"] * input.times)
