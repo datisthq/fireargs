@@ -127,23 +127,13 @@ Every command takes `--json`. Bare, it switches the output to JSON; given a valu
 the input, checked against the input schema, so scripts never assemble argv:
 
 ```bash
-$ node greet.ts world --times 2 --json        # CLI input, JSON output
-{
-  "greeting": "hello world hello world"
-}
-$ node greet.ts --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
+$ node greet.ts --json '{"name":"world","times":3,"shout":true}'
 {
   "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
 }
-$ node greet.ts world --json | jq -r .greeting   # pipe it into other tools
-hello world
-$ node greet.ts --json '{"times":2}'           # input errors go to stderr, exit code 1
-error: invalid --json input at 'name': Invalid input: expected string, received undefined
-$ node greet.ts --json '{"name":"world","times":"2"}'
-error: invalid --json input at 'times': Invalid input: expected number, received string
 ```
 
-stdout only ever carries the data, so a script can parse it without checking for noise.
+Input errors go to stderr with exit code 1, so stdout only ever carries the data.
 
 ## LLMs mode
 
