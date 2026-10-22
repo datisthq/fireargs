@@ -1,0 +1,16 @@
+{
+  "name": "fireargs-rust",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cargo package --allow-dirty --no-verify --target-dir build",
+    "check:lint": "cargo fmt --check && cargo clippy --all-targets -- -D warnings",
+    "check:types": "cargo check --all-targets",
+    "format": "cargo fmt",
+    "measure:coverage": "cargo llvm-cov --html",
+    "release": "cargo publish",
+    "setup": "cargo fetch",
+    "test": "pnpm check:types && pnpm test:unit",
+    "test:unit": "cargo test"
+  }
+}
