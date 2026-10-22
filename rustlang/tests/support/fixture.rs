@@ -40,6 +40,21 @@ struct StrictInput {
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
+struct TagsInput {
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    rows: Vec<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(extend("fireargs" = {"kind": "option", "conflicts": "quiet", "implies": {"level": 3}}))]
+    loud: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    quiet: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    level: Option<i64>,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema)]
 struct ResetInput {
     #[serde(default)]
     force: bool,
@@ -62,6 +77,13 @@ pub fn create_fixture() -> Program {
         .input::<StrictInput>()
         .output::<StrictInput>()
         .handler(|input, _| async move { Ok::<_, Error>(input) });
+    let tags = f::command(describe("Collect tags and rows"))
+        .input::<TagsInput>()
+        .output::<TagsInput>()
+        .parse("tags", |text| {
+            Ok(serde_json::json!(text.split(',').collect::<Vec<_>>()))
+        })
+        .handler(|input, _| async move { Ok::<_, Error>(input) });
     let reset = f::command(describe("Reset everything"))
         .input::<ResetInput>()
         .output::<ResetInput>()
@@ -77,6 +99,7 @@ pub fn create_fixture() -> Program {
     .router([
         ("echo", echo.into()),
         ("strict", strict.into()),
+        ("tags", tags.into()),
         (
             "admin",
             f::program(admin).router([("reset", reset.into())]).into(),

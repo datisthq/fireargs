@@ -4,7 +4,7 @@ Fireargs is an open-source project and we'd love your help — whether that's fi
 
 ## Quick start
 
-You'll need [Node.js](https://nodejs.org/) 24+, [pnpm](https://pnpm.io/) 11+ and, for the Python package, [uv](https://docs.astral.sh/uv/). Then:
+You'll need [Node.js](https://nodejs.org/) 24+, [pnpm](https://pnpm.io/) 11+, for the Python package [uv](https://docs.astral.sh/uv/), and for the Rust package [rustup](https://rustup.rs/). Then:
 
 ```bash
 git clone https://github.com/datisthq/fireargs.git
@@ -13,7 +13,7 @@ pnpm install
 pnpm start
 ```
 
-`pnpm install` also syncs the Python environment when `uv` is on your `PATH`. `pnpm start` boots the docs dev server so you can iterate on the site. To exercise both packages:
+`pnpm install` also syncs the Python environment when `uv` is on your `PATH` and fetches the Rust crates when `cargo` is. `pnpm start` boots the docs dev server so you can iterate on the site. To exercise every package:
 
 ```bash
 pnpm test
@@ -40,7 +40,12 @@ fireargs/
 │   ├── fireargs/        #   the twin of typescript/: actions/, models/, __init__.py
 │   ├── docs/            #   the Python pages of the docs site
 │   └── skills/          #   shipped agent skills for Python users
-├── testsuite/           # language-neutral cases both packages must pass
+├── rustlang/            # the crates.io package `fireargs`, a cargo project
+│   ├── src/             #   the twin of typescript/: actions/, models/, lib.rs
+│   ├── tests/           #   integration tests and the testsuite runner
+│   ├── docs/            #   the Rust pages of the docs site
+│   └── skills/          #   shipped agent skills for Rust users
+├── testsuite/           # language-neutral cases every package must pass
 ├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
 ├── .livemark/           # docs-site escapes (theme, landing, screenshots)
 ├── .scripts/            # repo-wide guards and the `pnpm squash` script
@@ -49,25 +54,25 @@ fireargs/
 └── vite.config.ts       # vite-plus shared config (format, lint, the guards' tests)
 ```
 
-The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`. Everything else is for development. A change to shared behaviour lands in both packages, with a `testsuite/` case.
+The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`; the crate ships `rustlang/src/` and `rustlang/skills/`. Everything else is for development. A change to shared behaviour lands in every package, with a `testsuite/` case.
 
 ## Local commands
 
 Run these at the repo root; each chains into the language sections with `pnpm -C <section>`.
 
-| Command            | What it does                                                      |
-| ------------------ | ----------------------------------------------------------------- |
-| `pnpm install`     | Install dependencies                                              |
-| `pnpm build`       | Build `typescript/build/` and the Python wheel in `python/build/` |
-| `pnpm check:types` | Type-check via `tsgo --noEmit` and `ty check`                     |
-| `pnpm check:lint`  | Format check + lint (`vp fmt`, `vp lint`, `ruff`)                 |
-| `pnpm check`       | `pnpm check:lint && pnpm check:types`                             |
-| `pnpm format`      | Auto-fix formatting (`vp fmt`, `ruff format`)                     |
-| `pnpm test:unit`   | Run the repo guards and both packages' unit tests and testsuite   |
-| `pnpm test`        | `pnpm check && pnpm test:unit`                                    |
-| `pnpm start`       | Run the docs dev server                                           |
-| `pnpm build:docs`  | Production build of the docs site                                 |
-| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)                |
+| Command            | What it does                                                             |
+| ------------------ | ------------------------------------------------------------------------ |
+| `pnpm install`     | Install dependencies                                                     |
+| `pnpm build`       | Build `typescript/build/`, the Python wheel and the `.crate` package     |
+| `pnpm check:types` | Type-check via `tsgo --noEmit`, `ty check` and `cargo check`             |
+| `pnpm check:lint`  | Format check + lint (`vp fmt`, `vp lint`, `ruff`, `cargo fmt`, `clippy`) |
+| `pnpm check`       | `pnpm check:lint && pnpm check:types`                                    |
+| `pnpm format`      | Auto-fix formatting (`vp fmt`, `ruff format`, `cargo fmt`)               |
+| `pnpm test:unit`   | Run the repo guards and every package's unit tests and testsuite         |
+| `pnpm test`        | `pnpm check && pnpm test:unit`                                           |
+| `pnpm start`       | Run the docs dev server                                                  |
+| `pnpm build:docs`  | Production build of the docs site                                        |
+| `pnpm scan`        | Secret and vulnerability scans (gitleaks, semgrep)                       |
 
 A change is ready to push when `pnpm test` is green.
 
@@ -80,6 +85,7 @@ A change is ready to push when `pnpm test` is green.
 - **Tests**: unit tests live next to the code as `<module>.unit.ts`; run one from `typescript/` with `vp test <file>`. No "Arrange/Act/Assert" comments — the structure should be obvious.
 - **Formatting**: vite-plus via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
 - **Python**: 3.12+, typed for `ty` without `Any`; tests beside the module as `<module>_unit.py`, run one with `uv run pytest <file>` from `python/`.
+- **Rust**: edition 2024 on the pinned stable toolchain, clippy-clean with no `unwrap`/`expect` in library code; unit tests beside the module as `<module>_unit.rs`, run one with `cargo test <name>` from `rustlang/`.
 
 ## Proposing a change
 
@@ -95,7 +101,7 @@ A change is ready to push when `pnpm test` is green.
 
 ## Releases
 
-Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm and PyPI. Each package has its own version. Maintainers don't bump versions manually.
+Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm, PyPI and crates.io. Each package has its own version. Maintainers don't bump versions manually.
 
 ## Where to find help
 

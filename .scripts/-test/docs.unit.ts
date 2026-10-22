@@ -4,7 +4,9 @@ import { describe, expect, it } from "vite-plus/test"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const REPO_SKILLS = join(ROOT, ".agents", "skills")
-const SECTIONS = ["typescript", "python"].filter(name => existsSync(join(ROOT, name)))
+const SECTIONS = ["typescript", "python", "rustlang"].filter(name =>
+  existsSync(join(ROOT, name)),
+)
 const SHIPPED_SKILLS = SECTIONS.map(name => join(ROOT, name, "skills")).filter(existsSync)
 
 describe("documentation stays true", () => {
@@ -17,7 +19,8 @@ describe("documentation stays true", () => {
     const stray: string[] = []
     const walk = (directory: string) => {
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
-        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue
+        if (["node_modules", "target"].includes(entry.name)) continue
+        if (entry.name.startsWith(".")) continue
         const path = join(directory, entry.name)
         if (entry.isDirectory()) walk(path)
         else if (entry.name === "AGENTS.md" && directory !== ROOT) {
@@ -134,7 +137,7 @@ const WORKSPACE = new Set([
 ])
 
 // Code only: text and shell blocks hold real CLI output, which is as wide as it is
-const SNIPPET = /```(?:python|py|ts|tsx|typescript|js)\b[^\n]*\n([\s\S]*?)```/g
+const SNIPPET = /```(?:python|py|ts|tsx|typescript|js|rust|rs)\b[^\n]*\n([\s\S]*?)```/g
 
 function readSnippetDocs() {
   const paths = ["README.md"]
@@ -176,6 +179,8 @@ function looksLikeRepoPath(span: string) {
   if (span.startsWith("@")) return false
   if (!WORKSPACE.has(span.split("/")[0] ?? "")) return false
   // Build output is gitignored, so a fresh checkout or CI would fail on it.
-  if (span.split("/").includes("build")) return false
-  return /\.(ts|tsx|json|md|css|yaml|yml|svg|png)$/.test(span) || span.endsWith("/")
+  if (span.split("/").some(part => part === "build" || part === "target")) return false
+  return (
+    /\.(ts|tsx|json|md|css|yaml|yml|svg|png|rs|toml)$/.test(span) || span.endsWith("/")
+  )
 }

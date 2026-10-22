@@ -46,7 +46,7 @@ The root `pnpm check` and `pnpm test:unit` chain these after the TypeScript ones
 
 ## Twins
 
-A behaviour change lands in both packages in one branch (`AGENTS.md`). Translate rather than
+A behaviour change lands in every package in one branch (`AGENTS.md`). Translate rather than
 copy:
 
 | TypeScript                               | Python                                                  |
@@ -63,11 +63,11 @@ Wire keys match only when the Python model uses the TypeScript names: give it a 
 
 ## Testsuite
 
-A behaviour both packages share gets a case in `testsuite/tests/<area>/<feature>.json`
-(schema: `testsuite/test-schema.json`), run by `typescript/-test/testsuite.unit.ts` and
-`python/fireargs/_test/testsuite_unit.py` against the twin fixture CLIs
-`typescript/-test/fixture.ts` and `python/fireargs/_test/fixture.py`. Change both fixtures
-together. Cases compare `--json` output deep-equal, `stderr` by prefix and `--llms` schemas
+A behaviour the packages share gets a case in `testsuite/tests/<area>/<feature>.json`
+(schema: `testsuite/test-schema.json`), run by `typescript/-test/testsuite.unit.ts`,
+`python/fireargs/_test/testsuite_unit.py` and `rustlang/tests/testsuite.rs` against the twin
+fixture CLIs `typescript/-test/fixture.ts`, `python/fireargs/_test/fixture.py` and
+`rustlang/tests/support/fixture.rs`. Change all three fixtures together. Cases compare `--json` output deep-equal, `stderr` by prefix and `--llms` schemas
 semantically — by the `instances` each must accept or reject, never by their text.
 
 ## Releases

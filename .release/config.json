@@ -10,6 +10,12 @@
       "package-name": "fireargs",
       "component": "python",
       "include-component-in-tag": true
+    },
+    "rustlang": {
+      "release-type": "rust",
+      "package-name": "fireargs",
+      "component": "rust",
+      "include-component-in-tag": true
     }
   }
 }

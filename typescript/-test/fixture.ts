@@ -25,6 +25,24 @@ const strict = f
   .output(strictInput)
   .handler(input => input)
 
+const tagsInput = z.object({
+  tags: f
+    .option({ parse: value => value.split(",") })
+    .schema(z.array(z.string()).default([])),
+  rows: z.array(z.number().int()).default([]),
+  loud: f
+    .option({ conflicts: "quiet", implies: { level: 3 } })
+    .schema(z.boolean().optional()),
+  quiet: z.boolean().optional(),
+  level: z.number().int().optional(),
+})
+
+const tags = f
+  .command({ description: "Collect tags and rows" })
+  .input(tagsInput)
+  .output(tagsInput)
+  .handler(input => input)
+
 const resetInput = z.object({ force: z.boolean().default(false) })
 
 const reset = f
@@ -39,6 +57,7 @@ const reset = f
 export const fixture = f.program({ name: "fixture" }).router({
   echo,
   strict,
+  tags,
   admin: f.program({ description: "Admin tasks" }).router({ reset }),
 })
 

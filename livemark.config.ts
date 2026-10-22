@@ -15,11 +15,20 @@ export default defineConfig({
     "typescript/docs/**/*.md",
     "typescript/CONTRIBUTING.md",
     "typescript/CHANGELOG.md",
+    "rustlang/README.md",
+    "rustlang/docs/**/*.md",
+    "rustlang/CONTRIBUTING.md",
+    "rustlang/CHANGELOG.md",
   ],
-  skills: ["python/skills/*/SKILL.md", "typescript/skills/*/SKILL.md"],
+  skills: [
+    "python/skills/*/SKILL.md",
+    "typescript/skills/*/SKILL.md",
+    "rustlang/skills/*/SKILL.md",
+  ],
   sections: [
     { title: "Python", prefix: "/python/", icon: "code" },
     { title: "TypeScript", prefix: "/typescript/", icon: "code-xml" },
+    { title: "Rust", prefix: "/rust/", icon: "cog" },
     {
       title: "GitHub",
       type: "custom",
@@ -88,6 +97,37 @@ export default defineConfig({
         icon: "history",
         order: -1,
         path: "/typescript/changelog/",
+      },
+    },
+    {
+      file: "rustlang/README.md",
+      article: {
+        title: "Introduction",
+        description: "Install fireargs for Rust and write your first command.",
+        icon: "rocket",
+        order: 1,
+        path: "/rust/introduction/",
+      },
+    },
+    {
+      file: "rustlang/CONTRIBUTING.md",
+      article: {
+        title: "Contributing",
+        description:
+          "How to set up fireargs locally, propose changes, and ship a release.",
+        icon: "heart-handshake",
+        order: -2,
+        path: "/rust/contributing/",
+      },
+    },
+    {
+      file: "rustlang/CHANGELOG.md",
+      article: {
+        title: "Changelog",
+        description: "What changed in each release of the Rust package.",
+        icon: "history",
+        order: -1,
+        path: "/rust/changelog/",
       },
     },
   ],

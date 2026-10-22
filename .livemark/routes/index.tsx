@@ -67,16 +67,24 @@ const tk = {
   key: "text-[#1e66f5] dark:text-[#89b4fa]",
 }
 
-type Lang = "python" | "typescript"
+type Lang = "python" | "typescript" | "rust"
 
-const langIds: Lang[] = ["python", "typescript"]
+const langIds: Lang[] = ["python", "typescript", "rust"]
 
 const langs: Record<
   Lang,
-  { label: string; models: string; schema: string; cli: string; file: string }
+  {
+    label: string
+    model: string
+    models: string
+    schema: string
+    cli: string
+    file: string
+  }
 > = {
   python: {
     label: "Python",
+    model: "model",
     models: "models",
     schema: "pydantic",
     cli: "click",
@@ -84,10 +92,19 @@ const langs: Record<
   },
   typescript: {
     label: "TypeScript",
+    model: "schema",
     models: "schemas",
     schema: "zod",
     cli: "commander",
     file: "greet.ts",
+  },
+  rust: {
+    label: "Rust",
+    model: "struct",
+    models: "structs",
+    schema: "serde",
+    cli: "clap",
+    file: "main.rs",
   },
 }
 
@@ -132,13 +149,18 @@ function LangTabs() {
 const keywords: Record<Lang, Set<string>> = {
   python: new Set(["from", "import", "class", "def", "return", "if", "async", "await"]),
   typescript: new Set(["import", "from", "const", "return", "async", "await", "new"]),
+  rust: new Set(["use", "as", "fn", "let", "struct", "move", "async", "await", "self"]),
 }
 
 const TOKEN =
   /(#.*|\/\/.*)|(f?"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`)|(@\w+)|(\b\d+\b)|([A-Za-z_]\w*)|([^\sA-Za-z_\d"`#@]+)|(\s+)|([\s\S])/g
 
+// Rust has no `#` comments: `#[...]` attributes and `name!` macros read as decorators
+const RUST_TOKEN =
+  /(\/\/.*)|("(?:[^"\\]|\\.)*")|(#\[[^\]]*\]|\b\w+!)|(\b\d+\b)|([A-Za-z_]\w*)|([^\sA-Za-z_\d"#]+)|(\s+)|([\s\S])/g
+
 function highlightCode(code: string, lang: Lang) {
-  return [...code.matchAll(TOKEN)].map(match => {
+  return [...code.matchAll(lang === "rust" ? RUST_TOKEN : TOKEN)].map(match => {
     const [text, comment, string, decorator, number, word, punct] = match
     const next = code[match.index + text.length]
     const className = comment
@@ -178,7 +200,7 @@ function Hero() {
       <div className="relative mx-auto w-full max-w-6xl px-6 py-20 md:py-28 lg:grid lg:grid-cols-[27rem_minmax(0,1fr)] lg:items-center lg:gap-14">
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ease-out">
           <p className="text-primary text-xs font-semibold tracking-[0.18em] uppercase">
-            For Python and TypeScript
+            For Python, TypeScript and Rust
           </p>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-5xl">
             Typed CLIs for
@@ -247,6 +269,10 @@ function HeroActions() {
         <span className="text-primary select-none">$</span>
         <span>
           <span className="text-foreground">npm install</span> fireargs
+        </span>
+        <span className="text-primary select-none">$</span>
+        <span>
+          <span className="text-foreground">cargo add</span> fireargs
         </span>
       </div>
     </>
@@ -735,6 +761,43 @@ const freedoms: Record<Lang, FreedomPoint[]> = {
       ),
     },
   ],
+  rust: [
+    {
+      icon: Layers,
+      title: "Plain serde structs",
+      description: (
+        <>
+          Inputs and outputs are ordinary{" "}
+          <code className="font-mono text-foreground">#[derive(JsonSchema)]</code>{" "}
+          structs. Share groups of fields with{" "}
+          <code className="font-mono text-foreground">#[serde(flatten)]</code>; there is
+          no DSL to learn.
+        </>
+      ),
+    },
+    {
+      icon: Terminal,
+      title: "Parsed by clap",
+      description: (
+        <>
+          Every command is declared as a clap{" "}
+          <code className="font-mono text-foreground">Command</code>, so help, suggestions
+          and env fallbacks behave the way Rust CLIs do.
+        </>
+      ),
+    },
+    {
+      icon: Network,
+      title: "Programs all the way down",
+      description: (
+        <>
+          Group commands with{" "}
+          <code className="font-mono text-foreground">f::program().router()</code> and
+          nest programs inside programs. See <ProgramsLink />.
+        </>
+      ),
+    },
+  ],
 }
 
 function ProgramsLink() {
@@ -822,6 +885,14 @@ const programTrees: Record<Lang, [string, string, string, string][]> = {
     ["   ├─ ", "index.ts", "file", "a nested program"],
     ["   └─ ", "migrate.ts", "file", "a nested command"],
   ],
+  rust: [
+    ["", "main.rs", "file", "f::program()"],
+    ["", "commands/", "dir", ""],
+    ["├─ ", "deploy.rs", "file", "f::command()"],
+    ["└─ ", "db/", "dir", ""],
+    ["   ├─ ", "mod.rs", "file", "a nested program"],
+    ["   └─ ", "migrate.rs", "file", "a nested command"],
+  ],
 }
 
 function ProgramTree() {
@@ -866,7 +937,7 @@ const features: Feature[] = [
     icon: Zap,
     title: "Schema-first",
     description:
-      "Inputs and outputs are pydantic models or zod schemas. Descriptions, defaults, choices, and lists propagate to the CLI automatically.",
+      "Inputs and outputs are pydantic models, zod schemas or serde structs. Descriptions, defaults, choices, and lists propagate to the CLI automatically.",
   },
   {
     icon: ShieldCheck,
@@ -894,9 +965,9 @@ const features: Feature[] = [
   },
   {
     icon: Terminal,
-    title: "Powered by click and commander",
+    title: "Powered by click, commander and clap",
     description:
-      "What you get back is a click or commander command. Their whole API stays available — fireargs just fills in the boring parts.",
+      "Every command is parsed by click, commander or clap, so it behaves like any other CLI in its language — fireargs just fills in the boring parts.",
   },
 ]
 
@@ -1008,6 +1079,53 @@ const cli = f.program({ name: "myapp" }).router({ greet })
 
 // Use as a normal commander command, e.g. configure or apply plugins
 cli.parseAsync(process.argv)`,
+  rust: `use fireargs::{self as f, CommandConfig, Error, ProgramConfig};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+// Arguments and options, as plain struct fields
+#[derive(Deserialize, JsonSchema)]
+struct GreetInput {
+    /// Who to greet
+    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    name: String,
+    #[serde(default = "one")]
+    #[schemars(range(min = 1))]
+    times: u32,
+}
+
+// Typed output, validated on every run
+#[derive(Serialize, JsonSchema)]
+struct Greeting {
+    greeting: String,
+}
+
+fn one() -> u32 {
+    1
+}
+
+fn main() -> std::process::ExitCode {
+    let config = CommandConfig {
+        description: Some("Greet politely".into()),
+        ..Default::default()
+    };
+    // A clap command, typed from the structs
+    let greet = f::command(config)
+        .input::<GreetInput>()
+        .output::<Greeting>()
+        // Output for humans; --json prints the data instead
+        .render(|output, _| Some(output.greeting.clone()))
+        .handler(|input, _| async move {
+            let words = vec![format!("hello {}", input.name); input.times as usize];
+            Ok::<_, Error>(Greeting { greeting: words.join(" ") })
+        });
+
+    // Composable commands: a router of leaves and nested programs
+    let name = Some("myapp".into());
+    let cli = f::program(ProgramConfig { name, ..Default::default() })
+        .router([("greet", greet.into())]);
+    cli.run()
+}`,
 }
 
 function SourceSample() {
@@ -1129,8 +1247,8 @@ function Showcase() {
               One schema, every interface
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              The same {langs[lang].schema} {lang === "python" ? "model" : "schema"}{" "}
-              drives <code className="font-mono">--help</code>,{" "}
+              The same {langs[lang].schema} {langs[lang].model} drives{" "}
+              <code className="font-mono">--help</code>,{" "}
               <code className="font-mono">--json</code>, and the LLM manifest.
             </p>
           </div>

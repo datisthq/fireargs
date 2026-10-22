@@ -15,7 +15,8 @@
     "${configDir}/.livemark/",
     "${configDir}/docs/",
     "${configDir}/typescript/",
-    "${configDir}/python/"
+    "${configDir}/python/",
+    "${configDir}/rustlang/"
   ],
 
   "compilerOptions": {

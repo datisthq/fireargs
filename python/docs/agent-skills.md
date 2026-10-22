@@ -24,7 +24,7 @@ fireargs.dev publishes its skills under `/.well-known/agent-skills/`, so the [`s
 npx skills add https://fireargs.dev
 ```
 
-It asks which skills and agents to install for; the site also serves the TypeScript skills, so pick the `fireargs-python-*` ones. To skip the prompts, pass them as flags:
+It asks which skills and agents to install for; the site also serves the TypeScript and Rust skills, so pick the `fireargs-python-*` ones. To skip the prompts, pass them as flags:
 
 ```bash
 npx skills add https://fireargs.dev --skill fireargs-python-commands --agent claude-code

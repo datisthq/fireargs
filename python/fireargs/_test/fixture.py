@@ -29,6 +29,19 @@ def strict(input: StrictInput) -> StrictInput:
     return input
 
 
+class TagsInput(BaseModel):
+    tags: Annotated[list[str], f.Option(parse=lambda value: value.split(","))] = []
+    rows: list[int] = []
+    loud: Annotated[bool | None, f.Option(conflicts="quiet", implies={"level": 3})] = None
+    quiet: bool | None = None
+    level: int | None = None
+
+
+@f.command(description="Collect tags and rows")
+def tags(input: TagsInput) -> TagsInput:
+    return input
+
+
 class ResetInput(BaseModel):
     force: bool = False
 
@@ -43,6 +56,7 @@ fixture = f.Program(
     router={
         "echo": echo,
         "strict": strict,
+        "tags": tags,
         "admin": f.Program(description="Admin tasks", router={"reset": reset}),
     },
 )
