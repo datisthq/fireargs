@@ -26,12 +26,12 @@ greet world --json                # CLI in, JSON out
 greet --json '{"name":"world"}'   # JSON in, JSON out
 ```
 
-With a value, the run is: parse the value as JSON → validate it against the input struct's JSON Schema → deserialize it with serde → run the handler → serialize the result and validate it against the output's JSON Schema → print it indented by two spaces on stdout. The CLI's own arguments and options are ignored for input, so required positionals may be left off.
+With a value, the run is: parse the value as JSON → validate it against the input struct's JSON Schema → fill in defaults and deserialize it → run the handler → serialize the result and validate it against the output's JSON Schema → print it indented by two spaces on stdout. The CLI's own arguments and options are ignored for input, so required positionals may be left off.
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
-- Keys are serde's names (camelCase under `rename_all = "camelCase"`). Keys the struct does not declare are ignored, unless it sets `#[serde(deny_unknown_fields)]`.
-- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — serde's defaults and the schema's validation, choices included, still do. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings.
-- An `Option<T>` output field is written as `null` while `None`, unless it has `#[serde(skip_serializing_if = "Option::is_none")]`, which leaves it out.
+- Keys are the camelCase wire keys `#[fireargs::input]` gives (`headerRows`), or a `rename_all`'s. Keys the struct does not declare are ignored, unless it sets `#[serde(deny_unknown_fields)]`.
+- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — defaults and the schema's validation, choices included, still do. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings.
+- An `Option<T>` field of a `#[fireargs::output]` struct is left out while `None`; on a hand-derived output it is written as `null` unless it has `#[serde(skip_serializing_if = "Option::is_none")]`.
 
 ## `--llms`: the manifest
 
@@ -67,8 +67,8 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 - The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`). Never call it.
 - On a program, nested leaves are flattened and `name` is the space-separated path below the binary. `myapp db migrate --llms` prints only that leaf, named `migrate`: take tool names from the root's manifest.
-- Schemas are schemars' JSON Schema (draft 2020-12), subschemas inlined: `inputSchema` for deserialization, `outputSchema` for serialization. They carry types, formats, descriptions from doc comments, defaults, enums and validation bounds. The `fireargs` meta (flag names, short flags, env vars, conflicts, …) is stripped: properties are the serde keys (`headerRows`), not the flags (`--header-rows`).
-- `inputSchema` describes what `--json` accepts: a defaulted or `Option<T>` field is not `required`. In `outputSchema` every field serde always writes is required.
+- Schemas are schemars' JSON Schema (draft 2020-12), subschemas inlined: `inputSchema` for deserialization, `outputSchema` for serialization. They carry types, formats, descriptions from doc comments, defaults, enums and validation bounds. The CLI config (flag names, short flags, env vars, conflicts, …) is stripped: properties are the wire keys (`headerRows`), not the flags (`--header-rows`).
+- `inputSchema` describes what `--json` accepts: a defaulted or `Option<T>` field is not `required`. In `outputSchema` every field always written is required.
 
 ## Calling a Fireargs CLI as an agent
 
@@ -79,7 +79,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 ## Customising the flags
 
-`json_option` and `llms_option` in a command's config take a `FlagConfig`: `Enabled` (the default), `Disabled`, or `Custom { long, description }` to rename the long flag (`long: "as-json".into()` gives `--as-json`). Programs take `llms_option` only.
+`.json_option(..)` and `.llms_option(..)` on a command take a `FlagConfig`: `Enabled` (the default), `Disabled`, or `Custom { long, description }` to rename the long flag (`long: "as-json".into()` gives `--as-json`). Programs take `.llms_option(..)` only.
 
 ## Errors and exits
 
@@ -87,21 +87,20 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 - A missing required positional, a `conflicts` violation and a CLI value rejected by number parsing or a field's `parse` print one `error: ...` line in commander's wording and exit 1; none reaches `render_error`.
 - Without a `render_error` hook, input failures exit 1 the same way: a `--json` value that is not JSON (`error: --json value is not valid JSON: ...`) and input that fails the schema, one line per field — `error: invalid --json input at 'a.b[0]': <message>` in JSON mode, commander's wording at the shell.
 - An error from the handler or an output that fails its schema ends the run: `.run()` prints `error: <message>` and exits 1; `.try_run_from(...)` returns it as `Err`.
-- `render_error: Option<RenderError>` on a command, or once on the root program for the whole tree (the nearest hook wins). `RenderError` is `Arc<dyn Fn(&Error, &Context) -> Option<Value> + Send + Sync>`. Input failures downcast to `fireargs::InputError` (`InvalidJson`, or `Invalid` with `Issue`s), output failures to `fireargs::OutputError`; a handler's error is the one it returned. Under `--json` a returned value is printed as JSON on stdout; otherwise a returned JSON string goes to stderr. The run then exits with code 1. Return `None` to write it yourself.
+- `.render_error(|error, context| ...)` on a command, or once on the root program for the whole tree (the nearest hook wins). The closure is `Fn(&fireargs::Error, &Context) -> Option<serde_json::Value>`. Input failures downcast to `fireargs::InputError` (`InvalidJson`, or `Invalid` with `Issue`s), output failures to `fireargs::OutputError`; a handler's error is the one it returned. Under `--json` a returned value is printed as JSON on stdout; otherwise a returned JSON string goes to stderr. The run then exits with code 1. Return `None` to write it yourself.
 
 ```rust
-let render_error: RenderError = Arc::new(|error: &Error, context: &Context| {
-    Some(match context.json {
-        true => json!({"error": error.to_string()}),
-        false => json!(format!("error: {error}")),
-    })
-});
-let cli = f::program(ProgramConfig {
-    name: Some("myapp".into()),
-    render_error: Some(render_error),
-    ..Default::default()
-})
-.router([...]);
+fn cli() -> fireargs::Program {
+    fireargs::program()
+        .name("myapp")
+        .render_error(|error, context| {
+            Some(match context.json {
+                true => json!({"error": error.to_string()}),
+                false => json!(format!("error: {error}")),
+            })
+        })
+        .command("greet", greet())
+}
 ```
 
 ## Testing a command
@@ -111,7 +110,7 @@ let cli = f::program(ProgramConfig {
 fn greet_writes_json() {
     let (mut out, mut err) = (vec![], vec![]);
     let argv = ["greet", "--json", r#"{"name":"world"}"#];
-    let greet = create_greet();
+    let greet = greet();
     let code = pollster::block_on(greet.try_run_from(argv, &mut out, &mut err)).unwrap();
     assert_eq!(code, 0, "{}", String::from_utf8_lossy(&err));
     let out: serde_json::Value = serde_json::from_slice(&out).unwrap();

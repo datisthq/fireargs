@@ -6,69 +6,53 @@ Define each command with typed input and output structs. Get composability, LLM-
 
 ```bash
 cargo add fireargs
-cargo add serde --features derive
-cargo add schemars
 ```
 
 ## A first command
 
-`f::command(config)` opens a builder: `.input::<I>()` takes the input struct, `.output::<O>()` the output type and `.handler(...)` the async function between them. Fields become arguments and options; a `#[schemars(extend("fireargs" = {...}))]` attribute carries the CLI config serde and schemars do not model. Import the module as `f` (`use fireargs as f;`), as here, or the names you use.
+Mark the input struct `#[fireargs::input]` and the output struct `#[fireargs::output]`: the macros add the serde and schemars derives, so `fireargs` is the only dependency. Fields become arguments and options, and `#[fireargs(...)]` carries the CLI config serde and schemars do not model. `fireargs::command()` opens a builder; `.handler(...)` takes the async function between the two structs and types the command from its signature.
 
 ```rust title="greet.rs"
-use std::process::ExitCode;
-
-use fireargs::{self as f, CommandConfig, Error};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
 // Typed input: doc comments, defaults and bounds become arguments and options
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct GreetInput {
     /// The user's name.
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    #[fireargs(argument)]
     name: String,
     /// Repeat it n times.
-    #[serde(default = "one")]
-    #[schemars(range(min = 1))]
+    #[fireargs(default = 1, range(min = 1))]
     times: u32,
     /// Use capitals.
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "short": "s"}))]
+    #[fireargs(short = 's', default)]
     shout: bool,
 }
 
-fn one() -> u32 {
-    1
-}
-
 // Typed output, validated on every run
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Greeting {
     greeting: String,
 }
 
-fn main() -> ExitCode {
-    let config = CommandConfig {
-        name: Some("greet".into()),
-        description: Some("Greet someone politely.".into()),
-        ..Default::default()
-    };
-    // A clap command, typed from the input and output structs
-    let greet = f::command(config)
-        .input::<GreetInput>()
-        .output::<Greeting>()
-        // Output for humans; --json prints the data instead
-        .render(|output, _| Some(output.greeting.clone()))
-        .handler(|input, _| async move {
+// A clap command, typed from the handler's signature
+fn greet() -> fireargs::Command<GreetInput, Greeting> {
+    fireargs::command()
+        .name("greet")
+        .description("Greet someone politely.")
+        .handler(async |input: GreetInput, _| {
             let words = vec![format!("hello {}", input.name); input.times as usize];
             let mut greeting = words.join(" ");
             if input.shout {
                 greeting = greeting.to_uppercase();
             }
-            Ok::<_, Error>(Greeting { greeting })
-        });
-    // Parse argv, run the handler and return the exit code
-    greet.run()
+            Ok(Greeting { greeting })
+        })
+        // Output for humans; --json prints the data instead
+        .render(|output, _| output.greeting.clone())
+}
+
+// Parse argv, run the handler and return the exit code
+fn main() -> std::process::ExitCode {
+    greet().run()
 }
 ```
 
@@ -119,20 +103,24 @@ Options:
 
 ## A first program
 
-Group leaves with `f::program(config).router([...])`:
+Group leaves with `fireargs::program()`, mounting each under its key:
 
 ```rust
 // Composable commands: a router of leaves and nested programs
-let cli = f::program(ProgramConfig {
-    name: Some("myapp".into()),
-    description: Some("My CLI".into()),
-    version: Some("1.0.0".into()),
-    ..Default::default()
-})
-.router([("greet", greet.into()), ("deploy", deploy.into()), ("db", db.into())]);
+fn cli() -> fireargs::Program {
+    fireargs::program()
+        .name("myapp")
+        .description("My CLI")
+        .version("1.0.0")
+        .command("greet", greet())
+        .command("deploy", deploy())
+        .program("db", db())
+}
 
 // Parse argv, run the selected leaf and return the exit code
-cli.run()
+fn main() -> std::process::ExitCode {
+    cli().run()
+}
 ```
 
 That gives:
@@ -165,8 +153,8 @@ $ myapp db migrate --json '{}'
 }
 ```
 
-Programs nest — `router` accepts other programs the same way it accepts
-leaves. `myapp db migrate` routes through both levels.
+Programs nest — `.program(...)` mounts one the way `.command(...)` mounts a leaf.
+`myapp db migrate` routes through both levels.
 
 ## LLMs mode
 
@@ -248,13 +236,13 @@ stdout only ever carries the data, so a script can parse it without checking for
 
 ## Learn more
 
-- [Commands](/rust/commands/) — the `f::command(...)` builder and the leaf it builds.
-- [Inputs](/rust/inputs/) — the input struct and per-field CLI config in `#[schemars(extend(...))]`.
-- [Outputs](/rust/outputs/) — the output type, serialization, and JSON Schema in `--llms`.
+- [Commands](/rust/commands/) — the `fireargs::command()` builder and the leaf it builds.
+- [Inputs](/rust/inputs/) — `#[fireargs::input]` and per-field CLI config in `#[fireargs(...)]`.
+- [Outputs](/rust/outputs/) — `#[fireargs::output]`, serialization, and JSON Schema in `--llms`.
 - [Programs](/rust/programs/) — subcommand trees, nesting, and program-level config.
 - [LLMs mode](/rust/llms-mode/) — `--llms` and the MCP-shaped manifest.
 - [JSON mode](/rust/json-mode/) — `--json` for programmatic and pipeline use.
-- [Composability](/rust/composability/) — share common params across commands by composing structs.
+- [Composability](/rust/composability/) — reusable `#[fireargs::value]` types and flattened blocks.
 - [Agent Skills](/rust/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
 - [Contributing](/rust/contributing/) — local setup, conventions, release flow.
 

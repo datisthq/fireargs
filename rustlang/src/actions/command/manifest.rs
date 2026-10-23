@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::models::command::Command;
+use crate::models::command::Leaf;
 
 /// One MCP-style tool entry in a `--llms` manifest. `name` is the space-separated path
 /// beneath the binary; both schemas are JSON Schemas with fireargs meta stripped.
@@ -43,7 +43,7 @@ fn build_help_tool() -> Tool {
 }
 
 /// Build a leaf's tool under its route path.
-pub(crate) fn build_leaf_tool(command: &Command, name: &str) -> Tool {
+pub(crate) fn build_leaf_tool(command: &Leaf, name: &str) -> Tool {
     Tool {
         name: name.to_owned(),
         description: command.config.description.clone().filter(|d| !d.is_empty()),

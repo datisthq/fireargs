@@ -1,55 +1,41 @@
-use std::process::ExitCode;
-
-use fireargs::{self as f, CommandConfig, Error};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
 // Typed input: doc comments, defaults and bounds become arguments and options
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct GreetInput {
     /// The user's name.
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    #[fireargs(argument)]
     name: String,
     /// Repeat it n times.
-    #[serde(default = "one")]
-    #[schemars(range(min = 1))]
+    #[fireargs(default = 1, range(min = 1))]
     times: u32,
     /// Use capitals.
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "short": "s"}))]
+    #[fireargs(short = 's', default)]
     shout: bool,
 }
 
-fn one() -> u32 {
-    1
-}
-
 // Typed output, validated on every run
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Greeting {
     greeting: String,
 }
 
-fn main() -> ExitCode {
-    let config = CommandConfig {
-        name: Some("greet".into()),
-        description: Some("Greet someone politely.".into()),
-        ..Default::default()
-    };
-    // A clap command, typed from the input and output structs
-    let greet = f::command(config)
-        .input::<GreetInput>()
-        .output::<Greeting>()
-        // Output for humans; --json prints the data instead
-        .render(|output, _| Some(output.greeting.clone()))
-        .handler(|input, _| async move {
+// A clap command, typed from the handler's signature
+fn greet() -> fireargs::Command<GreetInput, Greeting> {
+    fireargs::command()
+        .name("greet")
+        .description("Greet someone politely.")
+        .handler(async |input: GreetInput, _| {
             let words = vec![format!("hello {}", input.name); input.times as usize];
             let mut greeting = words.join(" ");
             if input.shout {
                 greeting = greeting.to_uppercase();
             }
-            Ok::<_, Error>(Greeting { greeting })
-        });
-    // Parse argv, run the handler and return the exit code
-    greet.run()
+            Ok(Greeting { greeting })
+        })
+        // Output for humans; --json prints the data instead
+        .render(|output, _| output.greeting.clone())
+}
+
+// Parse argv, run the handler and return the exit code
+fn main() -> std::process::ExitCode {
+    greet().run()
 }

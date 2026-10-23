@@ -4,46 +4,71 @@ use clap::{Arg, ArgAction};
 use serde_json::Value;
 
 use crate::actions::field::read::read_fields;
-use crate::models::command::{Command, Runner};
-use crate::models::config::{CommandConfig, FlagConfig};
-use crate::models::field::{Field, ParseFn};
+use crate::models::command::{Leaf, Runner};
+use crate::models::config::{Config, FlagConfig};
+use crate::models::field::Field;
+use crate::models::input::FieldSpec;
 use crate::settings::FIREARGS_META_KEY;
 
 pub(crate) const JSON_ID: &str = "fireargs:json";
 pub(crate) const LLMS_ID: &str = "fireargs:llms";
 
-/// Build a `Command` from the builder state: read the fields from the input schema,
-/// attach each `parse`, and compile both schemas, stripped of meta, into validators.
+/// Build a leaf from the builder state: give the input schema the defaults of
+/// `#[fireargs::value]` types, read the fields, attach each `parse`, and compile both
+/// schemas, stripped of meta, into validators.
 pub(crate) fn compile_command(
-    config: CommandConfig,
-    input: Value,
+    config: Config,
+    mut input: Value,
     output: Value,
-    parsers: Vec<(String, ParseFn)>,
+    specs: Vec<FieldSpec>,
     runner: Runner,
-) -> Command {
+) -> Leaf {
+    let mut defaults = vec![];
+    for spec in &specs {
+        if let Some(default) = &spec.default {
+            apply_default(&mut input, &spec.key, default);
+            defaults.push((spec.key.clone(), default.clone()));
+        }
+    }
     let mut fields = read_fields(&input);
-    for (key, parse) in parsers {
-        match fields.iter_mut().find(|field| field.key == key) {
+    for spec in specs {
+        let Some(parse) = spec.parse else { continue };
+        match fields.iter_mut().find(|field| field.key == spec.key) {
             Some(field) => field.parse = Some(parse),
-            None => panic!("`parse` names '{key}', which is not an input key"),
+            None => panic!("`parse` names '{}', which is not an input key", spec.key),
         }
     }
     let input = strip_schema(input);
     let output = strip_schema(output);
-    Command {
+    Leaf {
         input_validator: Arc::new(build_validator(&input)),
         output_validator: Arc::new(build_validator(&output)),
         input_schema: input,
         output_schema: output,
         config,
         fields,
+        defaults,
         runner,
+    }
+}
+
+// A type's default makes its field optional, as `#[serde(default)]` would
+fn apply_default(schema: &mut Value, key: &str, default: &Value) {
+    if let Some(required) = schema.get_mut("required").and_then(Value::as_array_mut) {
+        required.retain(|name| name != key);
+    }
+    let property = schema
+        .get_mut("properties")
+        .and_then(|properties| properties.get_mut(key))
+        .and_then(Value::as_object_mut);
+    if let Some(property) = property {
+        property.entry("default").or_insert_with(|| default.clone());
     }
 }
 
 /// Declare a leaf as a clap command named `name`. Nothing is required to clap:
 /// fireargs reports missing values itself, worded like the twins.
-pub(crate) fn declare_command(command: &Command, name: &str) -> clap::Command {
+pub(crate) fn declare_command(command: &Leaf, name: &str) -> clap::Command {
     let config = &command.config;
     let mut clap = apply_identity(
         clap::Command::new(name.to_owned()),
@@ -87,7 +112,15 @@ pub(crate) fn declare_command(command: &Command, name: &str) -> clap::Command {
                 .action(ArgAction::SetTrue),
         );
     }
-    clap
+    apply_configure(clap, config)
+}
+
+/// Hand the declared clap command to the `configure` hook, if there is one.
+pub(crate) fn apply_configure(clap: clap::Command, config: &Config) -> clap::Command {
+    match &config.configure {
+        Some(configure) => configure(clap),
+        None => clap,
+    }
 }
 
 pub(crate) struct Identity<'a> {

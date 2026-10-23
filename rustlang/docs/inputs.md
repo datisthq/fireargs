@@ -3,296 +3,247 @@ title: Inputs
 path: /rust/inputs/
 icon: square-pen
 order: 4
-description: The fireargs meta attribute and .parse(...) for per-field clap config.
+description: The #[fireargs::input] struct and #[fireargs(...)] for per-field clap config.
 ---
 
 # Inputs
 
-Most field configuration comes from serde and schemars — descriptions from
-doc comments, defaults from `#[serde(default)]`, constraints such as
-`#[schemars(range(min = 1))]` or `#[schemars(regex(pattern = ...))]`,
-choices from a unit enum, repeated values from `Vec<T>`, optionality from
-`Option<T>`. For CLI behavior that has no serde equivalent (positionals,
-short flags, env vars, conflicts, hidden, …) add the `fireargs` meta to the
-field with `#[schemars(extend("fireargs" = {...}))]`.
+`#[fireargs::input]` turns a struct into a command's input. It adds the serde and
+schemars derives (through fireargs' own re-exports, so neither crate is a dependency
+of yours), gives the fields camelCase wire keys, makes `Option` fields optional, and
+implements `fireargs::Input`. Most field configuration comes from the Rust type —
+descriptions from doc comments, choices from a `#[fireargs::value]` enum, repeated
+values from `Vec<T>`, optionality from `Option<T>`. Everything else goes in
+`#[fireargs(...)]` on the field: defaults, bounds, positionals, short flags, env
+vars, conflicts, a custom parser, …
 
 ## Default routing
 
-Plain fields of the input struct are `--options`. To make a field
-positional, give it `"kind": "argument"`:
+Plain fields of the input struct are `--options`. To make a field positional, mark
+it `argument`:
 
 ```rust
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct GreetInput {
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    #[fireargs(argument)]
     name: String, // [name] positional
-    #[serde(default)]
+    #[fireargs(default)]
     verbose: bool, // --verbose option (default routing)
 }
 ```
 
-`"kind": "option"` is the default, written out only to attach more option
-config.
+`option` is the default, written out only to override a
+[value type](/rust/composability/) that is an argument.
 
 ## Flag names
 
-A field's flag is its input key in kebab-case: `headerRows` becomes
-`--header-rows`, and a positional `sourcePath` is shown as `[source-path]`.
-The handler, `--json` input and the `--llms` manifest keep the key
+A field's flag is its input key in kebab-case: `header_rows` (`headerRows` on the
+wire) becomes `--header-rows`, and a positional `source_path` is shown as
+`[source-path]`. The handler, `--json` input and the `--llms` manifest keep the key
 (`headerRows`). Set `name` to choose the flag yourself:
 
 ```rust
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[fireargs::input]
 struct CopyInput {
-    #[serde(default)]
+    #[fireargs(default)]
     header_rows: u32, // --header-rows <value>
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "name": "to"}))]
+    #[fireargs(name = "to", default)]
     to_path: String, // --to <value>
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "name": "dryRun"}))]
+    #[fireargs(name = "dryRun", default)]
     dry_run: bool, // --dryRun
 }
 ```
 
 A key starting with `no` gives a plain `--no-…` flag, not a negation: a
-`noCache: bool` is `true` when `--no-cache` is passed.
+`no_cache: bool` is `true` when `--no-cache` is passed.
 
 ## Wire keys shared with TypeScript
 
-The key is the field's serde name, so a Rust field `header_rows` is
-`header_rows` on the wire; its flag is `--header-rows` either way. Put
-`#[serde(rename_all = "camelCase")]` on the input struct to keep the keys of
-a TypeScript twin (`headerRows`): `--json` input and output and the `--llms`
-schemas then use the camelCase key:
+`#[fireargs::input]` renames the fields to camelCase, so a Rust field `header_rows`
+is `headerRows` on the wire — the key its TypeScript and Python twins use — and
+`--header-rows` at the shell. A `#[serde(rename_all = "...")]` on the struct
+replaces that rule, and `#[serde(rename = "...")]` on one field sets its key alone.
+`conflicts` and `implies` name sibling fields by their Rust names; the macro turns
+them into these keys.
+
+## `#[fireargs(...)]`
+
+The attribute writes the field's CLI config into its JSON Schema, under the
+`fireargs` key, where fireargs reads it; the validation keys become schemars
+attributes. A misspelled key fails to compile, naming the key:
 
 ```rust
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-struct ReadInput {
-    #[serde(default)]
-    header_rows: u32, // --header-rows, "headerRows" on the wire
-}
-```
-
-`#[serde(rename = "...")]` on one field sets its key alone. Meta that names
-other fields (`conflicts`, `implies`) and `.parse(...)` use these keys.
-
-## The meta
-
-`#[schemars(extend("fireargs" = {...}))]` writes a JSON object under the
-`fireargs` key of the field's JSON Schema, where fireargs reads it. Its keys
-are camelCase, the same as the TypeScript `ArgumentConfig` /
-`OptionConfig`. It sits beside schemars' own attributes:
-
-```rust
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct ListInput {
     /// Max rows
-    #[serde(default = "twenty")]
-    #[schemars(range(min = 1), extend("fireargs" = {"kind": "option", "short": "l"}))]
+    #[fireargs(short = 'l', default = 20, range(min = 1))]
     limit: u32,
-}
-
-fn twenty() -> u32 {
-    20
 }
 ```
 
-A meta with an unknown key or a wrongly typed value panics when the command
-is built, naming the field, rather than turning back into a plain option.
-The meta is stripped from the `--llms` schemas.
+The meta is stripped from the `--llms` schemas. serde and schemars attributes still
+apply beside it, since the struct derives both.
 
-Every schemars attribute applies, since input is validated against the JSON
-Schema it produces: `range`, `length`, `regex`, `email`, `url`, `contains`,
-`inner(...)` for items, and `extend` with any other JSON Schema keyword.
+### Values and validation
 
-## Option meta
+| Key                                   | What it does                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| `default`                             | the type's `Default` when the value is absent; shown in `--help`           |
+| `default = expr`                      | this value instead; a string literal goes through `Into` (`String` fields) |
+| `parse = fn`                          | turns the CLI string into the value; see [Parsing](#parsing-cli-values)    |
+| `range(min = .., max = ..)`           | numeric bounds, checked on every run                                       |
+| `length(min = .., max = ..)`          | string or list length                                                      |
+| `regex(pattern = ..)` / `pattern(..)` | a string pattern                                                           |
+| `email`, `url`, `contains(..)`        | the schemars validations of the same name                                  |
+| `inner(..)`                           | any of these on each item of a `Vec`                                       |
 
-With `"kind": "option"` (or no `kind`), the meta takes:
+### Option keys
 
-| Key                  | What it does                                                        |
-| -------------------- | ------------------------------------------------------------------- |
-| `name`               | Long flag without dashes, e.g. `"to"` → `--to`                      |
-| `short`              | Short flag letter, e.g. `"v"` adds `-v` alongside `--verbose`       |
-| `env`                | Environment variable to fall back to when the flag is absent        |
-| `conflicts`          | Key or keys of options that conflict with this one                  |
-| `implies`            | `{"key": value}` set when this option is given                      |
-| `hidden`             | Hide from `--help`                                                  |
-| `preset`             | Value used when the flag appears without an argument                |
-| `helpGroup`          | Heading under which this option is listed in help, e.g. `"Logging"` |
-| `defaultDescription` | Display string for the default value in help                        |
+| Key                          | What it does                                                 |
+| ---------------------------- | ------------------------------------------------------------ |
+| `name = "to"`                | Long flag without dashes → `--to`                            |
+| `short = 'v'`                | Short flag letter, alongside `--verbose`                     |
+| `env = "NAME"`               | Environment variable to fall back to when the flag is absent |
+| `conflicts = other`          | Field or fields (`[a, b]`) that conflict with this one       |
+| `implies(level = 3, ..)`     | Values set on other fields when this option is given         |
+| `hidden`                     | Hide from `--help`                                           |
+| `preset = expr`              | Value used when the flag appears without an argument         |
+| `help_group = "Logging"`     | Heading under which this option is listed in help            |
+| `default_description = ".."` | Display string for the default value in help                 |
 
-The env var is listed in `--help` as `[env: NAME=]`, and its value goes
-through number parsing and `.parse(...)` like a CLI value.
+The env var is listed in `--help` as `[env: NAME=]`, and its value goes through
+number parsing and `parse` like a CLI value.
 
-## Argument meta
+### Argument keys
 
-A positional takes fewer keys — no short flag, env var, conflicts/implies,
-hidden, preset or help group. Beyond `"kind": "argument"`:
+A positional takes fewer keys — no short flag, env var, conflicts/implies, hidden,
+preset or help group. Beyond `argument`:
 
-| Key                  | What it does                                 |
-| -------------------- | -------------------------------------------- |
-| `name`               | Name shown in help and usage, e.g. `[file]`  |
-| `defaultDescription` | Display string for the default value in help |
+| Key                          | What it does                                 |
+| ---------------------------- | -------------------------------------------- |
+| `name = "file"`              | Name shown in help and usage, e.g. `[file]`  |
+| `default_description = ".."` | Display string for the default value in help |
 
-A positional's default is shown next to its description under `Arguments`,
-as `(default: …)`.
+A positional's default is shown next to its description under `Arguments`, as
+`(default: …)`.
 
 ## Parsing CLI values
 
-Clap hands every value over as a string. fireargs converts it before the
-schema sees it, so the struct describes the real value and `--json` callers
-send that value directly:
+Clap hands every value over as a string. fireargs converts it before the schema sees
+it, so the struct describes the real value and `--json` callers send that value
+directly:
 
-- **Numbers parse automatically.** A field typed as an integer or a float
-  (or a `Vec` of them) turns `--rows 10` into `10`, and rejects `--rows abc`
-  with `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
-  `--json '{"rows":"10"}'` is still rejected — the JSON value must be a
-  number.
-- **`.parse(key, ...)` handles any other syntax.** Registered on the builder
-  by input key, since a closure cannot live in the schema, it receives the
-  raw string from argv or the env var and returns the field's JSON value,
-  which the schema then validates. It never runs on `--json` input or on
-  defaults.
+- **Numbers parse automatically.** A field typed as an integer or a float (or a
+  `Vec` of them) turns `--rows 10` into `10`, and rejects `--rows abc` with
+  `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
+  `--json '{"rows":"10"}'` is still rejected — the JSON value must be a number.
+- **`parse = fn` handles any other syntax.** It receives the raw string from argv
+  or the env var and returns `Result<T, E>`: any `Serialize` value, which the schema
+  then validates, or an error that displays. It never runs on `--json` input or on
+  defaults. Set it on the field, or on a [value type](/rust/composability/) to
+  parse every field of that type.
 
 ```rust
 use std::collections::BTreeMap;
 
-use fireargs::{self as f, Command, CommandConfig, Error};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
-
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[fireargs::value(parse = parse_header_rows)]
 #[serde(untagged)]
 enum HeaderRows {
     Flag(bool),
     Rows(Vec<u32>),
 }
 
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
-struct ReadInput {
-    missing_values: Option<Vec<String>>,
-    header_rows: Option<HeaderRows>,
-    #[serde(default)]
-    props: BTreeMap<String, i64>,
-}
-
-fn parse_header_rows(text: &str) -> Result<Value, String> {
+// --header-rows false → false, --header-rows 1,2 → [1, 2]
+fn parse_header_rows(text: &str) -> fireargs::Result<HeaderRows, String> {
     if text == "false" {
-        return Ok(json!(false));
+        return Ok(HeaderRows::Flag(false));
     }
     let rows: Result<Vec<u32>, _> = text.split(',').map(str::parse).collect();
-    rows.map(|rows| json!(rows)).map_err(|error| error.to_string())
+    rows.map(HeaderRows::Rows).map_err(|error| error.to_string())
 }
 
-fn create_read() -> Command {
-    f::command(CommandConfig::default())
-        .input::<ReadInput>()
-        .output::<ReadInput>()
-        // --missing-values a,b → ["a", "b"]
-        .parse("missingValues", |text| Ok(json!(text.split(',').collect::<Vec<_>>())))
-        // --header-rows false → false, --header-rows 1,2 → [1, 2]
-        .parse("headerRows", parse_header_rows)
-        // --props '{"a":1}' → {"a": 1}
-        .parse("props", |text| serde_json::from_str(text).map_err(|e| e.to_string()))
-        .handler(|input, _| async move { Ok::<_, Error>(input) })
+// --props '{"a":1}' → {"a": 1}
+fn parse_props(text: &str) -> serde_json::Result<BTreeMap<String, i64>> {
+    serde_json::from_str(text)
+}
+
+// --missing-values a,b → ["a", "b"]
+fn split_commas(text: &str) -> fireargs::Result<Vec<String>, String> {
+    Ok(text.split(',').map(str::to_owned).collect())
+}
+
+#[fireargs::input]
+struct ReadInput {
+    #[fireargs(parse = split_commas)]
+    missing_values: Option<Vec<String>>,
+    header_rows: Option<HeaderRows>,
+    #[fireargs(default, parse = parse_props)]
+    props: BTreeMap<String, i64>,
 }
 ```
 
-A field with `parse` always takes exactly one value (`--key <value>`), even
-when its type is a `Vec` or a `bool`: `parse` owns the whole string. An
-`Err(message)` from `parse` is reported as an invalid argument, with the
-message, and exits 1 without reaching `render_error`:
+A field with `parse` always takes exactly one value (`--key <value>`), even when its
+type is a `Vec` or a `bool`: `parse` owns the whole string. An `Err` from `parse` is
+reported as an invalid argument, with its message, and exits 1 without reaching
+`render_error`:
 
 ```text
 error: option '--props <value>' argument 'nope' is invalid. expected ident at line 1 column 2
 ```
 
-`.parse(...)` naming a key the input does not have panics when the command
-is built.
-
-Reach for `parse` rather than a custom `Deserialize` or `deserialize_with`
-when the comma list or JSON string is only shell syntax. A deserializer
-belongs to the type, so `--json` callers would go through it too, and
-`--llms` cannot tell them which string syntax it expects.
+Reach for `parse` rather than a custom `Deserialize` or `deserialize_with` when the
+comma list or JSON string is only shell syntax. A deserializer belongs to the type,
+so `--json` callers would go through it too, and `--llms` cannot tell them which
+string syntax it expects.
 
 ## Examples
 
 ```rust
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[fireargs::value]
 enum Format {
     Json,
     Yaml,
     Toml,
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct ServeInput {
     /// user's name
     // positional, required: [name]
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    #[fireargs(argument)]
     name: String,
     // positional, optional; keep required positionals first
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
+    #[fireargs(argument)]
     greeting: Option<String>,
     // option with short flag and env fallback
-    #[serde(default = "default_port")]
-    #[schemars(extend("fireargs" = {"kind": "option", "short": "p", "env": "PORT"}))]
+    #[fireargs(short = 'p', env = "PORT", default = 8080)]
     port: u16,
     // booleans with explicit conflicts
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "conflicts": "cmyk"}))]
+    #[fireargs(conflicts = cmyk, default)]
     rgb: bool,
-    #[serde(default)]
+    #[fireargs(default)]
     cmyk: bool,
     // hidden internal option
-    #[schemars(extend("fireargs" = {"kind": "option", "hidden": true}))]
+    #[fireargs(hidden)]
     secret: Option<String>,
     // with choices: --formats json yaml, or --formats json --formats yaml
-    #[serde(default)]
+    #[fireargs(default)]
     formats: Vec<Format>,
     // preset: --level alone is "info", --level debug is "debug"
-    #[schemars(extend("fireargs" = {"kind": "option", "preset": "info"}))]
+    #[fireargs(preset = "info")]
     level: Option<String>,
     /// Retry this many times
-    #[serde(default = "default_retries")]
-    #[schemars(range(max = 10))]
+    #[fireargs(default = 3, range(max = 10))]
     retries: u32,
-}
-
-fn default_port() -> u16 {
-    8080
-}
-
-fn default_retries() -> u32 {
-    3
 }
 ```
 
-## What if I forget the meta?
+## Without the macro
 
-Plain fields work — they default to `--options` with the schema's
-validation. The meta only adds **CLI**-specific config that serde and
-schemars can't express. Don't sprinkle it everywhere; reach for it when you
-genuinely need a positional, a short flag, an env binding, or one of the
-other keys above.
+The macro writes nothing a hand-written struct cannot: derive `Deserialize` and
+`JsonSchema` yourself, put the meta in `#[schemars(extend("fireargs" = {...}))]`
+with the camelCase keys of the TypeScript `ArgumentConfig` / `OptionConfig`
+(`{"kind": "argument"}`, `{"short": "v", "helpGroup": "Logging"}`), and add an empty
+`impl fireargs::Input for MyInput {}`. Such a struct has no `parse` and does not
+inherit a value type's default; a meta with an unknown key panics when the command
+is built, naming the field.

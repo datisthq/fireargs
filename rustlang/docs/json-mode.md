@@ -13,7 +13,7 @@ program serve human users at the shell, scripts in a pipeline, and LLM
 agents — all backed by one schema-validated handler.
 
 Enabled by default. Disable per command with
-`json_option: FlagConfig::Disabled`, or rename the flag and its help with
+`.json_option(FlagConfig::Disabled)`, or rename the flag and its help with
 `FlagConfig::Custom { long, description }` — any long name works, e.g.
 `long: "as-json".into()` for `--as-json`.
 
@@ -50,8 +50,8 @@ When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 2–6 are identical.
 
 JSON input bypasses clap, so env vars, a field's `parse`, number parsing,
-`conflicts` and `implies` do not apply — serde's defaults and the schema's
-validation, choices included, still do. Send each value in its real type:
+`conflicts` and `implies` do not apply — defaults and the schema's validation,
+choices included, still do. Send each value in its real type:
 `["a","b"]`, not `"a,b"`; `3`, not `"3"` — the schema rejects a string for
 an integer, like zod does. Strings still carry the types JSON has no literal
 for: a `chrono` date, a `Uuid`, a unit enum variant. Keys the struct does not
@@ -65,25 +65,18 @@ anything else written to stdout corrupts the result, so spinners, colors
 and progress output should check `context.json`:
 
 ```rust
-use fireargs::{self as f, Command, CommandConfig, Error};
-use schemars::JsonSchema;
-use serde::Deserialize;
-
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct SyncInput {
     source: String,
 }
 
-fn create_sync() -> Command {
-    f::command(CommandConfig::default())
-        .input::<SyncInput>()
-        .output::<Vec<String>>()
-        .handler(|input, context| async move {
-            if !context.json {
-                eprintln!("Syncing {}…", input.source);
-            }
-            Ok::<_, Error>(vec![input.source])
-        })
+fn sync() -> fireargs::Command<SyncInput, Vec<String>> {
+    fireargs::command().handler(async |input: SyncInput, context| {
+        if !context.json {
+            eprintln!("Syncing {}…", input.source);
+        }
+        Ok(vec![input.source])
+    })
 }
 ```
 
@@ -102,32 +95,27 @@ the JSON Schema validator's. An error the handler returns and output that
 fails its schema end the run: `.run()` prints `error: <message>` to stderr
 and exits 1, and `.try_run_from(...)` returns the error.
 
-Set `render_error` in the command's or program's config to turn all of them
-into output instead. The hook receives a `&fireargs::Error`: input failures
+Set `.render_error(...)` on the command or the program to turn all of them into
+output instead. The hook receives a `&fireargs::Error`: input failures
 downcast to `fireargs::InputError` (`InvalidJson` or `Invalid` with the
 issues), output failures to `fireargs::OutputError`, and a handler's error
 is the one it returned:
 
 ```rust
-use std::sync::Arc;
-
-use fireargs::{self as f, Context, Error, InputError, Program, ProgramConfig, RenderError};
+use fireargs::{Error, InputError};
 use serde_json::json;
 
-fn create_cli(greet: f::Command) -> Program {
-    let render_error: RenderError = Arc::new(|error: &Error, context: &Context| {
-        let input = error.downcast_ref::<InputError>().is_some();
-        Some(match context.json {
-            true => json!({"error": error.to_string(), "input": input}),
-            false => json!(format!("error: {error}")),
+fn cli() -> fireargs::Program {
+    fireargs::program()
+        .name("myapp")
+        .render_error(|error: &Error, context| {
+            let input = error.downcast_ref::<InputError>().is_some();
+            Some(match context.json {
+                true => json!({"error": error.to_string(), "input": input}),
+                false => json!(format!("error: {error}")),
+            })
         })
-    });
-    f::program(ProgramConfig {
-        name: Some("myapp".into()),
-        render_error: Some(render_error),
-        ..Default::default()
-    })
-    .router([("greet", greet.into())])
+        .command("greet", greet())
 }
 ```
 

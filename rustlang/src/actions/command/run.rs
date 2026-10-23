@@ -8,7 +8,7 @@ use super::compile::{JSON_ID, LLMS_ID};
 use super::manifest::{build_leaf_tool, build_manifest};
 use super::report::{format_input_error, format_value_error};
 use crate::actions::error::handle::handle_error;
-use crate::models::command::{Command, RunError};
+use crate::models::command::{Leaf, RunError};
 use crate::models::config::RenderError;
 use crate::models::context::Context;
 use crate::models::error::{Error, InputError, Issue, OutputError, PathSegment};
@@ -25,7 +25,7 @@ pub(crate) struct Scope<'a> {
 /// Run a leaf: print the manifest for `--llms`, else read input from `--json <value>`
 /// or argv, validate it, call the handler, validate and print its result.
 pub(crate) async fn run_command(
-    command: &Command,
+    command: &Leaf,
     matches: &ArgMatches,
     scope: Scope<'_>,
 ) -> Result<u8, Error> {
@@ -95,6 +95,7 @@ pub(crate) async fn run_command(
         }
     };
     let value = value.and_then(|value| {
+        let value = fill_defaults(value, &command.defaults);
         let issues = collect_issues(&command.input_validator, &value);
         match issues.is_empty() {
             true => Ok(value),
@@ -144,7 +145,7 @@ pub(crate) async fn run_command(
 
 fn report_input_error(
     error: InputError,
-    command: &Command,
+    command: &Leaf,
     raw: Option<&Map<String, Value>>,
     hooks: &[RenderError],
     context: &Context,
@@ -158,6 +159,16 @@ fn report_input_error(
     handle_error(hooks, Box::new(error), context, out, err)
 }
 
+// serde knows nothing of a `#[fireargs::value]` type's default, so it is filled in here
+fn fill_defaults(mut value: Value, defaults: &[(String, Value)]) -> Value {
+    if let Value::Object(map) = &mut value {
+        for (key, default) in defaults {
+            map.entry(key.clone()).or_insert_with(|| default.clone());
+        }
+    }
+    value
+}
+
 fn read_flag(matches: &ArgMatches, id: &str) -> bool {
     matches
         .try_get_one::<bool>(id)
@@ -168,7 +179,7 @@ fn read_flag(matches: &ArgMatches, id: &str) -> bool {
 }
 
 // A value clap filled in itself is not the user's: the schema's default applies
-fn read_provided_keys(command: &Command, matches: &ArgMatches) -> Vec<String> {
+fn read_provided_keys(command: &Leaf, matches: &ArgMatches) -> Vec<String> {
     let mut provided = vec![];
     for field in &command.fields {
         let source = matches.value_source(&field.key);

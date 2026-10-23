@@ -12,6 +12,7 @@ pub type ParseFn = Arc<dyn Fn(&str) -> Result<Value, String> + Send + Sync>;
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct FieldMeta {
+    #[serde(default)]
     pub kind: FieldKind,
     pub name: Option<String>,
     pub short: Option<char>,

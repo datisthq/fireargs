@@ -3,141 +3,138 @@ title: Composability
 path: /rust/composability/
 icon: boxes
 order: 9
-description: Share common parameters across commands by composing structs.
+description: Share arguments, options and parameter blocks across commands with value types and flattened structs.
 ---
 
 # Composability
 
-Inputs and outputs in fireargs are serde structs, so anything serde and
-schemars can compose works here too — newtypes, `#[serde(flatten)]`,
-generic structs, nested structs. Define common parameters once and reuse
-them across every command that needs them, including the per-field CLI
-config you attached with the `fireargs` meta.
+Inputs and outputs in fireargs are Rust types, so reuse is the Rust kind: a reusable
+argument or option is a type, a reusable group of them is a struct you flatten in,
+and a reusable output shape is a generic struct. Define common parameters once and
+reuse them across every command that needs them, CLI config included.
 
-## Reusable fields
+## Reusable arguments and options
 
-A newtype is a field you can drop into any struct. Its doc comment, its
-schemars attributes and its `fireargs` meta travel with it, since fireargs
-inlines its schema into each property, and its `Default` gives the default
-wherever the field is `#[serde(default)]` — derive `Serialize` too, so
-schemars can write that default into the schema and `--help`:
+`#[fireargs::value(...)]` on a newtype makes a field you can drop into any input. Its
+doc comment, its validation keys and its CLI config travel with it, and so do its
+`default` and `parse`:
 
 ```rust
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
 /// Page number
-#[derive(Clone, Copy, Deserialize, Serialize, JsonSchema)]
-#[schemars(extend("fireargs" = {"kind": "option", "short": "p"}))]
-struct Page(#[schemars(range(min = 1))] u32);
-
-impl Default for Page {
-    fn default() -> Self {
-        Page(1)
-    }
-}
+#[fireargs::value(short = 'p', default = 1)]
+struct Page(#[fireargs(range(min = 1))] u32);
 
 /// Page size
-#[derive(Clone, Copy, Deserialize, Serialize, JsonSchema)]
-#[schemars(extend("fireargs" = {"kind": "option", "short": "l"}))]
-struct Limit(#[schemars(range(min = 1, max = 100))] u32);
-
-impl Default for Limit {
-    fn default() -> Self {
-        Limit(20)
-    }
-}
+#[fireargs::value(short = 'l', default = 20)]
+struct Limit(#[fireargs(range(min = 1, max = 100))] u32);
 ```
 
-A use site can still choose another default with
-`#[serde(default = "...")]`. The handler reads the value as `input.limit.0`.
+The macro adds the serde and schemars derives, `Default` from `default`, `From` the
+inner value, and `Deref` to it, so the handler reads `*input.limit`. A field of a
+value type is optional when the type has a default, as if it were
+`#[fireargs(default)]`.
 
-## Reusable parameter blocks
+`#[fireargs::value]` takes the field keys that make sense for a type: `argument` or
+`option`, `name`, `short`, `env`, `hidden`, `preset`, `help_group`,
+`default_description`, `default` and `parse`. `conflicts` and `implies` name sibling
+fields, so they stay on the field.
 
-Group fields into a struct and mix it into each command's input with
-`#[serde(flatten)]`:
-
-```rust
-#[derive(Deserialize, JsonSchema)]
-struct Pagination {
-    #[serde(default)]
-    page: Page,
-    #[serde(default)]
-    limit: Limit,
-}
-
-#[derive(Deserialize, JsonSchema)]
-struct Verbosity {
-    /// Print more
-    #[serde(default)]
-    #[schemars(extend("fireargs" = {"kind": "option", "short": "v"}))]
-    verbose: bool,
-}
-```
-
-The meta you attached lives on the field, so when you reuse `Pagination` in
-another command, `--page` / `-p` still come along for free.
-
-## Composing into a command
+On an enum, `#[fireargs::value]` gives a set of choices, kebab-case on the wire
+(`Role::Admin` is `"admin"`) unless a `#[serde(rename_all = "...")]` says otherwise:
 
 ```rust
-use fireargs::{self as f, Command, CommandConfig, Error};
-
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[fireargs::value]
 enum Role {
     Admin,
     User,
 }
+```
 
-#[derive(Serialize, JsonSchema)]
+## Overriding at the use site
+
+`#[fireargs(...)]` on a field of a value type overrides the type's keys one by one
+and keeps the rest; a doc comment on the field replaces the type's description:
+
+```rust
+#[fireargs::input]
+struct SearchInput {
+    limit: Limit, // -l, --limit, "Page size", default 20
+    /// Results per batch
+    #[fireargs(short = 'b')]
+    batch: Limit, // -b, --batch, "Results per batch", default 20
+}
+```
+
+## Reusable parameter blocks
+
+Group fields into a `#[fireargs::input]` struct and mix it into each command's input
+with `#[fireargs(flatten)]`:
+
+```rust
+#[fireargs::input]
+struct Pagination {
+    page: Page,
+    limit: Limit,
+}
+
+#[fireargs::input]
+struct Verbosity {
+    /// Print more
+    #[fireargs(short = 'v', default)]
+    verbose: bool,
+}
+```
+
+The config lives on each field, so when you reuse `Pagination` in another command,
+`--page` / `-p` still come along for free, and so do the `parse` functions of its
+fields.
+
+## Composing into a command
+
+```rust
+#[fireargs::output]
 struct User {
     id: String,
     name: String,
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct UsersInput {
-    #[serde(flatten)]
+    #[fireargs(flatten)]
     pagination: Pagination,
-    #[serde(flatten)]
+    #[fireargs(flatten)]
     verbosity: Verbosity,
     role: Option<Role>,
 }
 
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct UsersOutput {
     users: Vec<User>,
     total: u32,
 }
 
-fn create_list_users() -> Command {
-    f::command(CommandConfig {
-        description: Some("List users".into()),
-        ..Default::default()
-    })
-    .input::<UsersInput>()
-    .output::<UsersOutput>()
-    .handler(|_, _| async move { Ok::<_, Error>(UsersOutput { users: vec![], total: 0 }) })
+fn list_users() -> fireargs::Command<UsersInput, UsersOutput> {
+    fireargs::command()
+        .description("List users")
+        .handler(async |_: UsersInput, _| Ok(UsersOutput { users: vec![], total: 0 }))
 }
 ```
 
-A flattened block's fields take its place among the struct's own:
-`UsersInput` declares `page` and `limit`, then `verbose`, then `role`. That
-order is the `--help` order, and for positionals the order they are read in
-— keep blocks with positionals in a deliberate place.
+A flattened block's fields take its place among the struct's own: `UsersInput`
+declares `page` and `limit`, then `verbose`, then `role`. That order is the `--help`
+order, and for positionals the order they are read in — keep blocks with positionals
+in a deliberate place.
 
-serde does not combine `#[serde(flatten)]` with
-`#[serde(deny_unknown_fields)]`; a struct that flattens a block ignores
-unknown `--json` keys.
+serde does not combine `#[serde(flatten)]` with `#[serde(deny_unknown_fields)]`; a
+struct that flattens a block ignores unknown `--json` keys.
 
 ## Reusable output blocks
 
-Output structs compose the same way. A common pattern is a generic
-"paginated response" struct:
+Output structs compose the same way. A common pattern is a generic "paginated
+response" struct:
 
 ```rust
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Paginated<T> {
     items: Vec<T>,
     total: u32,
@@ -145,91 +142,79 @@ struct Paginated<T> {
     limit: u32,
 }
 
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Post {
     id: String,
     title: String,
 }
 
-fn create_list_posts() -> Command {
-    f::command(CommandConfig {
-        description: Some("List posts".into()),
-        ..Default::default()
-    })
-    .input::<Pagination>()
-    .output::<Paginated<Post>>()
-    .handler(|input, _| async move {
-        let (page, limit) = (input.page.0, input.limit.0);
-        Ok::<_, Error>(Paginated { items: vec![], total: 0, page, limit })
-    })
+fn list_posts() -> fireargs::Command<Pagination, Paginated<Post>> {
+    fireargs::command()
+        .description("List posts")
+        .handler(async |input: Pagination, _| {
+            let (page, limit) = (*input.page, *input.limit);
+            Ok(Paginated { items: vec![], total: 0, page, limit })
+        })
 }
 ```
 
-Every `Paginated<...>` output ends up with identical pagination metadata in
-its `--llms` JSON Schema — same source of truth. The item struct is inlined
-in place.
+Every `Paginated<...>` output ends up with identical pagination metadata in its
+`--llms` JSON Schema — same source of truth. The item struct is inlined in place.
 
 ## Shared handler code
 
-Each command keeps its own small handler with concrete types; shared
-scaffolding goes into plain functions the handlers call:
+Each command keeps its own small handler with concrete types; shared scaffolding
+goes into plain functions the handlers call:
 
 ```rust
 fn paginate<T>(items: Vec<T>, pagination: &Pagination) -> Paginated<T> {
-    let (page, limit) = (pagination.page.0, pagination.limit.0);
+    let (page, limit) = (*pagination.page, *pagination.limit);
     let total = items.len() as u32;
     let start = ((page - 1) * limit) as usize;
     let items = items.into_iter().skip(start).take(limit as usize).collect();
     Paginated { items, total, page, limit }
 }
 
-fn create_list_members() -> Command {
-    f::command(CommandConfig {
-        description: Some("List members".into()),
-        ..Default::default()
-    })
-    .input::<UsersInput>()
-    .output::<Paginated<User>>()
-    .handler(|input, _| async move {
-        let users = vec![User { id: "1".into(), name: "Ada".into() }];
-        Ok::<_, Error>(paginate(users, &input.pagination))
-    })
+fn list_members() -> fireargs::Command<UsersInput, Paginated<User>> {
+    fireargs::command()
+        .description("List members")
+        .handler(async |input: UsersInput, _| {
+            let users = vec![User { id: "1".into(), name: "Ada".into() }];
+            Ok(paginate(users, &input.pagination))
+        })
 }
 ```
 
-The helper hides the boilerplate; the commands only specify what genuinely
-differs.
+The helper hides the boilerplate; the commands only specify what genuinely differs.
 
 ## Programs as another composition layer
 
-Beyond struct composition, `f::program(...)` composes _commands themselves_
-into trees. Mounting the same leaf under different router keys is a valid
-form of reuse:
+Beyond type composition, `fireargs::program()` composes _commands themselves_ into
+trees. Mounting the same leaf under different router keys is a valid form of reuse:
 
 ```rust
-let list_users = create_list_users();
-let cli = f::program(ProgramConfig {
-    name: Some("myapp".into()),
-    ..Default::default()
-})
-.router([("users", list_users.clone().into()), ("members", list_users.into())]);
+fn cli() -> fireargs::Program {
+    let users = list_users();
+    fireargs::program()
+        .name("myapp")
+        .command("users", users.clone())
+        .command("members", users)
+}
 ```
 
-Both invocation paths route to the same handler. See
-[Programs](/rust/programs/) for the dispatch and `--llms` flattening
-details.
+Both invocation paths route to the same handler. See [Programs](/rust/programs/) for
+the dispatch and `--llms` flattening details.
 
 ## What carries through
 
-When you reuse a field or a block, every per-field detail rides along:
+When you reuse a value type or a block, every per-field detail rides along:
 
-- **serde's and schemars' own metadata** — doc comments, defaults,
-  validation attributes, `rename`, enum choices.
-- **fireargs meta** — `#[schemars(extend("fireargs" = {...}))]` (name,
-  short, env, conflicts, implies, hidden, preset, helpGroup,
-  defaultDescription).
+- **The type's own metadata** — doc comments, validation keys, `rename`, enum
+  choices.
+- **CLI config** — `name`, `short`, `env`, `hidden`, `preset`, `help_group`,
+  `default_description`, and on fields `conflicts` and `implies`.
+- **`default` and `parse`** — a value type's default makes its fields optional, and
+  its `parse` reads their CLI strings.
 
-Both surface in clap's `--help` and in the `--llms` manifest exactly as if
-you'd written the fields inline. A field's `.parse(...)` is the exception:
-it is registered on each command's builder by key. Compose freely; nothing
-leaks or duplicates.
+All of it surfaces in clap's `--help` and in the `--llms` manifest exactly as if
+you'd written the fields inline. Compose freely; nothing leaks or duplicates.

@@ -8,34 +8,28 @@ description: How the output type validates handler returns and shapes JSON / LLM
 
 # Outputs
 
-`.output::<O>()` defines the shape of whatever the handler returns. There's
-no `fireargs` meta for outputs — outputs aren't CLI inputs, so clap has no
-per-field surface to configure. The type is pure data shape.
+The handler's return type defines the shape of the command's output. Mark a struct
+`#[fireargs::output]` for the serde and schemars derives, camelCase keys and `None`
+fields left out. There's no CLI meta for outputs — outputs aren't CLI inputs, so
+clap has no per-field surface to configure. The type is pure data shape.
 
 ```rust
-use fireargs::{self as f, Command, CommandConfig, Error};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct GreetInput {
     name: String,
 }
 
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Greeting {
     greeting: String,
     iterations: u32,
 }
 
-fn create_greet() -> Command {
-    f::command(CommandConfig::default())
-        .input::<GreetInput>()
-        .output::<Greeting>()
-        .handler(|input, _| async move {
-            let greeting = format!("hello {}", input.name);
-            Ok::<_, Error>(Greeting { greeting, iterations: 1 })
-        })
+fn greet() -> fireargs::Command<GreetInput, Greeting> {
+    fireargs::command().handler(async |input: GreetInput, _| {
+        let greeting = format!("hello {}", input.name);
+        Ok(Greeting { greeting, iterations: 1 })
+    })
 }
 ```
 
@@ -47,9 +41,8 @@ exposed to MCP clients, whose `outputSchema` must be an object.
 ## Where the output type is used
 
 1. **Validation** — the handler's return value is serialized with serde and
-   validated against the type's JSON Schema on every invocation, so
-   schemars' validation attributes (`range`, `length`, `regex`, …) hold on
-   output too. A mismatch fails the run with `fireargs::OutputError`.
+   validated against the type's JSON Schema on every invocation, so validation
+   keys (`range`, `length`, `regex`, …) hold on output too. A mismatch fails the run with `fireargs::OutputError`.
 2. **`--json` serialization** — when `--json` is set, the serialized value
    is written to stdout as JSON indented by two spaces. See
    [JSON mode](/rust/json-mode/).
@@ -61,26 +54,24 @@ exposed to MCP clients, whose `outputSchema` must be an object.
 
 ## Optional fields
 
-An `Option<T>` field is written as `null` while `None`, and the
-`outputSchema` requires it. Add
-`#[serde(skip_serializing_if = "Option::is_none")]` to leave it out of the
-`--json` output instead, and the `outputSchema` no longer requires it — the
-same wire shape as a TypeScript twin's `.optional()` field. Any other field
-is always present, so the `outputSchema` marks it required.
+An `Option<T>` field of a `#[fireargs::output]` struct is left out of the `--json`
+output while `None`, and the `outputSchema` does not require it — the same wire
+shape as a TypeScript twin's `.optional()` field. Any other field is always present,
+so the `outputSchema` marks it required.
 
 ```rust
-use schemars::JsonSchema;
-use serde::Serialize;
-
-#[derive(Serialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[fireargs::output]
 struct Page {
     items: Vec<String>,
     total: u32, // always written, required in outputSchema
-    #[serde(skip_serializing_if = "Option::is_none")]
-    next_cursor: Option<String>, // left out while None
+    next_cursor: Option<String>, // "nextCursor", left out while None
 }
 ```
+
+`#[fireargs(...)]` on an output field takes only `flatten` and the validation keys
+(`range`, `length`, …). A hand-derived `Serialize + JsonSchema` struct works as well;
+add `#[serde(skip_serializing_if = "Option::is_none")]` to its `Option` fields for
+the same wire shape.
 
 ## Serialization
 
@@ -122,9 +113,8 @@ Per property, the JSON Schema in the manifest carries:
   the field's schemars attributes.
 - `description` — from the field's doc comment.
 - `enum` — from a unit enum.
-- `required` — every field, except `Option<T>` fields that skip
-  serializing while `None`, and fields `#[serde(skip_serializing_if)]` leaves
-  out.
+- `required` — every field, except `Option<T>` fields left out while `None`, and
+  fields `#[serde(skip_serializing_if)]` leaves out.
 
 Subschemas are inlined, so a nested struct shows in place rather than behind
 a `$ref`; the root schema's Rust type name (`title`) is dropped. There's no
@@ -133,7 +123,7 @@ through.
 
 ## Why no meta for outputs?
 
-Clap has no output abstraction. CLI users see whatever the render prints
-(or what `--json` serializes); there's nothing for fireargs to "wire" beyond
-running the validation. Keeping outputs as plain serde types matches clap's
-surface and avoids inventing concepts the runtime can't honor.
+Clap has no output abstraction. CLI users see whatever the render prints (or what
+`--json` serializes); there's nothing for fireargs to "wire" beyond running the
+validation. Keeping outputs as plain serde types matches clap's surface and avoids
+inventing concepts the runtime can't honor.

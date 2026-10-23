@@ -14,7 +14,7 @@ response. An LLM agent reads the manifest once and then calls back through
 [`--json`](/rust/json-mode/) to actually invoke a tool.
 
 Enabled by default on every command and program. Disable per command or
-program with `llms_option: FlagConfig::Disabled`, or rename the flag and its
+program with `.llms_option(FlagConfig::Disabled)`, or rename the flag and its
 help with `FlagConfig::Custom { long, description }`.
 
 ## Manifest shape
@@ -82,22 +82,22 @@ are draft 2020-12, with subschemas inlined. Per property they include:
 
 - `type` — derived from the Rust type; `Option<T>` adds `"null"` to it.
 - `description` — from the field's doc comment.
-- `default` — from `#[serde(default)]` or `#[serde(default = "...")]`.
+- `default` — from `#[fireargs(default)]`, `default = expr`, or a value type's
+  `default`.
 - `enum` — from a unit enum, after its `rename_all`.
 - `format`, `pattern`, `minimum`, `maxLength`, … — from the type (`u32`
-  gives `format: uint32` and `minimum: 0`) and the field's schemars
-  attributes.
+  gives `format: uint32` and `minimum: 0`) and the field's validation keys.
 - `required` array — in `inputSchema`, fields without a default that are
   not `Option<T>`; in `outputSchema`, every field serde always writes.
 
 `inputSchema` describes what `--json` accepts: a defaulted field is optional
-there, keys are serde's names (after `rename_all`), and a field with a
+there, keys are the camelCase wire keys (or a `rename_all`'s), and a field with a
 [`parse`](/rust/inputs/#parsing-cli-values) shows its own type, since
 `parse` applies to CLI strings only. `outputSchema` describes the value the
 handler's output serializes to. The root schema's Rust type name (`title`)
 is dropped.
 
-The `fireargs` meta (short flags, env vars, conflicts, …) is **not** part
+The CLI config (short flags, env vars, conflicts, …) is **not** part
 of the JSON Schema in the manifest — it's CLI-only and irrelevant to a
 JSON-mode call, so fireargs strips it.
 

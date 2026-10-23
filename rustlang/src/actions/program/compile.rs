@@ -1,7 +1,7 @@
 use clap::{Arg, ArgAction};
 
 use crate::actions::command::compile::{
-    Identity, LLMS_ID, apply_identity, declare_command, read_flag,
+    Identity, LLMS_ID, apply_configure, apply_identity, declare_command, read_flag,
 };
 use crate::actions::command::manifest::{Tool, build_leaf_tool};
 use crate::models::program::Program;
@@ -37,7 +37,7 @@ pub(crate) fn declare_program(program: &Program, name: &str) -> clap::Command {
     for (key, route) in &program.routes {
         clap = clap.subcommand(declare_route(route, key));
     }
-    clap
+    apply_configure(clap, config)
 }
 
 /// Declare a route as a clap command named `name`.

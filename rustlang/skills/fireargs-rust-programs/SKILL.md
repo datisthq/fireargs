@@ -1,6 +1,6 @@
 ---
 name: fireargs-rust-programs
-description: Use when building a multi-command Rust Fireargs CLI — f::program(...).router([...]), nested programs, aliases, ProgramConfig, and sharing parameters, outputs and commands across the tree by composing serde structs.
+description: Use when building a multi-command Rust Fireargs CLI — fireargs::program() with .command(...) / .program(...), nesting, aliases, program config, and sharing options, outputs and commands via #[fireargs::value] types and flattened blocks.
 ---
 
 # Fireargs Rust Programs
@@ -17,94 +17,105 @@ Invoke when the user asks to:
 
 ## The router
 
-`f::program(config).router([...])` returns a `Program`; each route is a `(key, route)` pair, and `.into()` turns a `Command` or a `Program` into a `Route`:
+`fireargs::program()` opens a program; `.command(key, command)` mounts a leaf and `.program(key, program)` a nested program under the subcommand name `key`:
 
 ```rust
-use fireargs::{self as f, ProgramConfig};
+fn db() -> fireargs::Program {
+    fireargs::program()
+        .description("Database tasks")
+        .command("migrate", migrate())
+        .command("seed", seed())
+}
 
-let db = f::program(ProgramConfig {
-    description: Some("Database tasks".into()),
-    ..Default::default()
-})
-.router([("migrate", migrate.into()), ("seed", seed.into())]);
+fn cli() -> fireargs::Program {
+    fireargs::program()
+        .name("myapp")
+        .description("My CLI")
+        .version("1.0.0")
+        .command("greet", greet())
+        .command("deploy", deploy())
+        .program("db", db())
+}
 
-let cli = f::program(ProgramConfig {
-    name: Some("myapp".into()),
-    description: Some("My CLI".into()),
-    version: Some("1.0.0".into()),
-    ..Default::default()
-})
-.router([("greet", greet.into()), ("deploy", deploy.into()), ("db", db.into())]);
-
-cli.run() // from fn main() -> ExitCode
+fn main() -> std::process::ExitCode {
+    cli().run()
+}
 // myapp greet world · myapp db migrate · myapp --help · myapp --llms
 ```
 
-- **The router key is the subcommand name.** It overrides the command's own `name`, so `[("users", list.clone().into()), ("members", list.into())]` mounts the same leaf twice (`Command` and `Program` are `Clone`).
-- **Routes are `Command` or `Program`** (the `Route` enum). Only fireargs commands mount, so every leaf has schemas for the manifest.
-- **`aliases: vec!["ls".into()]`** on a command or nested program lets the parent route that name too; clap lists aliases in `--help` (`[alias: ls]`), and they add no `--llms` tools.
+- **The router key is the subcommand name.** It overrides the command's own `name`, so `.command("users", list.clone()).command("members", list)` mounts the same leaf twice (`Command` and `Program` are `Clone`).
+- **Only fireargs commands and programs mount**, so every leaf has schemas for the manifest. A program forgets each leaf's input and output types, so one program holds commands of any types.
+- **`.alias("ls")`** on a command or nested program lets the parent route that name too; clap lists aliases in `--help` (`[alias: ls]`), and they add no `--llms` tools.
 - `myapp` alone prints the help; clap also adds a `help` subcommand. Options before the subcommand name belong to the program, options after it to the subcommand — clap's default, no setting needed.
+- Build each piece in its own function; a CLI can also live in a `static` behind `std::sync::LazyLock`, since `Program` is `Send + Sync`.
 
-## `ProgramConfig`
+## Program configuration
 
-The same fields as `CommandConfig` (see `fireargs-rust-commands`) without `json_option`: a program dispatches and takes no input, so only leaves get `--json`. `--llms` on a program prints the whole tree; `llms_option: FlagConfig::Disabled` removes it from that level only.
+The same methods as a command's (see `fireargs-rust-commands`) without `.json_option`: a program dispatches and takes no input, so only leaves get `--json`. `--llms` on a program prints the whole tree; `.llms_option(FlagConfig::Disabled)` removes it from that level only.
 
 Two settings belong on the root program:
 
-- `version`, which adds `-V, --version` printing `myapp 1.0.0`.
-- `render_error` formats errors for every leaf below that has no hook of its own (see `fireargs-rust-automation`).
+- `.version(..)`, which adds `-V, --version` printing `myapp 1.0.0`.
+- `.render_error(..)` formats errors for every leaf below that has no hook of its own (see `fireargs-rust-automation`).
 
-Commands have no help groups: clap lists every route under `Commands` in router order. The `helpGroup` meta groups options only.
+`.configure(|clap| ..)` gets the program's declared clap command, as on a command. Commands have no help groups: clap lists every route under `Commands` in router order. The `help_group` key groups options only.
 
 ## Composing across commands
 
-Inputs and outputs are plain serde structs, and Fireargs config lives in each field's schema, so everything composes and the meta rides along:
+Inputs and outputs are Rust types, so a reusable argument or option is a type, a reusable group of them is a flattened struct, and a reusable output shape is a generic struct:
 
 ```rust
 /// Page size
-#[derive(Clone, Copy, Deserialize, Serialize, JsonSchema)]
-#[schemars(extend("fireargs" = {"kind": "option", "short": "l"}))]
-struct Limit(#[schemars(range(min = 1, max = 100))] u32);
+#[fireargs::value(short = 'l', default = 20)]
+struct Limit(#[fireargs(range(min = 1, max = 100))] u32);
 
-impl Default for Limit {
-    fn default() -> Self {
-        Limit(20)
-    }
+#[fireargs::value]
+enum Role {
+    Admin,
+    User,
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct Pagination {
-    #[serde(default)]
     limit: Limit,
 }
 
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::input]
 struct UsersInput {
-    #[serde(flatten)]
+    #[fireargs(flatten)]
     pagination: Pagination,
     role: Option<Role>,
 }
 
-let list_users = f::command(describe("List users"))
-    .input::<UsersInput>()
-    .output::<Paginated<User>>()
-    .handler(|input, _| async move {
-        Ok::<_, Error>(paginate(fetch_users(input.role).await?, &input.pagination))
-    });
+#[fireargs::output]
+struct Paginated<T> {
+    items: Vec<T>,
+    total: u32,
+}
+
+fn list_users() -> fireargs::Command<UsersInput, Paginated<User>> {
+    fireargs::command()
+        .description("List users")
+        .handler(async |input: UsersInput, _| {
+            Ok(paginate(fetch_users(input.role).await?, *input.pagination.limit))
+        })
+}
 ```
 
-- **Reusable fields:** newtypes such as `Limit`, carrying their doc comment, schemars attributes and meta (fireargs inlines the schema into each property). A `Default` impl gives the default; derive `Serialize` so it reaches the schema and `--help`.
-- **Parameter blocks:** structs mixed in with `#[serde(flatten)]`. Their fields take the flatten's position among the struct's own — the `--help` order and the positional order. serde cannot combine `flatten` with `deny_unknown_fields`.
-- **Output wrappers:** a generic struct such as `Paginated<T>`, so every list command shares one wire shape and one manifest schema.
-- **Shared handler code:** plain functions such as `paginate(items, &pagination)`. Each command keeps its own small handler with concrete types.
-- `.parse(...)` does not travel with a field: register it on each command's builder by key.
+- **Reusable fields:** `#[fireargs::value(...)]` newtypes carrying their doc comment, validation (`#[fireargs(range(..))]` on the inner field), CLI config (`short`, `env`, `argument`, …), `default` and `parse`. `Deref` reads the value: `*input.limit`. A field of a value type with a default is optional.
+- **Overriding at the use site:** `#[fireargs(short = 'b')]` on a field of a value type overrides that key and keeps the type's others; a doc comment on the field replaces its description.
+- **Choices:** `#[fireargs::value]` on an enum, kebab-case on the wire (`"admin"`).
+- **Parameter blocks:** `#[fireargs::input]` structs mixed in with `#[fireargs(flatten)]`. Their fields take the flatten's position among the struct's own — the `--help` order and the positional order — and bring their `parse` functions along. serde cannot combine `flatten` with `deny_unknown_fields`.
+- **Output wrappers:** a generic `#[fireargs::output]` struct such as `Paginated<T>`, so every list command shares one wire shape and one manifest schema.
+- **Shared handler code:** plain functions such as `paginate(items, limit)`. Each command keeps its own small handler with concrete types.
+- `conflicts` and `implies` name sibling fields, so they stay on fields, not on value types.
 
 ## Rules of thumb
 
 1. **Name subcommands at the router.** A leaf only ever mounted needs no `name`; it only matters for a leaf run on its own.
 2. **One leaf, one job.** Each leaf becomes one tool in the manifest, so a leaf switching behaviour on a mode flag is harder for an agent to call than two leaves.
 3. **Describe every route.** A command's `description` is its help line and its manifest description; a program's is shown in its parent's help.
-4. **Share fields as newtypes and flattened structs, not copies.** A reused block keeps `--help`, `--json` and `--llms` consistent; a copy drifts.
+4. **Share fields as `#[fireargs::value]` types and flattened blocks, not copies.** A reused block keeps `--help`, `--json` and `--llms` consistent; a copy drifts.
 
 ## Verification
 
