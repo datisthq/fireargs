@@ -4,11 +4,11 @@ Fireargs builds CLIs from schemas: typed input and output, JSON I/O and LLM-read
 
 ## Terminology
 
-- **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), `pip install fireargs` (`python/fireargs/` and `python/skills/`), or `cargo add fireargs` (`rustlang/src/` and `rustlang/skills/`)
+- **package** — what `npm install fireargs` gets (`typescript/build/` and `typescript/skills/`), `pip install fireargs` (`python/fireargs/` and `python/skills/`), or `cargo add fireargs` (`rustlang/src/`, its proc-macro crate `rustlang/macros/` and `rustlang/skills/`)
 - **twin** — the same behaviour's counterpart in another package: `compileCommand` ↔ `compile_command` ↔ `compile_command`, `f.option()` ↔ `Option()` ↔ `extend("fireargs" = {"kind": "option"})`
-- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), in Python the names `fireargs` exports, imported directly (`command`, `Argument`, `Option`, `Program`), and in Rust `f::command` / `f::program` from `rustlang/src/lib.rs`, with no argument or option builder
+- **builder** — the `f` namespace: exported from `typescript/index.ts` (`f.command`, `f.argument`, `f.option`, `f.program`), in Python the names `fireargs` exports, imported directly (`command`, `Argument`, `Option`, `Program`), and in Rust `fireargs::command` / `fireargs::program` from `rustlang/src/lib.rs` with the attribute macros `#[fireargs::input]`, `#[fireargs::output]` and `#[fireargs::value]` from `rustlang/macros/`, and no argument or option builder
 - **docs site** — `python/docs/`, `typescript/docs/`, `rustlang/docs/` (served under `/rust/`), each section's README and its copy of `CONTRIBUTING.md`, built by `pnpm build:docs` and deployed to fireargs.dev
-- **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`), in Rust a JSON object under the same `fireargs` key of the property's JSON Schema, set with `#[schemars(extend(...))]` (`rustlang/src/settings.rs`)
+- **meta** — per-field metadata, the only contract between builder and compiler: in zod's registry under `FIREARGS_META_KEY` (`typescript/settings.ts`), in Python an `ArgumentMeta` / `OptionMeta` appended to the pydantic field's `metadata` (`python/fireargs/models/field.py`), in Rust a JSON object under the same `fireargs` key of the property's JSON Schema, which `#[fireargs(...)]` writes through a schemars transform (`rustlang/src/settings.rs`)
 
 ## Rules
 
@@ -87,7 +87,7 @@ The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): fo
   - `models/<entity>.ts` — types for each builder's config; `index.ts` the public façade, `settings.ts`
   - Unit tests sit beside their module as `<module>.unit.ts`; `docs/` the section's pages, `skills/` its shipped skills
 - `python/` — the PyPI package, a uv project; `python/fireargs/` mirrors `typescript/` module for module, with `docs/` and `skills/` beside it (**`python-development`**)
-- `rustlang/` — the crates.io package, a cargo project on the toolchain `rustlang/rust-toolchain.toml` pins; `rustlang/src/` mirrors `typescript/` module for module (`actions/<entity>/<verb>.rs`, `models/`, `lib.rs` the façade), integration tests and the testsuite runner in `rustlang/tests/` (**`rust-development`**)
+- `rustlang/` — the crates.io package, a cargo project on the toolchain `rustlang/rust-toolchain.toml` pins; `rustlang/src/` mirrors `typescript/` module for module (`actions/<entity>/<verb>.rs`, `models/`, `lib.rs` the façade), `rustlang/macros/` the `fireargs-macros` proc-macro crate in the same cargo workspace, integration tests and the testsuite runner in `rustlang/tests/` (**`rust-development`**)
 - `testsuite/` — language-neutral JSON cases every package runs against twin fixture CLIs
 - `README.md`, `CONTRIBUTING.md` and `livemark.config.ts` — the GitHub overview, the contributor guide (copied into each section for its docs-site page; the docs guard keeps the copies equal) and the docs site's config
 
@@ -108,7 +108,7 @@ Dot-directories hold non-package code: `.agents/` repo skills, `.livemark/` the 
 
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging that PR cuts the version, tags it and publishes. Merging is the gate — nothing ships without it.
 
-- **IMPORTANT: only changes to a published package use `feat` or `fix`** — `typescript/actions/`, `typescript/models/`, `typescript/index.ts`, `typescript/settings.ts`, the `exports` and `files` in `typescript/package.json`, the shipped `typescript/skills/`; `python/fireargs/`, the `[project]` table of `python/pyproject.toml` and the shipped `python/skills/`; `rustlang/src/`, the `[package]` and `[dependencies]` tables of `rustlang/Cargo.toml` and the shipped `rustlang/skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
+- **IMPORTANT: only changes to a published package use `feat` or `fix`** — `typescript/actions/`, `typescript/models/`, `typescript/index.ts`, `typescript/settings.ts`, the `exports` and `files` in `typescript/package.json`, the shipped `typescript/skills/`; `python/fireargs/`, the `[project]` table of `python/pyproject.toml` and the shipped `python/skills/`; `rustlang/src/`, `rustlang/macros/src/`, the `[package]` and `[dependencies]` tables of `rustlang/Cargo.toml` and `rustlang/macros/Cargo.toml` and the shipped `rustlang/skills/`. Everything else MUST be `chore` or `docs`: CI and workflows, release config, dependencies, tooling, `AGENTS.md`, `.agents/skills/`, the README, the docs site
 - This is not a style preference. release-please reads the commit type: a `fix:` on a workflow file cuts a release and burns a version number on a change no consumer can observe. Version numbers can never be reused
 - When in doubt, ask whether the change alters what someone installing the package gets. If it does not, it is `chore`
 - release-please assigns a commit to every component whose path it touches: a `feat` spanning two sections releases both, so land a change that only moves or shares files as `chore`

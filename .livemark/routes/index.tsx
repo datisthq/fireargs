@@ -764,14 +764,22 @@ const freedoms: Record<Lang, FreedomPoint[]> = {
   rust: [
     {
       icon: Layers,
-      title: "Plain serde structs",
+      title: "Plain Rust types",
       description: (
         <>
           Inputs and outputs are ordinary{" "}
-          <code className="font-mono text-foreground">#[derive(JsonSchema)]</code>{" "}
-          structs. Share groups of fields with{" "}
-          <code className="font-mono text-foreground">#[serde(flatten)]</code>; there is
-          no DSL to learn.
+          <code className="font-mono text-foreground whitespace-nowrap">
+            #[fireargs::input]
+          </code>{" "}
+          structs on serde. Reuse an option as a{" "}
+          <code className="font-mono text-foreground whitespace-nowrap">
+            #[fireargs::value]
+          </code>{" "}
+          type and a group of them with{" "}
+          <code className="font-mono text-foreground whitespace-nowrap">
+            #[fireargs(flatten)]
+          </code>
+          .
         </>
       ),
     },
@@ -792,8 +800,8 @@ const freedoms: Record<Lang, FreedomPoint[]> = {
       description: (
         <>
           Group commands with{" "}
-          <code className="font-mono text-foreground">f::program().router()</code> and
-          nest programs inside programs. See <ProgramsLink />.
+          <code className="font-mono text-foreground">fireargs::program()</code> and nest
+          programs inside programs. See <ProgramsLink />.
         </>
       ),
     },
@@ -886,9 +894,9 @@ const programTrees: Record<Lang, [string, string, string, string][]> = {
     ["   └─ ", "migrate.ts", "file", "a nested command"],
   ],
   rust: [
-    ["", "main.rs", "file", "f::program()"],
+    ["", "main.rs", "file", "fireargs::program()"],
     ["", "commands/", "dir", ""],
-    ["├─ ", "deploy.rs", "file", "f::command()"],
+    ["├─ ", "deploy.rs", "file", "fireargs::command()"],
     ["└─ ", "db/", "dir", ""],
     ["   ├─ ", "mod.rs", "file", "a nested program"],
     ["   └─ ", "migrate.rs", "file", "a nested command"],
@@ -1079,52 +1087,47 @@ const cli = f.program({ name: "myapp" }).router({ greet })
 
 // Use as a normal commander command, e.g. configure or apply plugins
 cli.parseAsync(process.argv)`,
-  rust: `use fireargs::{self as f, CommandConfig, Error, ProgramConfig};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+  rust: `// Composable arguments and options
+/// Who to greet
+#[fireargs::value(argument)]
+struct Name(String);
 
-// Arguments and options, as plain struct fields
-#[derive(Deserialize, JsonSchema)]
+#[fireargs::value(default = 1)]
+struct Times(#[fireargs(range(min = 1))] u32);
+
+// Composable groups of them
+#[fireargs::input]
 struct GreetInput {
-    /// Who to greet
-    #[schemars(extend("fireargs" = {"kind": "argument"}))]
-    name: String,
-    #[serde(default = "one")]
-    #[schemars(range(min = 1))]
-    times: u32,
+    name: Name,
+    times: Times,
 }
 
 // Typed output, validated on every run
-#[derive(Serialize, JsonSchema)]
+#[fireargs::output]
 struct Greeting {
     greeting: String,
 }
 
-fn one() -> u32 {
-    1
+// A clap command, typed from the handler's signature
+fn greet() -> fireargs::Command<GreetInput, Greeting> {
+    fireargs::command()
+        .description("Greet politely")
+        .handler(async |input: GreetInput, _| {
+            let words = vec![format!("hello {}", *input.name); *input.times as usize];
+            Ok(Greeting { greeting: words.join(" ") })
+        })
+        // Output for humans; --json prints the data instead
+        .render(|output, _| output.greeting.clone())
 }
 
-fn main() -> std::process::ExitCode {
-    let config = CommandConfig {
-        description: Some("Greet politely".into()),
-        ..Default::default()
-    };
-    // A clap command, typed from the structs
-    let greet = f::command(config)
-        .input::<GreetInput>()
-        .output::<Greeting>()
-        // Output for humans; --json prints the data instead
-        .render(|output, _| Some(output.greeting.clone()))
-        .handler(|input, _| async move {
-            let words = vec![format!("hello {}", input.name); input.times as usize];
-            Ok::<_, Error>(Greeting { greeting: words.join(" ") })
-        });
+// Composable commands: a router of leaves and nested programs
+fn cli() -> fireargs::Program {
+    fireargs::program().name("myapp").command("greet", greet())
+}
 
-    // Composable commands: a router of leaves and nested programs
-    let name = Some("myapp".into());
-    let cli = f::program(ProgramConfig { name, ..Default::default() })
-        .router([("greet", greet.into())]);
-    cli.run()
+// Use as a normal clap command, e.g. configure or apply plugins
+fn main() -> std::process::ExitCode {
+    cli().run()
 }`,
 }
 
