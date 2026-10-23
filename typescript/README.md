@@ -1,6 +1,6 @@
 # Fireargs
 
-Define each command with typed input and output schemas. Get composability, structured JSON I/O, and LLM-ready manifests baked in — for humans, agents, and scripts alike.
+Define each command with typed input and output schemas. Get composability, LLM-ready manifests, and structured JSON I/O baked in — for humans, agents, and scripts alike.
 
 ## Installation
 
@@ -121,30 +121,6 @@ $ myapp db migrate --json '{}'
 Programs nest — `router` accepts other programs the same way it accepts
 leaves. `myapp db migrate` routes through both levels.
 
-## JSON mode
-
-Every command takes `--json`. Bare, it switches the output to JSON; given a value, that value is
-the input, checked against the input schema, so scripts never assemble argv:
-
-```bash
-$ node greet.ts world --times 2 --json        # CLI input, JSON output
-{
-  "greeting": "hello world hello world"
-}
-$ node greet.ts --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
-{
-  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
-}
-$ node greet.ts world --json | jq -r .greeting   # pipe it into other tools
-hello world
-$ node greet.ts --json '{"times":2}'           # input errors go to stderr, exit code 1
-error: invalid --json input at 'name': Invalid input: expected string, received undefined
-$ node greet.ts --json '{"name":"world","times":"2"}'
-error: invalid --json input at 'times': Invalid input: expected number, received string
-```
-
-stdout only ever carries the data, so a script can parse it without checking for noise.
-
 ## LLMs mode
 
 Every command and program ships with `--llms`, which prints an
@@ -209,14 +185,38 @@ MCP-`tools/list`-shaped manifest. For `greet.ts` above:
 An LLM agent reads the manifest, picks a tool, and invokes it with
 `<binary> <name> --json '<value>'`. Output comes back as JSON on stdout.
 
+## JSON mode
+
+Every command takes `--json`. Bare, it switches the output to JSON; given a value, that value is
+the input, checked against the input schema, so scripts never assemble argv:
+
+```bash
+$ node greet.ts world --times 2 --json        # CLI input, JSON output
+{
+  "greeting": "hello world hello world"
+}
+$ node greet.ts --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
+{
+  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+}
+$ node greet.ts world --json | jq -r .greeting   # pipe it into other tools
+hello world
+$ node greet.ts --json '{"times":2}'           # input errors go to stderr, exit code 1
+error: invalid --json input at 'name': Invalid input: expected string, received undefined
+$ node greet.ts --json '{"name":"world","times":"2"}'
+error: invalid --json input at 'times': Invalid input: expected number, received string
+```
+
+stdout only ever carries the data, so a script can parse it without checking for noise.
+
 ## Documentation
 
 - [Commands](/typescript/commands/) — the `f.command(...)` chainable builder.
 - [Inputs](/typescript/inputs/) — `f.argument()` / `f.option()` and per-field commander config.
 - [Outputs](/typescript/outputs/) — the output schema, serialization, and JSON Schema in `--llms`.
 - [Programs](/typescript/programs/) — subcommand trees, nesting, and program-level config.
-- [JSON mode](/typescript/json-mode/) — `--json` for programmatic and pipeline use.
 - [LLMs mode](/typescript/llms-mode/) — `--llms` and the MCP-shaped manifest.
+- [JSON mode](/typescript/json-mode/) — `--json` for programmatic and pipeline use.
 - [Composability](/typescript/composability/) — share common params across commands by composing zod schemas.
 - [Contributing](/typescript/contributing/) — local setup, conventions, release flow.
 

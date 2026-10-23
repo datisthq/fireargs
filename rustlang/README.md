@@ -1,6 +1,6 @@
 # Fireargs
 
-Define each command with typed input and output structs. Get composability, structured JSON I/O, and LLM-ready manifests baked in — for humans, agents, and scripts alike. Built on serde, schemars and clap; Rust 1.88+, edition 2024.
+Define each command with typed input and output structs. Get composability, LLM-ready manifests, and structured JSON I/O baked in — for humans, agents, and scripts alike. Built on serde, schemars and clap; Rust 1.88+, edition 2024.
 
 ## Installation
 
@@ -168,30 +168,6 @@ $ myapp db migrate --json '{}'
 Programs nest — `router` accepts other programs the same way it accepts
 leaves. `myapp db migrate` routes through both levels.
 
-## JSON mode
-
-Every command takes `--json`. Bare, it switches the output to JSON; given a value, that value is
-the input, checked against the input schema, so scripts never assemble argv:
-
-```bash
-$ greet world --times 2 --json        # CLI input, JSON output
-{
-  "greeting": "hello world hello world"
-}
-$ greet --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
-{
-  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
-}
-$ greet world --json | jq -r .greeting   # pipe it into other tools
-hello world
-$ greet --json '{"times":2}'           # input errors go to stderr, exit code 1
-error: invalid --json input at 'name': "name" is a required property
-$ greet --json '{"name":"world","times":"2"}'
-error: invalid --json input at 'times': "2" is not of type "integer"
-```
-
-stdout only ever carries the data, so a script can parse it without checking for noise.
-
 ## LLMs mode
 
 Every command and program ships with `--llms`, which prints an
@@ -246,14 +222,38 @@ MCP-`tools/list`-shaped manifest. For `greet.rs` above:
 An LLM agent reads the manifest, picks a tool, and invokes it with
 `<binary> <name> --json '<value>'`. Output comes back as JSON on stdout.
 
+## JSON mode
+
+Every command takes `--json`. Bare, it switches the output to JSON; given a value, that value is
+the input, checked against the input schema, so scripts never assemble argv:
+
+```bash
+$ greet world --times 2 --json        # CLI input, JSON output
+{
+  "greeting": "hello world hello world"
+}
+$ greet --json '{"name":"world","times":3,"shout":true}'   # JSON input, JSON output
+{
+  "greeting": "HELLO WORLD HELLO WORLD HELLO WORLD"
+}
+$ greet world --json | jq -r .greeting   # pipe it into other tools
+hello world
+$ greet --json '{"times":2}'           # input errors go to stderr, exit code 1
+error: invalid --json input at 'name': "name" is a required property
+$ greet --json '{"name":"world","times":"2"}'
+error: invalid --json input at 'times': "2" is not of type "integer"
+```
+
+stdout only ever carries the data, so a script can parse it without checking for noise.
+
 ## Learn more
 
 - [Commands](/rust/commands/) — the `f::command(...)` builder and the leaf it builds.
 - [Inputs](/rust/inputs/) — the input struct and per-field CLI config in `#[schemars(extend(...))]`.
 - [Outputs](/rust/outputs/) — the output type, serialization, and JSON Schema in `--llms`.
 - [Programs](/rust/programs/) — subcommand trees, nesting, and program-level config.
-- [JSON mode](/rust/json-mode/) — `--json` for programmatic and pipeline use.
 - [LLMs mode](/rust/llms-mode/) — `--llms` and the MCP-shaped manifest.
+- [JSON mode](/rust/json-mode/) — `--json` for programmatic and pipeline use.
 - [Composability](/rust/composability/) — share common params across commands by composing structs.
 - [Agent Skills](/rust/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
 - [Contributing](/rust/contributing/) — local setup, conventions, release flow.

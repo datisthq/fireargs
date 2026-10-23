@@ -2,7 +2,7 @@
 title: JSON mode
 path: /python/json-mode/
 icon: file-braces
-order: 7
+order: 8
 description: --json drives a fireargs command with JSON in and JSON out.
 ---
 
