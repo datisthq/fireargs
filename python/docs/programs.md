@@ -23,13 +23,13 @@ class GreetInput(BaseModel):
     name: str
 
 
-class Greeting(BaseModel):
+class GreetOutput(BaseModel):
     greeting: str
 
 
 @command(description="Greet someone")
-def greet(input: GreetInput) -> Greeting:
-    return Greeting(greeting=f"hello {input.name}")
+def greet(input: GreetInput) -> GreetOutput:
+    return GreetOutput(greeting=f"hello {input.name}")
 
 
 class DeployInput(BaseModel):

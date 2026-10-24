@@ -34,20 +34,20 @@ class GreetInput(BaseModel):
 
 
 # Typed output, validated on every run
-class Greeting(BaseModel):
+class GreetOutput(BaseModel):
     greeting: str
 
 
 # A click command, typed from the handler's annotations
 @command(description="Greet someone politely.")
-def greet(input: GreetInput) -> Greeting:
+def greet(input: GreetInput) -> GreetOutput:
     greeting = " ".join([f"hello {input.name}"] * input.times)
-    return Greeting(greeting=greeting.upper() if input.shout else greeting)
+    return GreetOutput(greeting=greeting.upper() if input.shout else greeting)
 
 
 # Output for humans; --json prints the data instead
 @greet.render
-def render_greeting(output: Greeting) -> str:
+def render_greeting(output: GreetOutput) -> str:
     return output.greeting
 
 
@@ -183,7 +183,7 @@ MCP-`tools/list`-shaped manifest. For `greet.py` above:
       "outputSchema": {
         "properties": { "greeting": { "title": "Greeting", "type": "string" } },
         "required": ["greeting"],
-        "title": "Greeting",
+        "title": "GreetOutput",
         "type": "object"
       },
       "description": "Greet someone politely."

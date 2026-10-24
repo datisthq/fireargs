@@ -20,15 +20,15 @@ struct GreetInput {
 }
 
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
     iterations: u32,
 }
 
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command().handler(async |input: GreetInput, _| {
         let greeting = format!("hello {}", input.name);
-        Ok(Greeting { greeting, iterations: 1 })
+        Ok(GreetOutput { greeting, iterations: 1 })
     })
 }
 ```

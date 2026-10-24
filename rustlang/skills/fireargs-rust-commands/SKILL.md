@@ -36,17 +36,17 @@ struct GreetInput {
 }
 
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
 }
 
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command()
         .name("greet")
         .description("Greet someone politely.")
         .handler(async |input: GreetInput, _| {
             let words = vec![format!("hello {}", input.name); input.times as usize];
-            Ok(Greeting { greeting: words.join(" ") })
+            Ok(GreetOutput { greeting: words.join(" ") })
         })
         .render(|output, _| output.greeting.clone())
 }

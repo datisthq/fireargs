@@ -19,7 +19,7 @@ struct GreetInput {
 }
 
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
 }
 
@@ -39,11 +39,11 @@ struct Deployed {
     ok: bool,
 }
 
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command()
         .description("Greet someone")
         .handler(async |input: GreetInput, _| {
-            Ok(Greeting { greeting: format!("hello {}", input.name) })
+            Ok(GreetOutput { greeting: format!("hello {}", input.name) })
         })
 }
 

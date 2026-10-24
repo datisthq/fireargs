@@ -20,15 +20,15 @@ struct GreetInput {
 }
 
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
 }
 
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command()
         .name("greet")
         .handler(async |input: GreetInput, _| {
-            Ok(Greeting { greeting: format!("hello {}", input.name) })
+            Ok(GreetOutput { greeting: format!("hello {}", input.name) })
         })
 }
 
@@ -198,6 +198,6 @@ takes the argv (binary name first) and the writers, for tests.
 
 `Command<I, O>` carries its input and output types until a program mounts it, so
 `.render(...)` is typed from them, and a function returning
-`fireargs::Command<GreetInput, Greeting>` states its contract in its signature. The
+`fireargs::Command<GreetInput, GreetOutput>` states its contract in its signature. The
 handler's closure is the one place the types are written: the schemas, the handler
 and the render cannot drift apart.

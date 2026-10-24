@@ -22,14 +22,14 @@ class GreetInput(BaseModel):
     name: str
 
 
-class Greeting(BaseModel):
+class GreetOutput(BaseModel):
     greeting: str
     iterations: int
 
 
 @command()
-def greet(input: GreetInput) -> Greeting:
-    return Greeting(greeting=f"hello {input.name}", iterations=1)
+def greet(input: GreetInput) -> GreetOutput:
+    return GreetOutput(greeting=f"hello {input.name}", iterations=1)
 ```
 
 Any type pydantic validates works: `list[str]` writes a bare JSON array

@@ -31,7 +31,7 @@ program with `llms_option=False`, or customize the flag and its help with
     {
       "name": "greet",
       "inputSchema":  { "properties": { "name": { "description": "user's name", "title": "Name", "type": "string" }, ... }, "required": ["name"], "title": "GreetInput", "type": "object" },
-      "outputSchema": { "properties": { "greeting": { "title": "Greeting", "type": "string" } }, "required": ["greeting"], "title": "Greeting", "type": "object" },
+      "outputSchema": { "properties": { "greeting": { "title": "Greeting", "type": "string" } }, "required": ["greeting"], "title": "GreetOutput", "type": "object" },
       "description": "Greet someone politely"
     }
   ]

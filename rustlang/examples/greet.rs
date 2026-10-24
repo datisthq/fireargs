@@ -14,12 +14,12 @@ struct GreetInput {
 
 // Typed output, validated on every run
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
 }
 
 // A clap command, typed from the handler's signature
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command()
         .name("greet")
         .description("Greet someone politely.")
@@ -29,7 +29,7 @@ fn greet() -> fireargs::Command<GreetInput, Greeting> {
             if input.shout {
                 greeting = greeting.to_uppercase();
             }
-            Ok(Greeting { greeting })
+            Ok(GreetOutput { greeting })
         })
         // Output for humans; --json prints the data instead
         .render(|output, _| output.greeting.clone())

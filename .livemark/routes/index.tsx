@@ -1034,20 +1034,20 @@ class GreetInput(BaseModel):
 
 
 # Typed output, validated on every run
-class Greeting(BaseModel):
+class GreetOutput(BaseModel):
     greeting: str
 
 
 # A click command, typed from the handler's annotations
 @command(description="Greet politely")
-def greet(input: GreetInput) -> Greeting:
+def greet(input: GreetInput) -> GreetOutput:
     words = [f"hello {input.name}"] * input.times
-    return Greeting(greeting=" ".join(words))
+    return GreetOutput(greeting=" ".join(words))
 
 
 # Output for humans; --json prints the data instead
 @greet.render
-def render_greeting(output: Greeting) -> str:
+def render_greeting(output: GreetOutput) -> str:
     return output.greeting
 
 
@@ -1104,17 +1104,17 @@ struct GreetInput {
 
 // Typed output, validated on every run
 #[fireargs::output]
-struct Greeting {
+struct GreetOutput {
     greeting: String,
 }
 
 // A clap command, typed from the handler's signature
-fn greet() -> fireargs::Command<GreetInput, Greeting> {
+fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
     fireargs::command()
         .description("Greet politely")
         .handler(async |input: GreetInput, _| {
             let words = vec![format!("hello {}", *input.name); *input.times as usize];
-            Ok(Greeting { greeting: words.join(" ") })
+            Ok(GreetOutput { greeting: words.join(" ") })
         })
         // Output for humans; --json prints the data instead
         .render(|output, _| output.greeting.clone())

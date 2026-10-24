@@ -39,13 +39,13 @@ class GreetInput(BaseModel):
     verbose: Verbose
 
 
-class Greeting(BaseModel):
+class GreetOutput(BaseModel):
     greeting: str
 
 
 @command(description="Greet someone politely.")
-def greet(input: GreetInput) -> Greeting:
-    return Greeting(greeting=" ".join([f"hello {input.name}"] * input.times))
+def greet(input: GreetInput) -> GreetOutput:
+    return GreetOutput(greeting=" ".join([f"hello {input.name}"] * input.times))
 
 
 if __name__ == "__main__":
