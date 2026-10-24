@@ -1,0 +1,98 @@
+[
+  {
+    "description": "--llms prints an MCP-shaped manifest",
+    "tests": [
+      {
+        "description": "the program lists the help tool, then every leaf by its path",
+        "argv": ["--llms"],
+        "exitCode": 0,
+        "tools": [
+          {
+            "name": "help",
+            "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+          },
+          { "name": "echo", "description": "Echo the input back" },
+          { "name": "strict", "description": "Require a count of at least 10" },
+          { "name": "tags", "description": "Collect tags and rows" },
+          { "name": "admin reset", "description": "Reset everything" }
+        ],
+        "instances": [
+          { "tool": "echo", "io": "input", "data": { "path": "a.csv" }, "valid": true },
+          { "tool": "echo", "io": "input", "data": {}, "valid": false },
+          {
+            "tool": "echo",
+            "io": "input",
+            "data": { "path": "a.csv", "limit": 0 },
+            "valid": false
+          },
+          {
+            "tool": "echo",
+            "io": "input",
+            "data": { "path": "a.csv", "role": "user" },
+            "valid": true
+          },
+          {
+            "tool": "echo",
+            "io": "input",
+            "data": { "path": "a.csv", "role": "root" },
+            "valid": false
+          },
+          {
+            "tool": "echo",
+            "io": "input",
+            "data": { "path": "a.csv", "headerRows": 2 },
+            "valid": true
+          },
+          {
+            "tool": "echo",
+            "io": "input",
+            "data": { "path": "a.csv", "headerRows": "2" },
+            "valid": false
+          },
+          {
+            "tool": "echo",
+            "io": "output",
+            "data": { "path": "a.csv", "limit": 20, "verbose": false },
+            "valid": true
+          },
+          { "tool": "echo", "io": "output", "data": { "path": "a.csv" }, "valid": false },
+          { "tool": "strict", "io": "input", "data": { "count": 10 }, "valid": true },
+          { "tool": "strict", "io": "input", "data": { "count": 9 }, "valid": false },
+          {
+            "tool": "tags",
+            "io": "input",
+            "data": { "tags": ["a", "b"], "rows": [1] },
+            "valid": true
+          },
+          { "tool": "tags", "io": "input", "data": { "tags": "a,b" }, "valid": false },
+          { "tool": "tags", "io": "input", "data": { "rows": [1.5] }, "valid": false },
+          { "tool": "admin reset", "io": "input", "data": {}, "valid": true }
+        ]
+      },
+      {
+        "description": "a leaf lists the help tool and itself",
+        "argv": ["strict", "--llms"],
+        "exitCode": 0,
+        "tools": [
+          {
+            "name": "help",
+            "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+          },
+          { "name": "strict", "description": "Require a count of at least 10" }
+        ]
+      },
+      {
+        "description": "a nested leaf names itself by its key",
+        "argv": ["admin", "reset", "--llms"],
+        "exitCode": 0,
+        "tools": [
+          {
+            "name": "help",
+            "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+          },
+          { "name": "reset", "description": "Reset everything" }
+        ]
+      }
+    ]
+  }
+]

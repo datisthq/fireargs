@@ -10,6 +10,6 @@ arguments and options, `--llms` manifests and `--json` I/O.
 | Rust       | [`fireargs`](https://crates.io/crates/fireargs)      | clap + serde + schemars | [Introduction](https://fireargs.dev/rust/introduction/)       |
 
 All packages share one contract: the same `--llms` tools, the same `--json` input and
-output and the same input-error messages, held to it by the shared `testsuite/`. This
-repository holds every implementation — `python/`, `typescript/` and `rustlang/`; see
+output and the same input-error messages, held to it by the shared `conformance/`. This
+repository holds every implementation — `python/`, `typescript/` and `rust/`; see
 [Contributing](CONTRIBUTING.md) for the layout and the commands.

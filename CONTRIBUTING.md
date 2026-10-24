@@ -40,13 +40,13 @@ fireargs/
 │   ├── fireargs/        #   the twin of typescript/: actions/, models/, __init__.py
 │   ├── docs/            #   the Python pages of the docs site
 │   └── skills/          #   shipped agent skills for Python users
-├── rustlang/            # the crates.io package `fireargs`, a cargo project
+├── rust/                # the crates.io package `fireargs`, a cargo project
 │   ├── src/             #   the twin of typescript/: actions/, models/, lib.rs
 │   ├── macros/          #   fireargs-macros: #[fireargs::input], output and value
-│   ├── tests/           #   integration tests and the testsuite runner
+│   ├── tests/           #   integration tests and the conformance runner
 │   ├── docs/            #   the Rust pages of the docs site
 │   └── skills/          #   shipped agent skills for Rust users
-├── testsuite/           # language-neutral cases every package must pass
+├── conformance/         # language-neutral cases every package must pass
 ├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
 ├── .livemark/           # docs-site escapes (theme, landing, screenshots)
 ├── .scripts/            # repo-wide guards and the `pnpm squash` script
@@ -55,7 +55,7 @@ fireargs/
 └── vite.config.ts       # vite-plus shared config (format, lint, the guards' tests)
 ```
 
-The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`; the crate ships `rustlang/src/` and `rustlang/skills/`. Everything else is for development. A change to shared behaviour lands in every package, with a `testsuite/` case.
+The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`; the crate ships `rust/src/` and `rust/skills/`. Everything else is for development. A change to shared behaviour lands in every package, with a `conformance/` case.
 
 ## Local commands
 
@@ -69,7 +69,7 @@ Run these at the repo root; each chains into the language sections with `pnpm -C
 | `pnpm check:lint`  | Format check + lint (`vp fmt`, `vp lint`, `ruff`, `cargo fmt`, `clippy`) |
 | `pnpm check`       | `pnpm check:lint && pnpm check:types`                                    |
 | `pnpm format`      | Auto-fix formatting (`vp fmt`, `ruff format`, `cargo fmt`)               |
-| `pnpm test:unit`   | Run the repo guards and every package's unit tests and testsuite         |
+| `pnpm test:unit`   | Run the repo guards and every package's unit tests and conformance suite |
 | `pnpm test`        | `pnpm check && pnpm test:unit`                                           |
 | `pnpm start`       | Run the docs dev server                                                  |
 | `pnpm build:docs`  | Production build of the docs site                                        |
@@ -86,7 +86,7 @@ A change is ready to push when `pnpm test` is green.
 - **Tests**: unit tests live next to the code as `<module>.unit.ts`; run one from `typescript/` with `vp test <file>`. No "Arrange/Act/Assert" comments — the structure should be obvious.
 - **Formatting**: vite-plus via `pnpm format`. 2-space indent, no semicolons, double quotes (LF, UTF-8).
 - **Python**: 3.12+, typed for `ty` without `Any`; tests beside the module as `<module>_unit.py`, run one with `uv run pytest <file>` from `python/`.
-- **Rust**: edition 2024 on the pinned stable toolchain, clippy-clean with no `unwrap`/`expect` in library code; unit tests beside the module as `<module>_unit.rs`, run one with `cargo test <name>` from `rustlang/`.
+- **Rust**: edition 2024 on the pinned stable toolchain, clippy-clean with no `unwrap`/`expect` in library code; unit tests beside the module as `<module>_unit.rs`, run one with `cargo test <name>` from `rust/`.
 
 ## Proposing a change
 

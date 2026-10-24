@@ -15,15 +15,15 @@ export default defineConfig({
     "typescript/docs/**/*.md",
     "typescript/CONTRIBUTING.md",
     "typescript/CHANGELOG.md",
-    "rustlang/README.md",
-    "rustlang/docs/**/*.md",
-    "rustlang/CONTRIBUTING.md",
-    "rustlang/CHANGELOG.md",
+    "rust/README.md",
+    "rust/docs/**/*.md",
+    "rust/CONTRIBUTING.md",
+    "rust/CHANGELOG.md",
   ],
   skills: [
     "python/skills/*/SKILL.md",
     "typescript/skills/*/SKILL.md",
-    "rustlang/skills/*/SKILL.md",
+    "rust/skills/*/SKILL.md",
   ],
   sections: [
     { title: "Python", prefix: "/python/", icon: "code" },
@@ -100,7 +100,7 @@ export default defineConfig({
       },
     },
     {
-      file: "rustlang/README.md",
+      file: "rust/README.md",
       article: {
         title: "Introduction",
         description: "Install fireargs for Rust and write your first command.",
@@ -110,7 +110,7 @@ export default defineConfig({
       },
     },
     {
-      file: "rustlang/CONTRIBUTING.md",
+      file: "rust/CONTRIBUTING.md",
       article: {
         title: "Contributing",
         description:
@@ -121,7 +121,7 @@ export default defineConfig({
       },
     },
     {
-      file: "rustlang/CHANGELOG.md",
+      file: "rust/CHANGELOG.md",
       article: {
         title: "Changelog",
         description: "What changed in each release of the Rust package.",

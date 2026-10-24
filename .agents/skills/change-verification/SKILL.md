@@ -53,14 +53,14 @@ Pick the **highest** rung the diff reaches, and run everything that rung lists.
    Run `pnpm test`, then `pnpm build`; add `pnpm build:docs` when docs-site dependencies or
    `livemark.config.ts` changed. No cherry-picking here.
 
-## Python, Rust and the testsuite
+## Python, Rust and the conformance suite
 
 A diff under `python/` runs `pnpm -C python check:lint`, `pnpm -C python check:types` and the
-tests it reaches (`uv run pytest <file>` from `python/`). A diff under `rustlang/` runs
-`pnpm -C rustlang check:lint` and `cargo test <name>` from `rustlang/`. A behaviour the packages
-share, or anything under `testsuite/` or a fixture CLI, also runs all three runners:
-`pnpm -C typescript exec vp test ./-test/testsuite.unit.ts`, `uv run pytest fireargs/_test` from
-`python/` and `cargo test --test testsuite` from `rustlang/`.
+tests it reaches (`uv run pytest <file>` from `python/`). A diff under `rust/` runs
+`pnpm -C rust check:lint` and `cargo test <name>` from `rust/`. A behaviour the packages
+share, or anything under `conformance/` or a fixture CLI, also runs all three runners:
+`pnpm -C typescript exec vp test ./-test/conformance.unit.ts`, `uv run pytest fireargs/_test` from
+`python/` and `cargo test --test conformance` from `rust/`.
 
 ## Guards `related` cannot see
 

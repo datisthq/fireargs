@@ -1,0 +1,43 @@
+[
+  {
+    "description": "option config shapes argv",
+    "tests": [
+      {
+        "description": "parse turns one CLI string into the field's value",
+        "argv": ["tags", "--tags", "a,b", "--json"],
+        "exitCode": 0,
+        "stdout": { "tags": ["a", "b"], "rows": [] }
+      },
+      {
+        "description": "a repeated array option collects numbers",
+        "argv": ["tags", "--rows", "1", "--rows", "2", "--json"],
+        "exitCode": 0,
+        "stdout": { "tags": [], "rows": [1, 2] }
+      },
+      {
+        "description": "an array option rejects the element that is not a number",
+        "argv": ["tags", "--rows", "1", "--rows", "x"],
+        "exitCode": 1,
+        "stderr": "error: option '--rows <value...>' argument 'x' is invalid. Not a number."
+      },
+      {
+        "description": "--json input skips parse",
+        "argv": ["tags", "--json", "{\"tags\":\"a,b\"}"],
+        "exitCode": 1,
+        "stderr": "error: invalid --json input at 'tags': "
+      },
+      {
+        "description": "conflicts name input keys",
+        "argv": ["tags", "--loud", "--quiet"],
+        "exitCode": 1,
+        "stderr": "error: option '--loud' cannot be used with option '--quiet'"
+      },
+      {
+        "description": "implies sets another input key",
+        "argv": ["tags", "--loud", "--json"],
+        "exitCode": 0,
+        "stdout": { "tags": [], "rows": [], "loud": true, "level": 3 }
+      }
+    ]
+  }
+]

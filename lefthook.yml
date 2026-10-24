@@ -10,7 +10,7 @@ pre-commit:
       run: uv run ruff format {staged_files}
       stage_fixed: true
     - name: format-rust
-      root: rustlang/
+      root: rust/
       glob: "*.rs"
       run: cargo fmt -- {staged_files}
       stage_fixed: true

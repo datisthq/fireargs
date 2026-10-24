@@ -1,0 +1,37 @@
+[
+  {
+    "description": "argv drives input",
+    "tests": [
+      {
+        "description": "a positional with defaults left to the schema",
+        "argv": ["echo", "a.csv", "--json"],
+        "exitCode": 0,
+        "stdout": { "path": "a.csv", "limit": 20, "verbose": false }
+      },
+      {
+        "description": "short flags, a number and a boolean flag",
+        "argv": ["echo", "a.csv", "-l", "5", "-v", "--json"],
+        "exitCode": 0,
+        "stdout": { "path": "a.csv", "limit": 5, "verbose": true }
+      },
+      {
+        "description": "a choice and a kebab-case flag read back under the input key",
+        "argv": ["echo", "a.csv", "--role", "admin", "--header-rows", "2", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "path": "a.csv",
+          "limit": 20,
+          "role": "admin",
+          "verbose": false,
+          "headerRows": 2
+        }
+      },
+      {
+        "description": "a nested route",
+        "argv": ["admin", "reset", "--force", "--json"],
+        "exitCode": 0,
+        "stdout": { "force": true }
+      }
+    ]
+  }
+]

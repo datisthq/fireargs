@@ -16,7 +16,7 @@
     "${configDir}/docs/",
     "${configDir}/typescript/",
     "${configDir}/python/",
-    "${configDir}/rustlang/"
+    "${configDir}/rust/"
   ],
 
   "compilerOptions": {

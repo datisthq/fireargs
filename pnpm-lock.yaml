@@ -87,6 +87,8 @@ importers:
 
   python: {}
 
+  rust: {}
+
   typescript:
     dependencies:
       cn:

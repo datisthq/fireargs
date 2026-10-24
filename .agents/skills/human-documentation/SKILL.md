@@ -40,13 +40,13 @@ Work through the diff asking each of these:
 ### Where to look
 
 - `AGENTS.md` — the only one, at the repo root; the guard enforces that.
-- `.agents/skills/*/SKILL.md` and the shipped `typescript/skills/*/SKILL.md`, `python/skills/*/SKILL.md` and `rustlang/skills/*/SKILL.md` — including the `description`, which is what makes a skill get
+- `.agents/skills/*/SKILL.md` and the shipped `typescript/skills/*/SKILL.md`, `python/skills/*/SKILL.md` and `rust/skills/*/SKILL.md` — including the `description`, which is what makes a skill get
   picked up at all. A skill whose body drifted is bad; a skill whose _description_ drifted is
   invisible.
-- `README.md`, `python/README.md`, `typescript/README.md`, `rustlang/README.md`, `CONTRIBUTING.md`
-  and the docs site under `python/docs/`, `typescript/docs/` and `rustlang/docs/`, which is the
+- `README.md`, `python/README.md`, `typescript/README.md`, `rust/README.md`, `CONTRIBUTING.md`
+  and the docs site under `python/docs/`, `typescript/docs/` and `rust/docs/`, which is the
   user manual. Edit `CONTRIBUTING.md` at the root, then copy it over `python/CONTRIBUTING.md`,
-  `typescript/CONTRIBUTING.md` and `rustlang/CONTRIBUTING.md`: the docs guard fails while a copy
+  `typescript/CONTRIBUTING.md` and `rust/CONTRIBUTING.md`: the docs guard fails while a copy
   differs. Code snippets (Python, TypeScript and Rust fences) stay within 100 columns, also
   guarded; wrap a longer line the way ruff or vp fmt would.
 - Comments that assert a repo-wide invariant, not just local ones — the doc comment on

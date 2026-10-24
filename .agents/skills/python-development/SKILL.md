@@ -1,6 +1,6 @@
 ---
 name: python-development
-description: Use when working in `python/` — the PyPI package built on click and pydantic. Covers its layout, the uv commands, typing rules, how it twins the TypeScript package and the shared testsuite.
+description: Use when working in `python/` — the PyPI package built on click and pydantic. Covers its layout, the uv commands, typing rules, how it twins the TypeScript package and the shared conformance suite.
 ---
 
 # Python development
@@ -33,7 +33,7 @@ The root `pnpm check` and `pnpm test:unit` chain these after the TypeScript ones
 - `models/` — the config `TypedDict`s, `Command`, `Program`, `Context`, the field meta
 - `__init__.py` is the one façade. Every other `__init__.py` stays empty: no barrels
 - Tests sit beside their module as `<module>_unit.py`, `class TestXxx` with `def test_...`;
-  `fireargs/_test/` holds the testsuite runner and its fixture CLI, left out of the wheel
+  `fireargs/_test/` holds the conformance runner and its fixture CLI, left out of the wheel
 
 ## Typing
 
@@ -61,13 +61,13 @@ Wire keys match only when the Python model uses the TypeScript names: give it a 
 `alias` or `alias_generator`. Error frames are fireargs' own and identical in both
 (`actions/command/report.py`); validator details and click's own parser errors are not.
 
-## Testsuite
+## Conformance
 
-A behaviour the packages share gets a case in `testsuite/tests/<area>/<feature>.json`
-(schema: `testsuite/test-schema.json`), run by `typescript/-test/testsuite.unit.ts`,
-`python/fireargs/_test/testsuite_unit.py` and `rustlang/tests/testsuite.rs` against the twin
+A behaviour the packages share gets a case in `conformance/tests/<area>/<feature>.json`
+(schema: `conformance/test-schema.json`), run by `typescript/-test/conformance.unit.ts`,
+`python/fireargs/_test/conformance_unit.py` and `rust/tests/conformance.rs` against the twin
 fixture CLIs `typescript/-test/fixture.ts`, `python/fireargs/_test/fixture.py` and
-`rustlang/tests/support/fixture.rs`. Change all three fixtures together. Cases compare `--json` output deep-equal, `stderr` by prefix and `--llms` schemas
+`rust/tests/support/fixture.rs`. Change all three fixtures together. Cases compare `--json` output deep-equal, `stderr` by prefix and `--llms` schemas
 semantically — by the `instances` each must accept or reject, never by their text.
 
 ## Releases

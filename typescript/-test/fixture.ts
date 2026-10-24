@@ -52,7 +52,7 @@ const reset = f
   .handler(input => input)
 
 /**
- * The CLI every `testsuite/` case runs against; `python/fireargs/_test/fixture.py` is its twin.
+ * The CLI every `conformance/` case runs against; `python/fireargs/_test/fixture.py` is its twin.
  */
 export const fixture = f.program({ name: "fixture" }).router({
   echo,

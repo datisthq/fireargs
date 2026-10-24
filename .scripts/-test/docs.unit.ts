@@ -4,7 +4,7 @@ import { describe, expect, it } from "vite-plus/test"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
 const REPO_SKILLS = join(ROOT, ".agents", "skills")
-const SECTIONS = ["typescript", "python", "rustlang"].filter(name =>
+const SECTIONS = ["typescript", "python", "rust"].filter(name =>
   existsSync(join(ROOT, name)),
 )
 const SHIPPED_SKILLS = SECTIONS.map(name => join(ROOT, name, "skills")).filter(existsSync)

@@ -38,7 +38,7 @@
         }
       ]
     },
-    "rustlang": {
+    "rust": {
       "release-type": "rust",
       "package-name": "fireargs",
       "component": "rust",

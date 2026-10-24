@@ -1,38 +1,38 @@
 ---
 name: rust-development
-description: Use when working in `rustlang/` — the crates.io package on clap, serde and schemars, and its fireargs-macros crate. Covers its layout, the cargo commands, how meta reaches a field, how it twins the other packages and the testsuite.
+description: Use when working in `rust/` — the crates.io package on clap, serde and schemars, and its fireargs-macros crate. Covers its layout, the cargo commands, how meta reaches a field, how it twins the other packages and the conformance suite.
 ---
 
 # Rust development
 
-`rustlang/` is the crates.io package `fireargs`, the third twin of `typescript/`: the same
-contract, built on serde and schemars (for zod) and clap (for commander). The folder is
-`rustlang/`, the docs URLs are `/rust/…` and the release component is `rust`. Docs write
+`rust/` is the crates.io package `fireargs`, the third twin of `typescript/`: the same
+contract, built on serde and schemars (for zod) and clap (for commander). The folder, the
+docs URLs (`/rust/…`) and the release component are all `rust`. Docs write
 qualified paths — `fireargs::command()`, `#[fireargs::input]` — with no `use` lines: a
 one-letter alias is not Rust style, and the macros remove every other import.
 
 ## Commands
 
-Run from the repo root; each wraps cargo in `rustlang/package.json`:
+Run from the repo root; each wraps cargo in `rust/package.json`:
 
 ```sh
-pnpm -C rustlang setup          # cargo fetch
-pnpm -C rustlang check:lint     # cargo fmt --all --check + clippy --workspace -D warnings
-pnpm -C rustlang check:types    # cargo check --workspace --all-targets
-pnpm -C rustlang test:unit      # cargo test --workspace: units, integration, the testsuite
-pnpm -C rustlang build          # cargo package --workspace into rustlang/build/
+pnpm -C rust setup              # cargo fetch
+pnpm -C rust check:lint         # cargo fmt --all --check + clippy --workspace -D warnings
+pnpm -C rust check:types        # cargo check --workspace --all-targets
+pnpm -C rust test:unit          # cargo test --workspace: units, integration, the conformance suite
+pnpm -C rust build              # cargo package --workspace into rust/build/
 ```
 
-`rustlang/` is a cargo workspace: the `fireargs` package at its root and the `fireargs-macros`
-proc-macro crate in `rustlang/macros/`, one lockfile, one version. A bare `cargo test` or
+`rust/` is a cargo workspace: the `fireargs` package at its root and the `fireargs-macros`
+proc-macro crate in `rust/macros/`, one lockfile, one version. A bare `cargo test` or
 `cargo clippy` covers the root package only, so the scripts pass `--workspace`. A single test:
-`cargo test name` from `rustlang/`; the testsuite alone is
-`cargo test --test testsuite`. `rustlang/rust-toolchain.toml` pins stable with clippy and
+`cargo test name` from `rust/`; the conformance suite alone is
+`cargo test --test conformance`. `rust/rust-toolchain.toml` pins stable with clippy and
 rustfmt, so rustup installs the right toolchain on first use — locally and in CI.
 
 ## Layout
 
-`rustlang/src/` mirrors `typescript/` module for module, with snake_case names:
+`rust/src/` mirrors `typescript/` module for module, with snake_case names:
 
 - `actions/<entity>/<verb>.rs` exports `verb_noun` (`actions/command/compile.rs` →
   `compile_command`); the module tree is declared inline in `lib.rs`, so there is no `mod.rs`
@@ -44,7 +44,7 @@ rustfmt, so rustup installs the right toolchain on first use — locally and in 
   reads `#[fireargs(...)]`, `serde.rs` the serde attributes already on an item
 - Unit tests sit beside their module as `<module>_unit.rs`, wired in with
   `#[cfg(test)] #[path = "<module>_unit.rs"] mod unit;`; `tests/` holds the integration tests,
-  the testsuite runner and its fixture CLI (`tests/support/fixture.rs`)
+  the conformance runner and its fixture CLI (`tests/support/fixture.rs`)
 
 ## How a field gets its meta
 
@@ -93,16 +93,16 @@ either way. `.handler(...)` takes an `AsyncFn` and types the command from it: th
 the closure's annotation, the output from its `Ok`. `run()` blocks on it with pollster,
 `run_async()` runs inside the caller's runtime, `try_run_from()` takes writers for tests.
 
-## Testsuite
+## Conformance
 
-A behaviour every package shares gets a case in `testsuite/tests/<area>/<feature>.json`;
-`rustlang/tests/testsuite.rs` runs each case in-process through `try_run_from` against
-`rustlang/tests/support/fixture.rs`, the twin of `typescript/-test/fixture.ts` and
+A behaviour every package shares gets a case in `conformance/tests/<area>/<feature>.json`;
+`rust/tests/conformance.rs` runs each case in-process through `try_run_from` against
+`rust/tests/support/fixture.rs`, the twin of `typescript/-test/fixture.ts` and
 `python/fireargs/_test/fixture.py`. Change all three fixtures together.
 
 ## Releases
 
-`rustlang/` is its own release-please component (`release-type: rust`): tags `rust-vX.Y.Z`, its
+`rust/` is its own release-please component (`release-type: rust`): tags `rust-vX.Y.Z`, its
 own changelog, published by `cargo publish --workspace` with crates.io trusted publishing
 (`rust-lang/crates-io-auth-action` in `release.yaml`, environment `release`). The rust strategy
 sees the `[workspace]` and bumps every member and the `fireargs-macros` dependency's version
