@@ -12,7 +12,7 @@ description: The #[fireargs::input] struct and #[fireargs(...)] for per-field cl
 schemars derives (through fireargs' own re-exports, so neither crate is a dependency
 of yours), gives the fields camelCase wire keys, makes `Option` fields optional, and
 implements `fireargs::Input`. Most field configuration comes from the Rust type —
-descriptions from doc comments, choices from a `#[fireargs::value]` enum, repeated
+descriptions from doc comments, choices from a `#[fireargs::option]` enum, repeated
 values from `Vec<T>`, optionality from `Option<T>`. Everything else goes in
 `#[fireargs(...)]` on the field: defaults, bounds, positionals, short flags, env
 vars, conflicts, a custom parser, …
@@ -33,7 +33,7 @@ struct GreetInput {
 ```
 
 `option` is the default, written out only to override a
-[value type](/rust/composability/) that is an argument.
+[`#[fireargs::argument]` type](/rust/composability/).
 
 ## Flag names
 
@@ -140,13 +140,13 @@ directly:
 - **`parse = fn` handles any other syntax.** It receives the raw string from argv
   or the env var and returns `Result<T, E>`: any `Serialize` value, which the schema
   then validates, or an error that displays. It never runs on `--json` input or on
-  defaults. Set it on the field, or on a [value type](/rust/composability/) to
+  defaults. Set it on the field, or on a [reusable type](/rust/composability/) to
   parse every field of that type.
 
 ```rust
 use std::collections::BTreeMap;
 
-#[fireargs::value(parse = parse_header_rows)]
+#[fireargs::option(parse = parse_header_rows)]
 #[serde(untagged)]
 enum HeaderRows {
     Flag(bool),
@@ -199,7 +199,7 @@ string syntax it expects.
 ## Examples
 
 ```rust
-#[fireargs::value]
+#[fireargs::option]
 enum Format {
     Json,
     Yaml,
@@ -245,5 +245,5 @@ The macro writes nothing a hand-written struct cannot: derive `Deserialize` and
 with the camelCase keys of the TypeScript `ArgumentConfig` / `OptionConfig`
 (`{"kind": "argument"}`, `{"short": "v", "helpGroup": "Logging"}`), and add an empty
 `impl fireargs::Input for MyInput {}`. Such a struct has no `parse` and does not
-inherit a value type's default; a meta with an unknown key panics when the command
+inherit a reusable type's default; a meta with an unknown key panics when the command
 is built, naming the field.

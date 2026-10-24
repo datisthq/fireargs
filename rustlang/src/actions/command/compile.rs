@@ -14,7 +14,7 @@ pub(crate) const JSON_ID: &str = "fireargs:json";
 pub(crate) const LLMS_ID: &str = "fireargs:llms";
 
 /// Build a leaf from the builder state: give the input schema the defaults of
-/// `#[fireargs::value]` types, read the fields, attach each `parse`, and compile both
+/// `#[fireargs::argument]` / `#[fireargs::option]` types, read the fields, attach each `parse`, and compile both
 /// schemas, stripped of meta, into validators.
 pub(crate) fn compile_command(
     config: Config,

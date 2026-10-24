@@ -159,7 +159,7 @@ fn report_input_error(
     handle_error(hooks, Box::new(error), context, out, err)
 }
 
-// serde knows nothing of a `#[fireargs::value]` type's default, so it is filled in here
+// serde knows nothing of a reusable type's default, so it is filled in here
 fn fill_defaults(mut value: Value, defaults: &[(String, Value)]) -> Value {
     if let Value::Object(map) = &mut value {
         for (key, default) in defaults {

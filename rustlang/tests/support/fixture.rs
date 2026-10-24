@@ -1,6 +1,6 @@
 use fireargs::Program;
 
-#[fireargs::value]
+#[fireargs::option]
 enum Role {
     Admin,
     User,

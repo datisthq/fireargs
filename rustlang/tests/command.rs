@@ -17,11 +17,11 @@ struct TagsInput {
 }
 
 /// Page size
-#[fireargs::value(short = 'l', env = "FIREARGS_TEST_LIMIT", default = 20)]
+#[fireargs::option(short = 'l', env = "FIREARGS_TEST_LIMIT", default = 20)]
 struct Limit(#[fireargs(range(min = 1, max = 100))] u32);
 
 /// A tag list, written as `a,b`
-#[fireargs::value(parse = split_tags)]
+#[fireargs::option(parse = split_tags)]
 struct Tags(Vec<String>);
 
 fn split_tags(text: &str) -> fireargs::Result<Vec<String>, String> {
@@ -223,4 +223,28 @@ fn a_hand_written_input_reads_its_meta_from_the_schema() {
     let command = fireargs::command().handler(async |input: PlainInput, _| Ok(input));
     let (code, out, _) = run(&command, &["a.csv", "--json"]);
     assert_eq!((code, read_json(&out)), (0, json!({"path": "a.csv"})));
+}
+
+/// Who to greet
+#[fireargs::argument]
+struct Name(String);
+
+#[fireargs::input]
+struct NamesInput {
+    name: Name,
+    #[fireargs(option)]
+    friend: Option<Name>,
+}
+
+#[test]
+fn an_argument_type_is_positional_and_a_field_can_make_it_an_option() {
+    let command = fireargs::command().handler(async |input: NamesInput, _| Ok(input));
+    let (code, out, _) = run(&command, &["ada", "--friend", "bob", "--json"]);
+    assert_eq!(
+        (code, read_json(&out)),
+        (0, json!({"name": "ada", "friend": "bob"}))
+    );
+    let (_, out, _) = run(&command, &["--help"]);
+    assert!(out.contains("[name]  Who to greet"), "{out}");
+    assert!(out.contains("--friend <value>"), "{out}");
 }

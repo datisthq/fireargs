@@ -20,15 +20,19 @@ const VALUE_KEYS: &[&str] = &[
     "parse",
 ];
 
-/// Expand `#[fireargs::value(...)]` on a newtype (`struct Limit(u32);`) or an enum: the
-/// derives, the type-level meta, `Default` from `default`, and the hidden `ValueSpec`
-/// that hands `default` and `parse` to every input field of this type.
+/// Expand `#[fireargs::argument(...)]` or `#[fireargs::option(...)]` (`kind`) on a
+/// newtype (`struct Limit(u32);`) or an enum: the derives, the type-level meta, `Default`
+/// from `default`, and the hidden `ValueSpec` that hands `default` and `parse` to every
+/// input field of this type.
 pub(crate) fn expand_value(
     args: TokenStream,
     item: TokenStream,
+    kind: &'static str,
 ) -> syn::Result<TokenStream> {
-    let fireargs = read_args(args)?;
-    fireargs.check_keys(VALUE_KEYS, "on #[fireargs::value]; set it on the field")?;
+    let mut fireargs = read_args(args)?;
+    let place = format!("on #[fireargs::{kind}]; set it on the field");
+    fireargs.check_keys(VALUE_KEYS, &place)?;
+    fireargs.kind = Some(kind);
     let mut item: Item = syn::parse2(item)?;
     let (ident, generics, body) = match &mut item {
         Item::Struct(item) => {
@@ -75,7 +79,7 @@ pub(crate) fn expand_value(
         _ => {
             return Err(syn::Error::new_spanned(
                 &item,
-                "#[fireargs::value] expects a newtype struct or an enum",
+                format!("#[fireargs::{kind}] expects a newtype struct or an enum"),
             ));
         }
     };

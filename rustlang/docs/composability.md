@@ -3,7 +3,7 @@ title: Composability
 path: /rust/composability/
 icon: boxes
 order: 9
-description: Share arguments, options and parameter blocks across commands with value types and flattened structs.
+description: Share arguments, options and parameter blocks across commands with reusable types and flattened structs.
 ---
 
 # Composability
@@ -15,35 +15,40 @@ reuse them across every command that needs them, CLI config included.
 
 ## Reusable arguments and options
 
-`#[fireargs::value(...)]` on a newtype makes a field you can drop into any input. Its
-doc comment, its validation keys and its CLI config travel with it, and so do its
+`#[fireargs::option(...)]` on a newtype makes an option you can drop into any input,
+and `#[fireargs::argument(...)]` a positional — the twins of TypeScript's
+`f.option()` / `f.argument()` and Python's `Option` / `Argument`. The type's doc
+comment, its validation keys and its CLI config travel with it, and so do its
 `default` and `parse`:
 
 ```rust
 /// Page number
-#[fireargs::value(short = 'p', default = 1)]
+#[fireargs::option(short = 'p', default = 1)]
 struct Page(#[fireargs(range(min = 1))] u32);
 
 /// Page size
-#[fireargs::value(short = 'l', default = 20)]
+#[fireargs::option(short = 'l', default = 20)]
 struct Limit(#[fireargs(range(min = 1, max = 100))] u32);
+
+/// Who to greet
+#[fireargs::argument]
+struct Name(String);
 ```
 
 The macro adds the serde and schemars derives, `Default` from `default`, `From` the
-inner value, and `Deref` to it, so the handler reads `*input.limit`. A field of a
-value type is optional when the type has a default, as if it were
-`#[fireargs(default)]`.
+inner value, and `Deref` to it, so the handler reads `*input.limit`. A field of such a
+type is optional when the type has a default, as if it were `#[fireargs(default)]`.
+The field still names the flag: `limit: Limit` is `--limit`, `name: Name` is `[name]`.
 
-`#[fireargs::value]` takes the field keys that make sense for a type: `argument` or
-`option`, `name`, `short`, `env`, `hidden`, `preset`, `help_group`,
-`default_description`, `default` and `parse`. `conflicts` and `implies` name sibling
-fields, so they stay on the field.
+Both take the field keys that make sense for a type: `name`, `short`, `env`, `hidden`,
+`preset`, `help_group`, `default_description`, `default` and `parse`. `conflicts` and
+`implies` name sibling fields, so they stay on the field.
 
-On an enum, `#[fireargs::value]` gives a set of choices, kebab-case on the wire
+On an enum, either macro gives a set of choices, kebab-case on the wire
 (`Role::Admin` is `"admin"`) unless a `#[serde(rename_all = "...")]` says otherwise:
 
 ```rust
-#[fireargs::value]
+#[fireargs::option]
 enum Role {
     Admin,
     User,
@@ -52,8 +57,9 @@ enum Role {
 
 ## Overriding at the use site
 
-`#[fireargs(...)]` on a field of a value type overrides the type's keys one by one
-and keeps the rest; a doc comment on the field replaces the type's description:
+`#[fireargs(...)]` on a field of a reusable type overrides the type's keys one by one
+and keeps the rest — `#[fireargs(option)]` even makes an argument type an option there;
+a doc comment on the field replaces the type's description:
 
 ```rust
 #[fireargs::input]
@@ -207,13 +213,13 @@ the dispatch and `--llms` flattening details.
 
 ## What carries through
 
-When you reuse a value type or a block, every per-field detail rides along:
+When you reuse a type or a block, every per-field detail rides along:
 
 - **The type's own metadata** — doc comments, validation keys, `rename`, enum
   choices.
 - **CLI config** — `name`, `short`, `env`, `hidden`, `preset`, `help_group`,
   `default_description`, and on fields `conflicts` and `implies`.
-- **`default` and `parse`** — a value type's default makes its fields optional, and
+- **`default` and `parse`** — a reusable type's default makes its fields optional, and
   its `parse` reads their CLI strings.
 
 All of it surfaces in clap's `--help` and in the `--llms` manifest exactly as if

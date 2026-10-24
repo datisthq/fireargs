@@ -82,7 +82,7 @@ are draft 2020-12, with subschemas inlined. Per property they include:
 
 - `type` — derived from the Rust type; `Option<T>` adds `"null"` to it.
 - `description` — from the field's doc comment.
-- `default` — from `#[fireargs(default)]`, `default = expr`, or a value type's
+- `default` — from `#[fireargs(default)]`, `default = expr`, or a reusable type's
   `default`.
 - `enum` — from a unit enum, after its `rename_all`.
 - `format`, `pattern`, `minimum`, `maxLength`, … — from the type (`u32`

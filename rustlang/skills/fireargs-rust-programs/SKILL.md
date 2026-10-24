@@ -1,6 +1,6 @@
 ---
 name: fireargs-rust-programs
-description: Use when building a multi-command Rust Fireargs CLI — fireargs::program() with .command(...) / .program(...), nesting, aliases, program config, and sharing options, outputs and commands via #[fireargs::value] types and flattened blocks.
+description: Use when building a multi-command Rust Fireargs CLI — fireargs::program() with .command(...) / .program(...), nesting, aliases, program config, and sharing options, outputs and commands via reusable #[fireargs::option] types and flattened blocks.
 ---
 
 # Fireargs Rust Programs
@@ -66,10 +66,10 @@ Inputs and outputs are Rust types, so a reusable argument or option is a type, a
 
 ```rust
 /// Page size
-#[fireargs::value(short = 'l', default = 20)]
+#[fireargs::option(short = 'l', default = 20)]
 struct Limit(#[fireargs(range(min = 1, max = 100))] u32);
 
-#[fireargs::value]
+#[fireargs::option]
 enum Role {
     Admin,
     User,
@@ -102,20 +102,20 @@ fn list_users() -> fireargs::Command<UsersInput, Paginated<User>> {
 }
 ```
 
-- **Reusable fields:** `#[fireargs::value(...)]` newtypes carrying their doc comment, validation (`#[fireargs(range(..))]` on the inner field), CLI config (`short`, `env`, `argument`, …), `default` and `parse`. `Deref` reads the value: `*input.limit`. A field of a value type with a default is optional.
-- **Overriding at the use site:** `#[fireargs(short = 'b')]` on a field of a value type overrides that key and keeps the type's others; a doc comment on the field replaces its description.
-- **Choices:** `#[fireargs::value]` on an enum, kebab-case on the wire (`"admin"`).
+- **Reusable fields:** `#[fireargs::option(...)]` and `#[fireargs::argument(...)]` newtypes — the twins of `f.option()` / `f.argument()` — carrying their doc comment, validation (`#[fireargs(range(..))]` on the inner field), CLI config (`short`, `env`, …), `default` and `parse`. `Deref` reads the value: `*input.limit`. A field of such a type with a default is optional.
+- **Overriding at the use site:** `#[fireargs(short = 'b')]` on a field of a reusable type overrides that key and keeps the type's others; a doc comment on the field replaces its description.
+- **Choices:** `#[fireargs::option]` (or `argument`) on an enum, kebab-case on the wire (`"admin"`).
 - **Parameter blocks:** `#[fireargs::input]` structs mixed in with `#[fireargs(flatten)]`. Their fields take the flatten's position among the struct's own — the `--help` order and the positional order — and bring their `parse` functions along. serde cannot combine `flatten` with `deny_unknown_fields`.
 - **Output wrappers:** a generic `#[fireargs::output]` struct such as `Paginated<T>`, so every list command shares one wire shape and one manifest schema.
 - **Shared handler code:** plain functions such as `paginate(items, limit)`. Each command keeps its own small handler with concrete types.
-- `conflicts` and `implies` name sibling fields, so they stay on fields, not on value types.
+- `conflicts` and `implies` name sibling fields, so they stay on fields, not on reusable types.
 
 ## Rules of thumb
 
 1. **Name subcommands at the router.** A leaf only ever mounted needs no `name`; it only matters for a leaf run on its own.
 2. **One leaf, one job.** Each leaf becomes one tool in the manifest, so a leaf switching behaviour on a mode flag is harder for an agent to call than two leaves.
 3. **Describe every route.** A command's `description` is its help line and its manifest description; a program's is shown in its parent's help.
-4. **Share fields as `#[fireargs::value]` types and flattened blocks, not copies.** A reused block keeps `--help`, `--json` and `--llms` consistent; a copy drifts.
+4. **Share fields as `#[fireargs::option]` / `#[fireargs::argument]` types and flattened blocks, not copies.** A reused block keeps `--help`, `--json` and `--llms` consistent; a copy drifts.
 
 ## Verification
 

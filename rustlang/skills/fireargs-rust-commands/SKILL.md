@@ -84,7 +84,7 @@ Without `--json` nothing is printed unless the command has a render. It receives
 | `bool`                                   | `--key` flag, no value                                             |
 | integers / floats                        | CLI string parsed as a number before the schema validates          |
 | `Vec<T>`                                 | `--key <value>...`: `--key a b` or repeated; positional `[key]...` |
-| a `#[fireargs::value]` enum              | choices, kebab-case, listed in `--help` and checked by the schema  |
+| a `#[fireargs::option]` enum             | choices, kebab-case, listed in `--help` and checked by the schema  |
 | `#[fireargs(default)]`, `default = expr` | shown as `(default: …)` in `--help`; filled in when absent         |
 | `Option<T>`                              | optional, no default needed                                        |
 | doc comment                              | help text, and `description` in the `--llms` manifest              |
@@ -133,7 +133,7 @@ struct ReadInput {
 - A field with `parse` takes exactly one value (`--key <value>`), even for a `Vec` or `bool` type.
 - An `Err` becomes `error: option '--key <value>' argument '…' is invalid. <message>` and exit 1; it never reaches `render_error`.
 - The returned value cannot borrow the input string: collect owned values.
-- Put `parse` on a `#[fireargs::value]` type to parse every field of that type (see `fireargs-rust-programs`).
+- Put `parse` on a `#[fireargs::option]` / `#[fireargs::argument]` type to parse every field of that type (see `fireargs-rust-programs`).
 
 ## Configuration
 
@@ -153,7 +153,7 @@ Builder methods before `.handler(...)`, all optional:
 4. **Use `parse`, not a custom `Deserialize`, for shell syntax.** A deserializer is part of the type, so `--json` callers go through it too and `--llms` cannot show the string syntax. Numbers need neither: fireargs parses their CLI strings.
 5. **Set `name` only to change the flag.** Reach for it for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name = "dryRun"`). A `no_…` field gives a plain `--no-…` flag, never a negation.
 6. **Order positionals required first.** They are read in field order — including fields of flattened blocks, at the flatten's position — so an optional one before a required one takes the first value.
-7. **Define reusable fields as `#[fireargs::value]` newtypes** carrying their doc comment, validation, CLI config, `default` and `parse`; see `fireargs-rust-programs`.
+7. **Define reusable fields as `#[fireargs::option]` / `#[fireargs::argument]` newtypes** carrying their doc comment, validation, CLI config, `default` and `parse`; see `fireargs-rust-programs`.
 
 ## Verification
 

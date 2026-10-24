@@ -40,7 +40,7 @@ pub use actions::command::create::{CommandBuilder, create_command as command};
 pub use actions::command::manifest::{Manifest, Tool};
 pub use actions::program::create::create_program as program;
 pub use clap;
-pub use fireargs_macros::{input, output, value};
+pub use fireargs_macros::{argument, input, option, output};
 pub use models::command::Command;
 pub use models::config::FlagConfig;
 pub use models::context::{Context, RenderContext};

@@ -12,7 +12,7 @@ use crate::settings::FIREARGS_META_KEY;
 
 /// A command's input: `#[fireargs::input]` implements it. A hand-written serde and
 /// schemars struct takes an empty `impl fireargs::Input for MyInput {}` and loses only
-/// `parse` and the defaults of `#[fireargs::value]` types.
+/// `parse` and the defaults of `#[fireargs::option]` / `#[fireargs::argument]` types.
 pub trait Input: DeserializeOwned + JsonSchema + 'static {
     #[doc(hidden)]
     fn __fields() -> Vec<FieldSpec> {
@@ -28,7 +28,7 @@ pub struct FieldSpec {
     pub default: Option<Value>,
 }
 
-/// Implemented by `#[fireargs::value]`: the `default` and `parse` its fields inherit.
+/// Implemented by `#[fireargs::argument]` and `#[fireargs::option]`: the `default` and `parse` its fields inherit.
 #[doc(hidden)]
 pub trait ValueSpec {
     fn default_value() -> Option<Value>;
@@ -85,7 +85,7 @@ where
 }
 
 /// Merge `meta` key by key into the schema's fireargs meta, so a field's keys override
-/// the ones its `#[fireargs::value]` type set without dropping the rest.
+/// the ones its reusable type set without dropping the rest.
 #[doc(hidden)]
 pub fn merge_meta(schema: &mut Schema, meta: Value) {
     let (Some(object), Value::Object(meta)) = (schema.as_object_mut(), meta) else {

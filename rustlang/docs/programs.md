@@ -23,7 +23,7 @@ struct GreetOutput {
     greeting: String,
 }
 
-#[fireargs::value]
+#[fireargs::option]
 enum Env {
     Staging,
     Prod,

@@ -200,7 +200,7 @@ pub(crate) fn take_fireargs_attrs(
     Ok(fireargs)
 }
 
-/// Read the arguments of `#[fireargs::value(...)]`.
+/// Read the arguments of `#[fireargs::argument(...)]` or `#[fireargs::option(...)]`.
 pub(crate) fn read_args(args: TokenStream) -> syn::Result<FireargsAttrs> {
     let mut fireargs = FireargsAttrs::default();
     let parser = syn::meta::parser(|meta| fireargs.read_entry(meta));

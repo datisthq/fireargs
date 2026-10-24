@@ -146,7 +146,7 @@ For each field of the input struct:
 | `bool`                                    | `--key` flag                                                                |
 | `#[fireargs(argument)]`                   | positional `[key]`, read in field order                                     |
 | `#[fireargs(default)]` / `default = expr` | shown as `(default: …)` in `--help`; filled in when absent                  |
-| a `#[fireargs::value]` enum               | choices: `(choices: "a", "b")` in `--help`, checked against the schema      |
+| a `#[fireargs::option]` enum              | choices: `(choices: "a", "b")` in `--help`, checked against the schema      |
 | `Vec<T>`                                  | `--key <value>...`: `--key a b` or `--key a --key b`; positional `[key]...` |
 | `Vec<SomeEnum>`                           | repeated, with choices on each value                                        |
 | `Option<T>`                               | optional, with no default needed                                            |

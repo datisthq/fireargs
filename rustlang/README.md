@@ -242,7 +242,7 @@ stdout only ever carries the data, so a script can parse it without checking for
 - [Programs](/rust/programs/) — subcommand trees, nesting, and program-level config.
 - [LLMs mode](/rust/llms-mode/) — `--llms` and the MCP-shaped manifest.
 - [JSON mode](/rust/json-mode/) — `--json` for programmatic and pipeline use.
-- [Composability](/rust/composability/) — reusable `#[fireargs::value]` types and flattened blocks.
+- [Composability](/rust/composability/) — reusable `#[fireargs::argument]` / `#[fireargs::option]` types and flattened blocks.
 - [Agent Skills](/rust/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
 - [Contributing](/rust/contributing/) — local setup, conventions, release flow.
 
