@@ -42,6 +42,7 @@ fireargs/
 │   └── skills/          #   shipped agent skills for Python users
 ├── rustlang/            # the crates.io package `fireargs`, a cargo project
 │   ├── src/             #   the twin of typescript/: actions/, models/, lib.rs
+│   ├── macros/          #   fireargs-macros: #[fireargs::input], output and value
 │   ├── tests/           #   integration tests and the testsuite runner
 │   ├── docs/            #   the Rust pages of the docs site
 │   └── skills/          #   shipped agent skills for Rust users
