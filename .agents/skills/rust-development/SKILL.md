@@ -55,15 +55,15 @@ panic, since a lenient read would turn a typo'd argument back into an option. Th
 it, and a hand-written `#[schemars(extend("fireargs" = {...}))]` still works:
 
 - `#[fireargs(...)]` on a field becomes a schemars `transform` that **merges** its keys into the
-  meta already there, so a field overrides its `#[fireargs::value]` type's keys one by one.
+  meta already there, so a field overrides its reusable type's keys one by one.
   `extend` would replace the whole object
 - `#[fireargs]` is no derive's helper attribute, so the macros must strip every one they read,
   and they are attribute macros because a derive cannot add the serde and schemars derives
-- What a schema cannot hold — `parse` and a value type's default — travels through
+- What a schema cannot hold — `parse` and a reusable type's default — travels through
   `Input::__fields()`. Each field asks its type with `(&&Probe::<T>::new()).read_spec()`:
   method lookup picks `ProbeValue` (on `&Probe<T>`, when `T: ValueSpec`) before `ProbePlain`
   (on `Probe<T>`). It only works on concrete types; a generic field type falls back silently
-- A value type's default is applied at run time (`fill_defaults`) and patched into the
+- A reusable type's default is applied at run time (`fill_defaults`) and patched into the
   schema (`apply_default`), since serde knows nothing of it
 
 - The input schema is generated with `for_deserialize` (defaults leave `required`), the output
@@ -76,17 +76,17 @@ it, and a hand-written `#[schemars(extend("fireargs" = {...}))]` still works:
 
 ## Twins
 
-| TypeScript                             | Rust                                                           |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `f.argument()` / `f.option({ short })` | `#[fireargs(argument)]` / `#[fireargs(short = 'v')]`           |
-| a reusable `f.option(...)` value       | a `#[fireargs::value(...)]` newtype                            |
-| zod `.optional()`                      | `Option<T>`; the macros skip it while `None`                   |
-| `.default(v)`                          | `#[fireargs(default)]` or `#[fireargs(default = v)]`           |
-| shape spread / `.extend()`             | `#[fireargs(flatten)]` — the meta of flattened fields survives |
-| `.describe("...")`                     | a `///` doc comment                                            |
-| `parse` in the option config           | `#[fireargs(parse = fn)]` on the field or the value type       |
-| `renderError` returning a value        | `.render_error(..)` returning `Option<Value>`                  |
-| the commander `Command` itself         | `.configure(\|clap\| ..)` on the declared clap command         |
+| TypeScript                                  | Rust                                                           |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| `f.argument()` / `f.option({ short })`      | `#[fireargs(argument)]` / `#[fireargs(short = 'v')]`           |
+| a reusable `f.option(...)` / `f.argument()` | a `#[fireargs::option(...)]` / `#[fireargs::argument]` newtype |
+| zod `.optional()`                           | `Option<T>`; the macros skip it while `None`                   |
+| `.default(v)`                               | `#[fireargs(default)]` or `#[fireargs(default = v)]`           |
+| shape spread / `.extend()`                  | `#[fireargs(flatten)]` — the meta of flattened fields survives |
+| `.describe("...")`                          | a `///` doc comment                                            |
+| `parse` in the option config                | `#[fireargs(parse = fn)]` on the field or the reusable type    |
+| `renderError` returning a value             | `.render_error(..)` returning `Option<Value>`                  |
+| the commander `Command` itself              | `.configure(\|clap\| ..)` on the declared clap command         |
 
 The macros give structs camelCase keys so `--json` keys match the twins; flags are kebab-case
 either way. `.handler(...)` takes an `AsyncFn` and types the command from it: the input from

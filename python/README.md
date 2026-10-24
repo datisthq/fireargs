@@ -26,7 +26,7 @@ Times = Annotated[int, Option(default=1, ge=1, description="Repeat it n times.")
 Shout = Annotated[bool, Option(short="s", default=False, description="Use capitals.")]
 
 
-# Composable groups of them
+# Typed input, validated on every run
 class GreetInput(BaseModel):
     name: Name
     times: Times

@@ -773,7 +773,7 @@ const freedoms: Record<Lang, FreedomPoint[]> = {
           </code>{" "}
           structs on serde. Reuse an option as a{" "}
           <code className="font-mono text-foreground whitespace-nowrap">
-            #[fireargs::value]
+            #[fireargs::option]
           </code>{" "}
           type and a group of them with{" "}
           <code className="font-mono text-foreground whitespace-nowrap">
@@ -1027,7 +1027,7 @@ Name = Annotated[str, Argument(description="Who to greet")]
 Times = Annotated[int, Option(default=1, ge=1)]
 
 
-# Composable groups of them
+# Typed input, validated on every run
 class GreetInput(BaseModel):
     name: Name
     times: Times
@@ -1064,7 +1064,7 @@ import { z } from "zod"
 const name = f.argument().string().describe("Who to greet")
 const times = f.option().schema(z.number().min(1).default(1))
 
-// Composable groups of them
+// Typed input, validated on every run
 const greetInput = z.object({ name, times })
 
 // Typed output, validated on every run
@@ -1089,13 +1089,13 @@ const cli = f.program({ name: "myapp" }).router({ greet })
 cli.parseAsync(process.argv)`,
   rust: `// Composable arguments and options
 /// Who to greet
-#[fireargs::value(argument)]
+#[fireargs::argument]
 struct Name(String);
 
-#[fireargs::value(default = 1)]
+#[fireargs::option(default = 1)]
 struct Times(#[fireargs(range(min = 1))] u32);
 
-// Composable groups of them
+// Typed input, validated on every run
 #[fireargs::input]
 struct GreetInput {
     name: Name,

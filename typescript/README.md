@@ -21,7 +21,7 @@ const name = f.argument().schema(z.string().describe("The user's name."))
 const times = f.option().schema(z.number().min(1).default(1).describe("Repeat it n times."))
 const shout = f.option({ short: "s" }).schema(z.boolean().default(false).describe("Use capitals."))
 
-// Composable groups of them
+// Typed input, validated on every run
 const greetInput = z.object({ name, times, shout })
 
 // Typed output, validated on every run
