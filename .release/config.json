@@ -9,7 +9,34 @@
       "release-type": "python",
       "package-name": "fireargs",
       "component": "python",
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements"
+        },
+        {
+          "type": "deps",
+          "section": "Dependencies"
+        },
+        {
+          "type": "revert",
+          "section": "Reverts"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation",
+          "hidden": true
+        }
+      ]
     },
     "rustlang": {
       "release-type": "rust",
