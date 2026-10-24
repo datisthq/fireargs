@@ -67,8 +67,11 @@ A behaviour the packages share gets a case in `conformance/tests/<area>/<feature
 (schema: `conformance/test-schema.json`), run by `typescript/-test/conformance.unit.ts`,
 `python/fireargs/_test/conformance_unit.py` and `rust/tests/conformance.rs` against the twin
 fixture CLIs `typescript/-test/fixture.ts`, `python/fireargs/_test/fixture.py` and
-`rust/tests/support/fixture.rs`. Change all three fixtures together. Cases compare `--json` output deep-equal, `stderr` by prefix and `--llms` schemas
-semantically — by the `instances` each must accept or reject, never by their text.
+`rust/tests/support/fixture.rs`. Change all three fixtures together. As in the JSON Schema
+Test Suite, a file holds cases — one behaviour, a `description` and its `tests` — and a test
+is one `argv` run with its expected `exitCode`. Tests compare `--json` output deep-equal,
+`stderr` by prefix and `--llms` schemas semantically — by the `instances` each must accept or
+reject, never by their text.
 
 ## Releases
 

@@ -95,8 +95,9 @@ the closure's annotation, the output from its `Ok`. `run()` blocks on it with po
 
 ## Conformance
 
-A behaviour every package shares gets a case in `conformance/tests/<area>/<feature>.json`;
-`rust/tests/conformance.rs` runs each case in-process through `try_run_from` against
+A behaviour every package shares gets a case in `conformance/tests/<area>/<feature>.json`
+(file → cases → tests, as **`python-development`** spells out);
+`rust/tests/conformance.rs` runs each test in-process through `try_run_from` against
 `rust/tests/support/fixture.rs`, the twin of `typescript/-test/fixture.ts` and
 `python/fireargs/_test/fixture.py`. Change all three fixtures together.
 
