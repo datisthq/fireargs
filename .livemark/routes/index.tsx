@@ -973,9 +973,9 @@ const features: Feature[] = [
   },
   {
     icon: Terminal,
-    title: "Powered by click, commander and clap",
+    title: "Built on proven parsers",
     description:
-      "Every command is parsed by click, commander or clap, so it behaves like any other CLI in its language — fireargs just fills in the boring parts.",
+      "Every command is parsed by its language's go-to CLI library, so it behaves like any other CLI there — fireargs just fills in the boring parts.",
   },
 ]
 
