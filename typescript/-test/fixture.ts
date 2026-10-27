@@ -51,8 +51,26 @@ const reset = f
   .output(resetInput)
   .handler(input => input)
 
+const soloInput = z.object({
+  name: f.argument().schema(z.string().default("world").describe("Who to greet")),
+  times: f
+    .option({ short: "t", env: "SOLO_TIMES" })
+    .schema(z.number().int().min(1).default(1).describe("Greetings to print")),
+  loud: f.option().schema(z.boolean().default(false)),
+})
+
 /**
- * The CLI every `conformance/` case runs against; `python/fireargs/_test/fixture.py` is its twin.
+ * The standalone command `"fixture": "command"` cases run against.
+ */
+export const solo = f
+  .command({ name: "solo", description: "Greet someone", version: "1.2.3" })
+  .input(soloInput)
+  .output(soloInput)
+  .render(output => Array(output.times).fill(`Hello, ${output.name}!`).join("\n"))
+  .handler(input => input)
+
+/**
+ * The program `conformance/` cases run against by default; `python/fireargs/_test/fixture.py` is its twin.
  */
 export const fixture = f.program({ name: "fixture" }).router({
   echo,
@@ -61,4 +79,7 @@ export const fixture = f.program({ name: "fixture" }).router({
   admin: f.program({ description: "Admin tasks" }).router({ reset }),
 })
 
-if (import.meta.main) await fixture.parseAsync()
+if (import.meta.main) {
+  const command = process.env.FIREARGS_CONFORMANCE_FIXTURE === "command"
+  await (command ? solo : fixture).parseAsync()
+}

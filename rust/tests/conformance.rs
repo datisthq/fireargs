@@ -6,14 +6,25 @@ mod support {
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::{self, ExitCode};
 
 use serde_json::Value;
-use support::fixture::create_fixture;
+use support::fixture::{create_fixture, create_solo};
 
 const SUITE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../conformance");
+// Set on the child this binary spawns for each test: setting a case's `env` on
+// the runner's own process would need `unsafe` and race the other tests
+const FIXTURE: &str = "FIREARGS_CONFORMANCE_FIXTURE";
 
-#[test]
-fn passes_the_conformance_suite() {
+fn main() -> ExitCode {
+    match std::env::var(FIXTURE).as_deref() {
+        Ok("program") => create_fixture().run(),
+        Ok("command") => create_solo().run(),
+        _ => run_suite(),
+    }
+}
+
+fn run_suite() -> ExitCode {
     let suite = Path::new(SUITE);
     let schema: Value = read_json(&suite.join("test-schema.json"));
     let validator = jsonschema::validator_for(&schema).unwrap();
@@ -21,7 +32,7 @@ fn passes_the_conformance_suite() {
     collect_files(&suite.join("tests"), &mut files);
     assert!(!files.is_empty(), "no conformance files under {SUITE}");
 
-    let mut failures = vec![];
+    let (mut count, mut failures) = (0, vec![]);
     for file in files {
         let groups = read_json(&file);
         assert!(
@@ -32,32 +43,45 @@ fn passes_the_conformance_suite() {
         for group in groups.as_array().unwrap() {
             for case in group["tests"].as_array().unwrap() {
                 let name = format!("{} › {}", group["description"], case["description"]);
+                count += 1;
                 if let Err(reason) = run_case(case) {
                     failures.push(format!("{name}: {reason}"));
                 }
             }
         }
     }
-    assert!(
-        failures.is_empty(),
-        "failing cases:\n{}",
-        failures.join("\n")
-    );
+    if failures.is_empty() {
+        println!("conformance: {count} cases passed");
+        return ExitCode::SUCCESS;
+    }
+    eprintln!("failing cases:\n{}", failures.join("\n"));
+    ExitCode::FAILURE
 }
 
 fn run_case(case: &Value) -> Result<(), String> {
-    let mut argv = vec!["fixture".to_owned()];
+    let fixture = case
+        .get("fixture")
+        .and_then(Value::as_str)
+        .unwrap_or("program");
+    let mut command = process::Command::new(std::env::current_exe().unwrap());
+    command.env(FIXTURE, fixture);
     for arg in case["argv"].as_array().unwrap() {
-        argv.push(arg.as_str().unwrap().to_owned());
+        command.arg(arg.as_str().unwrap());
     }
-    let (mut out, mut err) = (vec![], vec![]);
-    let code =
-        pollster::block_on(create_fixture().try_run_from(argv, &mut out, &mut err))
-            .map_err(|error| format!("unhandled error: {error}"))?;
-    let out = String::from_utf8(out).unwrap();
-    let err = String::from_utf8(err).unwrap();
+    for (key, value) in case
+        .get("env")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+    {
+        command.env(key, value.as_str().unwrap());
+    }
+    let run = command.output().map_err(|error| error.to_string())?;
+    let out = String::from_utf8(run.stdout).unwrap();
+    let err = String::from_utf8(run.stderr).unwrap();
+    let code = run.status.code().ok_or("killed by a signal")?;
 
-    if Some(u64::from(code)) != case["exitCode"].as_u64() {
+    if Some(i64::from(code)) != case["exitCode"].as_i64() {
         return Err(format!("exit code {code}, stdout {out:?}, stderr {err:?}"));
     }
     if let Some(expected) = case.get("stdout") {
@@ -66,6 +90,11 @@ fn run_case(case: &Value) -> Result<(), String> {
         if !equal_json(&actual, expected) {
             return Err(format!("stdout {actual} != {expected}"));
         }
+    }
+    if let Some(expected) = case.get("stdoutText").and_then(Value::as_str)
+        && out != expected
+    {
+        return Err(format!("stdout {out:?} != {expected:?}"));
     }
     if let Some(expected) = case.get("stderr").and_then(Value::as_str)
         && !err.starts_with(expected)

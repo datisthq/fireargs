@@ -97,9 +97,11 @@ the closure's annotation, the output from its `Ok`. `run()` blocks on it with po
 
 A behaviour every package shares gets a case in `conformance/tests/<area>/<feature>.json`
 (file → cases → tests, as **`python-development`** spells out);
-`rust/tests/conformance.rs` runs each test in-process through `try_run_from` against
-`rust/tests/support/fixture.rs`, the twin of `typescript/-test/fixture.ts` and
-`python/fireargs/_test/fixture.py`. Change all three fixtures together.
+`rust/tests/conformance.rs` runs against `rust/tests/support/fixture.rs`, the twin of
+`typescript/-test/fixture.ts` and `python/fireargs/_test/fixture.py`. Change all three
+fixtures together. It is a `harness = false` test that re-runs its own binary as the fixture
+for each test, with `FIREARGS_CONFORMANCE_FIXTURE` naming which: a case's `env` set on the
+runner itself would need `unsafe` (edition 2024) and leak across tests.
 
 ## Releases
 

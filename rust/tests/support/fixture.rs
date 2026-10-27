@@ -1,4 +1,4 @@
-use fireargs::Program;
+use fireargs::{Command, Program};
 
 #[fireargs::option]
 enum Role {
@@ -45,11 +45,23 @@ struct ResetInput {
     force: bool,
 }
 
+#[fireargs::input]
+pub struct SoloInput {
+    /// Who to greet
+    #[fireargs(argument, default = "world")]
+    name: String,
+    /// Greetings to print
+    #[fireargs(short = 't', env = "SOLO_TIMES", default = 1, range(min = 1))]
+    times: u32,
+    #[fireargs(default)]
+    loud: bool,
+}
+
 fn split_commas(text: &str) -> fireargs::Result<Vec<String>, String> {
     Ok(text.split(',').map(str::to_owned).collect())
 }
 
-/// The CLI every `conformance/` case runs against; `typescript/-test/fixture.ts` is its twin.
+/// The program `conformance/` cases run against by default; `typescript/-test/fixture.ts` is its twin.
 pub fn create_fixture() -> Program {
     let echo = fireargs::command()
         .description("Echo the input back")
@@ -72,4 +84,16 @@ pub fn create_fixture() -> Program {
         .command("strict", strict)
         .command("tags", tags)
         .program("admin", admin)
+}
+
+/// The standalone command `"fixture": "command"` cases run against.
+pub fn create_solo() -> Command<SoloInput, SoloInput> {
+    fireargs::command()
+        .name("solo")
+        .description("Greet someone")
+        .version("1.2.3")
+        .handler(async |input: SoloInput, _| Ok(input))
+        .render(|output, _| {
+            vec![format!("Hello, {}!", output.name); output.times as usize].join("\n")
+        })
 }

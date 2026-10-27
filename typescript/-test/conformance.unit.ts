@@ -9,9 +9,12 @@ const FIXTURE = join(import.meta.dirname, "fixture.ts")
 
 type Case = {
   description: string
+  fixture?: "program" | "command"
   argv: string[]
+  env?: Record<string, string>
   exitCode: number
   stdout?: unknown
+  stdoutText?: string
   stderr?: string
   tools?: { name: string; description?: string }[]
   instances?: { tool: string; io: "input" | "output"; data: unknown; valid: boolean }[]
@@ -46,9 +49,15 @@ for (const area of readdirSync(join(SUITE, "tests"))) {
 }
 
 function runCase(test: Case) {
-  const run = spawnSync("node", [FIXTURE, ...test.argv], { encoding: "utf8" })
+  const env = {
+    ...process.env,
+    FIREARGS_CONFORMANCE_FIXTURE: test.fixture ?? "program",
+    ...test.env,
+  }
+  const run = spawnSync("node", [FIXTURE, ...test.argv], { encoding: "utf8", env })
   expect(run.status, run.stderr).toBe(test.exitCode)
   if (test.stdout !== undefined) expect(JSON.parse(run.stdout)).toEqual(test.stdout)
+  if (test.stdoutText !== undefined) expect(run.stdout).toBe(test.stdoutText)
   if (test.stderr !== undefined)
     expect(run.stderr.startsWith(test.stderr), run.stderr).toBe(true)
   if (test.tools === undefined && test.instances === undefined) return

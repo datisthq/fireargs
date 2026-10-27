@@ -60,3 +60,22 @@ fixture = f.Program(
         "admin": f.Program(description="Admin tasks", router={"reset": reset}),
     },
 )
+
+
+class SoloInput(BaseModel):
+    name: Annotated[str, f.Argument(description="Who to greet")] = "world"
+    times: Annotated[
+        int,
+        f.Option(short="t", envvar="SOLO_TIMES", ge=1, description="Greetings to print"),
+    ] = 1
+    loud: bool = False
+
+
+@f.command(name="solo", description="Greet someone", version="1.2.3")
+def solo(input: SoloInput) -> SoloInput:
+    return input
+
+
+@solo.render
+def render_solo(output: SoloInput) -> str:
+    return "\n".join([f"Hello, {output.name}!"] * output.times)

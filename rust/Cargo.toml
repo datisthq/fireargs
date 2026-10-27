@@ -13,6 +13,10 @@ keywords = ["cli", "clap", "llm", "mcp", "serde"]
 categories = ["command-line-interface"]
 include = ["src/**/*.rs", "skills/**/*.md", "README.md", "LICENSE.md"]
 
+[[test]]
+name = "conformance"
+harness = false
+
 [workspace]
 members = ["macros"]
 

@@ -6,7 +6,7 @@ import jsonschema
 import pytest
 from click.testing import CliRunner
 
-from .fixture import fixture
+from .fixture import fixture, solo
 
 SUITE = Path(__file__).parents[3] / "conformance"
 
@@ -25,9 +25,12 @@ class Instance(TypedDict):
 
 class Case(TypedDict):
     description: str
+    fixture: NotRequired[Literal["program", "command"]]
     argv: list[str]
+    env: NotRequired[dict[str, str]]
     exitCode: int
     stdout: NotRequired[object]
+    stdoutText: NotRequired[str]
     stderr: NotRequired[str]
     tools: NotRequired[list[ToolEntry]]
     instances: NotRequired[list[Instance]]
@@ -53,10 +56,15 @@ class TestConformance:
 
     @pytest.mark.parametrize("case", list_cases())
     def test_case(self, case: Case):
-        result = CliRunner().invoke(fixture, case["argv"], prog_name="fixture")
+        cli = solo if case.get("fixture") == "command" else fixture
+        result = CliRunner().invoke(
+            cli, case["argv"], env=case.get("env"), prog_name=cli.name
+        )
         assert result.exit_code == case["exitCode"], result.output
         if "stdout" in case:
             assert json.loads(result.stdout) == case["stdout"]
+        if "stdoutText" in case:
+            assert result.stdout == case["stdoutText"]
         if "stderr" in case:
             assert result.stderr.startswith(case["stderr"]), result.stderr
         if "tools" not in case and "instances" not in case:

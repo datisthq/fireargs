@@ -16,10 +16,24 @@
           "additionalProperties": false,
           "properties": {
             "description": { "type": "string" },
+            "fixture": {
+              "enum": ["program", "command"],
+              "default": "program",
+              "description": "The fixture CLI to run: the program, or the standalone command `solo`"
+            },
             "argv": { "type": "array", "items": { "type": "string" } },
+            "env": {
+              "type": "object",
+              "description": "Environment variables set for this run only",
+              "additionalProperties": { "type": "string" }
+            },
             "exitCode": { "type": "integer" },
             "stdout": {
               "description": "The JSON stdout must parse to, compared deep-equal"
+            },
+            "stdoutText": {
+              "type": "string",
+              "description": "The exact plain-text stdout, for output that is not JSON"
             },
             "stderr": {
               "type": "string",

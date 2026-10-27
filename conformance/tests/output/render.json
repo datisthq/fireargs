@@ -1,0 +1,21 @@
+[
+  {
+    "description": "a run without --json prints the render",
+    "tests": [
+      {
+        "description": "the render's text, newline-terminated",
+        "fixture": "command",
+        "argv": ["bob", "-t", "2"],
+        "exitCode": 0,
+        "stdoutText": "Hello, bob!\nHello, bob!\n"
+      },
+      {
+        "description": "--json skips the render",
+        "fixture": "command",
+        "argv": ["bob", "--loud", "--json"],
+        "exitCode": 0,
+        "stdout": { "name": "bob", "times": 1, "loud": true }
+      }
+    ]
+  }
+]
