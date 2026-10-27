@@ -1102,6 +1102,33 @@ class TestJsonOutput:
             "double": 4,
         }
 
+    def test_drops_a_reason_that_could_quote_a_hide_input_value(self):
+        def check(value: str) -> str:
+            raise ValueError(f"bad {value.lower()}")
+
+        def parse(value: str) -> str:
+            raise ValueError(f"cannot read {value.strip()!r}")
+
+        class In(BaseModel):
+            pin: Annotated[str, f.Option(hide_input=True), AfterValidator(check)] = ""
+            key: Annotated[str, f.Option(hide_input=True, parse=parse)] = ""
+
+        @f.command(name="login")
+        def login(input: In) -> Empty:
+            return Empty()
+
+        cases = [
+            ("--pin", "SeCrEt", "--pin <value>"),
+            ("--key", " SeCrEt ", "--key <value>"),
+        ]
+        for flag, value, flags in cases:
+            result = invoke(login, flag, value)
+            assert result.exit_code == 1
+            assert (
+                result.stderr == f"error: option '{flags}' argument '***' is invalid.\n"
+            )
+            assert "secret" not in result.stderr.lower()
+
     def test_masks_a_hide_input_value_but_keeps_the_reason_in_input_errors(self):
         class In(BaseModel):
             pin: Annotated[int, f.Option(hide_input=True, ge=1000)]

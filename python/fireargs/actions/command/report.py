@@ -46,7 +46,9 @@ def report_input_error(
     if isinstance(error, json.JSONDecodeError):
         fail_input(ctx, f"error: --json value is not valid JSON: {error}")
     if isinstance(error, CliValueError):
-        line = format_value_error(error.spec, error.value, error.message, error.env)
+        # Number parsing's reason is fixed text; a `parse` exception may quote the input
+        safe = error.spec.parse is None
+        line = format_value_error(error.spec, error.value, error.message, error.env, safe)
         fail_input(ctx, line)
     if not isinstance(error, ValidationError):
         raise error
@@ -108,19 +110,51 @@ def format_cli_issue(issue: ErrorDetails, fields: Sequence[FieldSpec], raw: CliI
     elif isinstance(token, tuple):
         token = " ".join(token)
     shown = format_issue_value(token, index)
-    return format_value_error(spec, shown, issue["msg"], raw.envs.get(spec.key))
+    safe = issue["type"] in SAFE_ISSUE_TYPES
+    return format_value_error(spec, shown, issue["msg"], raw.envs.get(spec.key), safe)
 
 
-def format_value_error(spec: FieldSpec, value: str, message: str, env: str | None = None):
-    # A `hide_input` value is a secret: mask it, also where the message quotes it
+# pydantic's own messages for these never quote the input; a validator's may, in any form
+SAFE_ISSUE_TYPES = frozenset(
+    {
+        "greater_than",
+        "greater_than_equal",
+        "less_than",
+        "less_than_equal",
+        "multiple_of",
+        "string_too_short",
+        "string_too_long",
+        "too_short",
+        "too_long",
+        "string_pattern_mismatch",
+        "int_parsing",
+        "float_parsing",
+        "bool_parsing",
+        "missing",
+    }
+)
+
+
+def format_value_error(
+    spec: FieldSpec,
+    value: str,
+    message: str,
+    env: str | None = None,
+    safe: bool = False,
+):
+    # A `hide_input` value is a secret: a reason derived from it could leak it
     if isinstance(spec.meta, OptionMeta) and spec.meta.hide_input:
-        message = message.replace(value, "***") if value else message
         value = "***"
+        message = message if safe else ""
     if spec.kind == "argument":
         return f"error: command-argument value '{value}' is invalid for argument '{spec.name}'. {message}"
     if env is not None:
-        return f"error: option '{spec.flags}' value '{value}' from env '{env}' is invalid. {message}"
-    return f"error: option '{spec.flags}' argument '{value}' is invalid. {message}"
+        line = (
+            f"error: option '{spec.flags}' value '{value}' from env '{env}' is invalid."
+        )
+    else:
+        line = f"error: option '{spec.flags}' argument '{value}' is invalid."
+    return f"{line} {message}" if message else line
 
 
 def format_issue_value(value: object, index: str | int | None):

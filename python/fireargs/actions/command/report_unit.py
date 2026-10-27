@@ -187,7 +187,7 @@ class TestReportInputError:
         report(read_error(In, {}))
         assert "error: invalid --json input at 'c'" in capsys.readouterr().err
 
-    def test_masks_a_hide_input_value_and_keeps_its_message(
+    def test_masks_a_hide_input_value_and_keeps_a_constraint_reason(
         self, capsys: pytest.CaptureFixture[str]
     ):
         class In(BaseModel):
