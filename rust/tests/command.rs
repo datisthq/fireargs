@@ -294,11 +294,11 @@ fn an_unnamed_command_is_named_after_its_binary() {
             .unwrap();
         String::from_utf8(out).unwrap()
     };
-    assert_eq!(run_from(&["/usr/bin/tool.sh", "--version"]), "tool 2.0\n");
+    assert_eq!(run_from(&["/usr/bin/tool.sh", "--version"]), "2.0\n");
     assert_eq!(read_json(&run_from(&["tool", "--json"]))["command"], "tool");
     let tools = read_json(&run_from(&["tool", "--llms"]))["tools"].clone();
     assert_eq!(tools[1]["name"], "tool");
-    assert_eq!(run_from(&["", "--version"]), "command 2.0\n");
+    assert!(run_from(&["", "--help"]).contains("Usage: command"));
 }
 
 #[test]
@@ -333,4 +333,58 @@ fn nested_tools_are_named_by_their_full_path() {
         let tools = read_json(&String::from_utf8(out).unwrap())["tools"].clone();
         assert_eq!(tools[1]["name"], "api tags");
     }
+}
+
+#[test]
+fn version_prints_the_bare_version_at_every_level() {
+    let leaf = create_versioned();
+    let program = fireargs::program().version("1.0").program(
+        "api",
+        fireargs::program().version("2.0").command("tags", leaf),
+    );
+    for (argv, version) in [
+        (&["cli", "--version"][..], "1.0\n"),
+        (&["cli", "-V"], "1.0\n"),
+        (&["cli", "api", "--version"], "2.0\n"),
+        (&["cli", "api", "tags", "--version"], "3.0\n"),
+    ] {
+        let (mut out, mut err) = (vec![], vec![]);
+        let code =
+            pollster::block_on(program.try_run_from(argv.to_vec(), &mut out, &mut err))
+                .unwrap();
+        assert_eq!(
+            (code, String::from_utf8(out).unwrap().as_str()),
+            (0, version)
+        );
+    }
+}
+
+#[test]
+fn version_stays_out_of_the_input() {
+    let command = create_versioned();
+    let (_, out, _) = run(&command, &["--help"]);
+    assert!(out.contains("-V, --version"), "{out}");
+    assert!(out.contains("output the version number"), "{out}");
+    let (_, out, _) = run(&command, &["--llms"]);
+    let properties = read_json(&out)["tools"][1]["inputSchema"]["properties"].clone();
+    assert!(properties.get("version").is_none(), "{properties}");
+    let (code, out, _) = run(&command, &["--json"]);
+    assert_eq!(code, 0);
+    assert!(read_json(&out).get("version").is_none(), "{out}");
+}
+
+#[test]
+fn a_disabled_version_flag_stays_off() {
+    let command = fireargs::command()
+        .version("3.0")
+        .configure(|clap| clap.disable_version_flag(true))
+        .handler(async |input: TagsInput, _| Ok(input));
+    let (code, _, err) = run(&command, &["--version"]);
+    assert_eq!(code, 1, "{err}");
+}
+
+fn create_versioned() -> Command<TagsInput, TagsInput> {
+    fireargs::command()
+        .version("3.0")
+        .handler(async |input: TagsInput, _| Ok(input))
 }

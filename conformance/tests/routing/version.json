@@ -1,0 +1,21 @@
+[
+  {
+    "description": "--version prints the bare version",
+    "tests": [
+      {
+        "description": "--version prints the version alone, newline-terminated",
+        "fixture": "command",
+        "argv": ["--version"],
+        "exitCode": 0,
+        "stdoutText": "1.2.3\n"
+      },
+      {
+        "description": "-V is its short form",
+        "fixture": "command",
+        "argv": ["-V"],
+        "exitCode": 0,
+        "stdoutText": "1.2.3\n"
+      }
+    ]
+  }
+]

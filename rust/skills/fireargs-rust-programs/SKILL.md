@@ -55,7 +55,7 @@ The same methods as a command's (see `fireargs-rust-commands`) without `.json_op
 
 Two settings belong on the root program:
 
-- `.version(..)`, which adds `-V, --version` printing `myapp 1.0.0`.
+- `.version(..)`, which adds `-V, --version` printing the bare `1.0.0`, as the twins do.
 - `.render_error(..)` formats errors for every leaf below that has no hook of its own (see `fireargs-rust-automation`).
 
 `.configure(|clap| ..)` gets the program's declared clap command, as on a command. Commands have no help groups: clap lists every route under `Commands` in router order. The `help_group` key groups options only.

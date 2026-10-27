@@ -6,7 +6,7 @@ use std::process::ExitCode;
 use clap::ArgMatches;
 use clap::error::{ContextKind, ContextValue, ErrorKind};
 
-use crate::actions::command::compile::LLMS_ID;
+use crate::actions::command::compile::{LLMS_ID, VERSION_ID};
 use crate::actions::command::manifest::build_manifest;
 use crate::actions::command::run::{Scope, run_command};
 use crate::actions::program::compile::{collect_tools, declare_route};
@@ -80,6 +80,11 @@ where
     let mut path = vec![];
     let mut hooks = vec![];
     loop {
+        let version = matches.try_get_one::<bool>(VERSION_ID).ok().flatten();
+        if let (Some(true), Some(text)) = (version, clap.get_version()) {
+            writeln!(out, "{text}")?;
+            return Ok(0);
+        }
         let program = match route {
             Route::Command(command) => {
                 let scope = Scope {

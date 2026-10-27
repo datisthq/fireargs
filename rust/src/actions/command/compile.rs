@@ -12,6 +12,7 @@ use crate::settings::FIREARGS_META_KEY;
 
 pub(crate) const JSON_ID: &str = "fireargs:json";
 pub(crate) const LLMS_ID: &str = "fireargs:llms";
+pub(crate) const VERSION_ID: &str = "fireargs:version";
 
 /// Build a leaf from the builder state: give the input schema the defaults of
 /// `#[fireargs::argument]` / `#[fireargs::option]` types, read the fields, attach each `parse`, and compile both
@@ -115,11 +116,39 @@ pub(crate) fn declare_command(command: &Leaf, name: &str) -> clap::Command {
     apply_configure(clap, config)
 }
 
-/// Hand the declared clap command to the `configure` hook, if there is one.
+/// Hand the declared clap command to the `configure` hook, if there is one, then
+/// declare the version flag.
 pub(crate) fn apply_configure(clap: clap::Command, config: &Config) -> clap::Command {
-    match &config.configure {
+    let clap = match &config.configure {
         Some(configure) => configure(clap),
         None => clap,
+    };
+    apply_version(clap)
+}
+
+// clap's own flag prints `<name> <version>`; the twins print the version alone. Declared
+// after `configure` so a hook that sets the version or disables the flag still counts
+fn apply_version(clap: clap::Command) -> clap::Command {
+    if clap.get_version().is_none() || clap.is_disable_version_flag_set() {
+        return clap;
+    }
+    let arguments: Vec<&Arg> = clap.get_arguments().collect();
+    let mut arg = Arg::new(VERSION_ID)
+        .help("output the version number")
+        .action(ArgAction::SetTrue);
+    if !arguments.iter().any(|arg| arg.get_short() == Some('V')) {
+        arg = arg.short('V');
+    }
+    if !arguments
+        .iter()
+        .any(|arg| arg.get_long() == Some("version"))
+    {
+        arg = arg.long("version");
+    }
+    let clap = clap.disable_version_flag(true);
+    match arg.get_short().is_some() || arg.get_long().is_some() {
+        true => clap.arg(arg),
+        false => clap,
     }
 }
 

@@ -141,11 +141,11 @@ Options:
       --llms
           print the program manifest (subcommand schemas) as JSON for LLM tool-use
 
+  -V, --version
+          output the version number
+
   -h, --help
           Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
 
 $ myapp db migrate --json '{}'
 {
