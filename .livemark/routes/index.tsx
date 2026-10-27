@@ -200,7 +200,7 @@ function Hero() {
       <div className="relative mx-auto w-full max-w-6xl px-6 py-20 md:py-28 lg:pt-8 lg:pb-14 lg:grid lg:grid-cols-[27rem_minmax(0,1fr)] lg:items-center lg:gap-14">
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ease-out">
           <p className="text-primary text-xs font-semibold tracking-[0.18em] uppercase">
-            For Python, TypeScript and Rust
+            Open source · MIT License
           </p>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-5xl">
             Typed CLIs for
