@@ -11,8 +11,9 @@ import { Command } from "../../models/command.ts"
 import type { CommandConfig } from "../../models/config.ts"
 import type { CommandContext, RenderContext } from "../../models/context.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
+import { FieldOption } from "../../models/option.ts"
 import { findErrorHandler, handleError, registerErrorHandler } from "../error/handle.ts"
-import { readFieldMeta } from "../field/read.ts"
+import { readFieldDescription, readFieldMeta } from "../field/read.ts"
 import { registerRoute } from "../route/mount.ts"
 import { readRoutePath } from "../route/read.ts"
 import {
@@ -52,7 +53,7 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodType>(
 export type Handler<I extends z.ZodObject, O extends z.ZodType> = (
   input: z.infer<I>,
   context: CommandContext,
-) => z.infer<O> | Promise<z.infer<O>>
+) => z.input<O> | Promise<z.input<O>>
 
 export type Render<I extends z.ZodObject, O extends z.ZodType> = (
   output: z.output<O>,
@@ -189,7 +190,7 @@ function declareArgument(
   schema: z.ZodType,
   meta: ArgumentConfig | undefined,
 ) {
-  const description = schema.description ?? ""
+  const description = readFieldDescription(schema) ?? ""
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
   const { variadic, choices } = readValueShape(inner, meta?.parse)
@@ -200,7 +201,7 @@ function declareArgument(
   if (choices !== undefined) arg.choices(choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
   const parser = createValueParser(inner, meta?.parse, dflt)
-  if (parser !== undefined) arg.argParser(parser)
+  if (parser !== undefined) arg.argParser(recordTokens(arg.tokens, variadic, parser))
   cmd.addArgument(arg)
 }
 
@@ -210,23 +211,68 @@ function declareOption(
   schema: z.ZodType,
   meta: OptionConfig | undefined,
 ) {
-  const description = schema.description ?? ""
+  const description = readFieldDescription(schema) ?? ""
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
   const shortPrefix = meta?.short ? `-${meta.short}, ` : ""
-  const long = `--${deriveCliName(key, meta?.name)}`
+  const name = deriveCliName(key, meta?.name)
 
   if (inner instanceof z.ZodBoolean && meta?.parse === undefined) {
-    return addOption(cmd, new Option(`${shortPrefix}${long}`, description), dflt, meta)
+    const opt = new FieldOption(`${shortPrefix}--${name}`, description)
+    addOption(cmd, opt, dflt, meta)
+    if (meta?.env !== undefined) readBooleanEnv(cmd, opt, meta.env, dflt)
+    if (dflt === true && !name.startsWith("no-")) addNegation(cmd, opt, name)
+    return opt
   }
 
   const { variadic, choices } = readValueShape(inner, meta?.parse)
-  const suffix = variadic ? "..." : ""
-  const opt = new Option(`${shortPrefix}${long} <value${suffix}>`, description)
+  const value = `value${variadic ? "..." : ""}`
+  const placeholder = meta?.preset === undefined ? `<${value}>` : `[${value}]`
+  const opt = new FieldOption(`${shortPrefix}--${name} ${placeholder}`, description)
   if (choices !== undefined) opt.choices(choices)
   const parser = createValueParser(inner, meta?.parse, dflt)
-  if (parser !== undefined) opt.argParser(parser)
+  if (parser !== undefined) opt.argParser(recordTokens(opt.tokens, variadic, parser))
   return addOption(cmd, opt, dflt, meta)
+}
+
+// Kept so an error quotes what was typed: `--count 03`, not the `3` it parsed to.
+// A preset reaches the parser already typed, so it is not parsed again
+function recordTokens(
+  tokens: string[],
+  variadic: boolean,
+  parser: (value: string, previous: unknown) => unknown,
+) {
+  return (value: unknown, previous: unknown) => {
+    if (typeof value !== "string") return value
+    if (!variadic) tokens.length = 0
+    tokens.push(value)
+    return parser(value, previous)
+  }
+}
+
+const TRUE_WORDS = ["1", "true", "yes", "on", "y", "t"]
+const FALSE_WORDS = ["0", "false", "no", "off", "n", "f"]
+
+// commander turns any value of a flag's env var, even `false`, into true
+function readBooleanEnv(cmd: CommanderCommand, opt: Option, env: string, dflt: unknown) {
+  cmd.on(`optionEnv:${opt.name()}`, () => {
+    const value = process.env[env] ?? ""
+    const word = value.trim().toLowerCase()
+    const key = opt.attributeName()
+    if (word === "") cmd.setOptionValueWithSource(key, dflt, "default")
+    else if (TRUE_WORDS.includes(word)) cmd.setOptionValueWithSource(key, true, "env")
+    else if (FALSE_WORDS.includes(word)) cmd.setOptionValueWithSource(key, false, "env")
+    else {
+      const message = `error: option '${opt.flags}' value '${value}' from env '${env}' is invalid. Not a boolean.`
+      cmd.error(message, { code: "commander.invalidArgument", exitCode: 1 })
+    }
+  })
+}
+
+function addNegation(cmd: CommanderCommand, opt: Option, name: string) {
+  const negation = new Option(`--no-${name}`)
+  negation.hideHelp(opt.hidden)
+  cmd.addOption(negation)
 }
 
 function addOption(
@@ -235,7 +281,7 @@ function addOption(
   dflt: unknown,
   meta: OptionConfig | undefined,
 ) {
-  // A `--no-` flag would otherwise become a negation: inverted value, defaulting to true
+  // A field named `noX` would otherwise become a negation: inverted value, defaulting to true
   opt.negate = false
   if (dflt !== undefined) opt.default(dflt, meta?.defaultDescription)
   applyOptionMeta(opt, meta)

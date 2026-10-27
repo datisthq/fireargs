@@ -2,11 +2,11 @@ use std::io::Write;
 
 use clap::ArgMatches;
 use clap::parser::ValueSource;
-use serde_json::{Map, Number, Value};
+use serde_json::{Number, Value};
 
 use super::compile::{JSON_ID, LLMS_ID};
 use super::manifest::{build_leaf_tool, build_manifest};
-use super::report::{format_input_error, format_value_error};
+use super::report::{CliInput, format_input_error, format_value_error};
 use crate::actions::error::handle::handle_error;
 use crate::models::command::{Leaf, RunError};
 use crate::models::config::RenderError;
@@ -83,9 +83,10 @@ pub(crate) async fn run_command(
                 return Ok(1);
             }
             match read_cli_input(&command.fields, matches, &provided) {
-                Ok(map) => {
-                    raw = Some(map.clone());
-                    Ok(Value::Object(map))
+                Ok(input) => {
+                    let value = Value::Object(input.values.clone());
+                    raw = Some(input);
+                    Ok(value)
                 }
                 // A CLI value commander rejects at parse time never reaches the TS hook
                 Err(line) => {
@@ -147,7 +148,7 @@ pub(crate) async fn run_command(
 fn report_input_error(
     error: InputError,
     command: &Leaf,
-    raw: Option<&Map<String, Value>>,
+    raw: Option<&CliInput>,
     hooks: &[RenderError],
     context: &Context,
     out: &mut dyn Write,
@@ -179,23 +180,64 @@ fn read_flag(matches: &ArgMatches, id: &str) -> bool {
         .unwrap_or(false)
 }
 
-// A value clap filled in itself is not the user's: the schema's default applies
+// A value clap filled in itself is not the user's: the schema's default applies.
+// A flag's bad env value counts as given, so reading it reports the error
 fn read_provided_keys(command: &Leaf, matches: &ArgMatches) -> Vec<String> {
     let mut provided = vec![];
     for field in &command.fields {
-        let source = matches.value_source(&field.key);
-        if !matches!(
-            source,
-            Some(ValueSource::CommandLine | ValueSource::EnvVariable)
-        ) {
-            continue;
+        let given = match field.is_flag() {
+            true => !matches!(read_flag_value(field, matches), Ok(None)),
+            false => matches!(
+                matches.value_source(&field.key),
+                Some(ValueSource::CommandLine | ValueSource::EnvVariable)
+            ),
+        };
+        if given {
+            provided.push(field.key.clone());
         }
-        if field.is_flag() && !read_flag(matches, &field.key) {
-            continue;
-        }
-        provided.push(field.key.clone());
     }
     provided
+}
+
+const TRUE_WORDS: [&str; 6] = ["1", "true", "yes", "on", "y", "t"];
+const FALSE_WORDS: [&str; 6] = ["0", "false", "no", "off", "n", "f"];
+
+// An empty env var is absent, and a false word an explicit false
+fn read_flag_value(field: &Field, matches: &ArgMatches) -> Result<Option<bool>, String> {
+    let negated = field.has_negation()
+        && matches.value_source(&field.negation_id()) == Some(ValueSource::CommandLine);
+    if negated {
+        return Ok(Some(false));
+    }
+    match matches.value_source(&field.key) {
+        Some(ValueSource::CommandLine) => Ok(Some(true)),
+        Some(ValueSource::EnvVariable) => {
+            let value = matches
+                .try_get_one::<String>(&field.key)
+                .ok()
+                .flatten()
+                .cloned()
+                .unwrap_or_default();
+            let word = value.trim().to_lowercase();
+            if word.is_empty() {
+                return Ok(None);
+            }
+            if TRUE_WORDS.contains(&word.as_str()) {
+                return Ok(Some(true));
+            }
+            if FALSE_WORDS.contains(&word.as_str()) {
+                return Ok(Some(false));
+            }
+            let env = field.meta.env.clone().unwrap_or_default();
+            Err(format_value_error(
+                field,
+                &value,
+                "Not a boolean.",
+                Some(&env),
+            ))
+        }
+        _ => Ok(None),
+    }
 }
 
 fn check_conflicts(fields: &[Field], provided: &[String]) -> Option<String> {
@@ -230,48 +272,62 @@ fn read_cli_input(
     fields: &[Field],
     matches: &ArgMatches,
     provided: &[String],
-) -> Result<Map<String, Value>, String> {
-    let mut raw = Map::new();
+) -> Result<CliInput, String> {
+    let mut raw = CliInput::default();
     for field in fields.iter().filter(|field| provided.contains(&field.key)) {
         if field.is_flag() {
-            raw.insert(field.key.clone(), Value::Bool(true));
+            if let Some(value) = read_flag_value(field, matches)? {
+                raw.values.insert(field.key.clone(), Value::Bool(value));
+            }
             continue;
         }
+        let env = match matches.value_source(&field.key) {
+            Some(ValueSource::EnvVariable) => field.meta.env.clone(),
+            _ => None,
+        };
         let texts: Vec<String> = matches
             .get_raw(&field.key)
             .map(|values| values.map(|v| v.to_string_lossy().into_owned()).collect())
             .unwrap_or_default();
-        let value = match field.is_variadic() {
-            true => Value::Array(
-                texts
-                    .iter()
-                    .map(|text| convert_value(field, text))
-                    .collect::<Result<_, _>>()?,
+        let env_name = env.as_deref();
+        let (value, tokens) = match field.is_variadic() {
+            true => (
+                Value::Array(
+                    texts
+                        .iter()
+                        .map(|text| convert_value(field, text, env_name))
+                        .collect::<Result<_, _>>()?,
+                ),
+                texts,
             ),
             false => match texts.last() {
-                Some(text) => convert_value(field, text)?,
+                Some(text) => (convert_value(field, text, env_name)?, vec![text.clone()]),
                 None => continue,
             },
         };
-        raw.insert(field.key.clone(), value);
+        raw.values.insert(field.key.clone(), value);
+        raw.tokens.insert(field.key.clone(), tokens);
+        if let Some(env) = env {
+            raw.envs.insert(field.key.clone(), env);
+        }
     }
     for field in fields.iter().filter(|field| provided.contains(&field.key)) {
         for (key, value) in &field.meta.implies {
             if !provided.contains(key) {
-                raw.insert(key.clone(), value.clone());
+                raw.values.insert(key.clone(), value.clone());
             }
         }
     }
     Ok(raw)
 }
 
-fn convert_value(field: &Field, text: &str) -> Result<Value, String> {
+fn convert_value(field: &Field, text: &str, env: Option<&str>) -> Result<Value, String> {
     let result = match &field.parse {
         Some(parse) => parse(text),
         None if field.is_numeric() => parse_number(text),
         None => Ok(Value::String(text.to_owned())),
     };
-    result.map_err(|message| format_value_error(field, text, &message))
+    result.map_err(|message| format_value_error(field, text, &message, env))
 }
 
 fn parse_number(text: &str) -> Result<Value, String> {

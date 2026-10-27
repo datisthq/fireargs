@@ -81,7 +81,7 @@ Without `--json` nothing is printed unless the command has a render. It receives
 | ---------------------------------------- | ------------------------------------------------------------------ |
 | plain field                              | `--key <value>` option                                             |
 | `#[fireargs(argument)]`                  | positional `[key]`, read in field order                            |
-| `bool`                                   | `--key` flag, no value                                             |
+| `bool`                                   | `--key` flag, no value; `default = true` adds `--no-key`           |
 | integers / floats                        | CLI string parsed as a number before the schema validates          |
 | `Vec<T>`                                 | `--key <value>...`: `--key a b` or repeated; positional `[key]...` |
 | a `#[fireargs::option]` enum             | choices, kebab-case, listed in `--help` and checked by the schema  |
@@ -90,6 +90,8 @@ Without `--json` nothing is printed unless the command has a render. It receives
 | doc comment                              | help text, and `description` in the `--llms` manifest              |
 
 A field without a default that is not an `Option` is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails the schema prints one commander-style `error: ...` line per field and exits 1. Clap's own parse errors (unknown option, extra argument) keep clap's wording and also exit 1.
+
+A `bool`'s `env` value is read as a word, trimmed and in any case: `1`, `true`, `yes`, `on`, `y`, `t` set it; `0`, `false`, `no`, `off`, `n`, `f` clear it, even over a `true` default; unset or empty leaves the default; anything else exits 1 with `error: option '--key' value '…' from env 'KEY' is invalid. Not a boolean.`
 
 ## `#[fireargs(...)]` on a field
 
@@ -104,7 +106,7 @@ Keys are snake_case; a misspelled one fails to compile. Plain fields are already
 | `conflicts = quiet` / `[a, b]`                                  | sibling fields that may not be combined with this                 |
 | `implies(level = 3)`                                            | values set on sibling fields when this option is given            |
 | `hidden`                                                        | leave out of `--help`                                             |
-| `preset = expr`                                                 | value used when the flag is given without a value                 |
+| `preset = expr`                                                 | value used when the flag is given alone: `--key [value]`          |
 | `help_group = "Logs"`                                           | heading this option is listed under in `--help`                   |
 | `default_description = ".."`                                    | text shown for the default in `--help` instead of the literal     |
 | `default` / `default = expr`                                    | `Default::default()` or this value when absent                    |
@@ -151,7 +153,7 @@ Builder methods before `.handler(...)`, all optional:
 2. **Keep the camelCase keys.** `#[fireargs::input]` and `#[fireargs::output]` already give `--json` / `--llms` the TypeScript twin's keys (`headerRows`); add a `rename_all` only to break that on purpose.
 3. **Spell optional output as `Option<T>` on a `#[fireargs::output]` struct.** It is left out of `--json` output while `None` and not required in `outputSchema` — the wire shape of a TypeScript `.optional()`.
 4. **Use `parse`, not a custom `Deserialize`, for shell syntax.** A deserializer is part of the type, so `--json` callers go through it too and `--llms` cannot show the string syntax. Numbers need neither: fireargs parses their CLI strings.
-5. **Set `name` only to change the flag.** Reach for it for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name = "dryRun"`). A `no_…` field gives a plain `--no-…` flag, never a negation.
+5. **Set `name` only to change the flag.** Reach for it for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name = "dryRun"`). A `bool` defaulting to `true` gets `--no-…` to clear it, the last flag winning; a `no_…` field gets none and stays a plain `--no-…` flag, `true` when passed.
 6. **Order positionals required first.** They are read in field order — including fields of flattened blocks, at the flatten's position — so an optional one before a required one takes the first value.
 7. **Define reusable fields as `#[fireargs::option]` / `#[fireargs::argument]` newtypes** carrying their doc comment, validation, CLI config, `default` and `parse`; see `fireargs-rust-programs`.
 

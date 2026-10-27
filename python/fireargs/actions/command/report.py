@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 
 import click
 from pydantic import ValidationError
@@ -10,20 +11,34 @@ from ...models.field import OptionMeta
 
 
 class CliValueError(Exception):
-    """A CLI string a field's `parse` or number parsing rejected, before validation."""
+    """A CLI string a field's `parse` or number parsing rejected, before validation;
+    `env` names the env var it came from."""
 
-    def __init__(self, spec: FieldSpec, value: str, message: str) -> None:
+    def __init__(
+        self, spec: FieldSpec, value: str, message: str, env: str | None = None
+    ) -> None:
         super().__init__(message)
         self.spec = spec
         self.value = value
         self.message = message
+        self.env = env
+
+
+@dataclass(frozen=True)
+class CliInput:
+    """Argv input as converted for validation (`values`), as typed (`tokens`), and the
+    env var each key read from the environment came from (`envs`)."""
+
+    values: Mapping[str, object]
+    tokens: Mapping[str, object] = field(default_factory=dict)
+    envs: Mapping[str, str] = field(default_factory=dict)
 
 
 def report_input_error(
     ctx: click.Context,
     error: Exception,
     fields: Sequence[FieldSpec],
-    raw: Mapping[str, object] | None,
+    raw: CliInput | None,
 ):
     """Report a failed input parse worded like commander's own parse errors, on stderr
     with exit code 1. `raw` is the CLI input, or `None` for `--json` input. Anything other
@@ -31,7 +46,8 @@ def report_input_error(
     if isinstance(error, json.JSONDecodeError):
         fail_input(ctx, f"error: --json value is not valid JSON: {error}")
     if isinstance(error, CliValueError):
-        fail_input(ctx, format_value_error(error.spec, error.value, error.message))
+        line = format_value_error(error.spec, error.value, error.message, error.env)
+        fail_input(ctx, line)
     if not isinstance(error, ValidationError):
         raise error
 
@@ -73,29 +89,37 @@ def format_json_issue(issue: ErrorDetails):
     return f"error: invalid --json input at '{path}': {issue['msg']}"
 
 
-def format_cli_issue(
-    issue: ErrorDetails, fields: Sequence[FieldSpec], raw: Mapping[str, object]
-):
+def format_cli_issue(issue: ErrorDetails, fields: Sequence[FieldSpec], raw: CliInput):
     key = issue["loc"][0] if issue["loc"] else None
     spec = next((spec for spec in fields if spec.key == key), None)
     if spec is None:
         return f"error: invalid input. {issue['msg']}"
 
-    value = raw.get(spec.key)
-    if value is None and spec.key not in raw:
+    value = raw.values.get(spec.key)
+    if value is None and spec.key not in raw.values:
         if spec.kind == "argument":
             return f"error: missing required argument '{spec.name}'"
         return f"error: required option '{spec.flags}' not specified"
     index = issue["loc"][1] if len(issue["loc"]) > 1 else None
-    return format_value_error(spec, format_issue_value(value, index), issue["msg"])
+    # Quote what was typed: `--count 03`, not the `3` it converted to
+    token = raw.tokens.get(spec.key, value)
+    if isinstance(token, tuple) and isinstance(value, list) and len(token) == len(value):
+        token = list(token)
+    elif isinstance(token, tuple):
+        token = " ".join(token)
+    shown = format_issue_value(token, index)
+    return format_value_error(spec, shown, issue["msg"], raw.envs.get(spec.key))
 
 
-def format_value_error(spec: FieldSpec, value: str, message: str):
-    # A `hide_input` value is a secret: never echo it, nor a message that may quote it
+def format_value_error(spec: FieldSpec, value: str, message: str, env: str | None = None):
+    # A `hide_input` value is a secret: mask it, also where the message quotes it
     if isinstance(spec.meta, OptionMeta) and spec.meta.hide_input:
-        return f"error: option '{spec.flags}' argument '***' is invalid."
+        message = message.replace(value, "***") if value else message
+        value = "***"
     if spec.kind == "argument":
         return f"error: command-argument value '{value}' is invalid for argument '{spec.name}'. {message}"
+    if env is not None:
+        return f"error: option '{spec.flags}' value '{value}' from env '{env}' is invalid. {message}"
     return f"error: option '{spec.flags}' argument '{value}' is invalid. {message}"
 
 

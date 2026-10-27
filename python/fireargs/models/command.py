@@ -1,8 +1,10 @@
-from collections.abc import Awaitable, Callable
+import os
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
 import click
+from click.types import OptionHelpExtra
 from pydantic import BaseModel, TypeAdapter
 
 from .context import Context, RenderContext
@@ -32,10 +34,43 @@ class FieldSpec:
     meta: FieldMeta | None
 
 
+TRUE_WORDS = ("1", "true", "yes", "on", "y", "t")
+FALSE_WORDS = ("0", "false", "no", "off", "n", "f")
+
+
 class FieldOption(click.Option):
-    """A click option that remembers the help group it is listed under."""
+    """A click option that remembers the help group it is listed under, and reads a
+    boolean flag's env var as the twins do."""
 
     help_group: str | None = None
+    boolean_flags: str | None = None
+    shown_default: str | None = None
+
+    def get_help_extra(self, ctx: click.Context) -> OptionHelpExtra:
+        extra = super().get_help_extra(ctx)
+        if self.shown_default is not None:
+            extra["default"] = self.shown_default
+        return extra
+
+    def value_from_envvar(self, ctx: click.Context) -> str | Sequence[str] | None:
+        value = super().value_from_envvar(ctx)
+        if self.boolean_flags is None or not isinstance(value, str):
+            return value
+        word = value.strip().lower()
+        if word in TRUE_WORDS:
+            return "true"
+        if word in FALSE_WORDS:
+            return "false"
+        if word == "":
+            return None
+        names = [self.envvar] if isinstance(self.envvar, str) else self.envvar or []
+        env = next((name for name in names if os.environ.get(name) == value), "")
+        click.echo(
+            f"error: option '{self.boolean_flags}' value '{value}' from env '{env}'"
+            " is invalid. Not a boolean.",
+            err=True,
+        )
+        ctx.exit(1)
 
 
 class Leaf(click.Command):

@@ -76,7 +76,7 @@ Every field of the input model becomes a CLI field, shown in kebab-case (`dry_ru
 | ---------------------------- | ---------------------------------------------------------- |
 | plain field                  | `--key <value>` option                                     |
 | `Annotated[T, Argument()]`   | positional `<key>`, declared in field order before options |
-| `bool`                       | `--key` flag, no value                                     |
+| `bool`                       | `--key` flag, no value; `= True` adds `--no-key`           |
 | `int` / `float`              | CLI string parsed as a number before pydantic validates    |
 | `list[T]`                    | `--key <value>`, repeated; positional variadic `<key...>`  |
 | `Literal[...]` / string Enum | choices, checked by click before the handler runs          |
@@ -85,6 +85,8 @@ Every field of the input model becomes a CLI field, shown in kebab-case (`dry_ru
 | `description=`               | help text, and `description` in the `--llms` manifest      |
 
 A field without a default is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails pydantic prints one commander-style `error: ...` line per field and exits 1. Click's own parse errors (unknown option, bad choice, extra argument) keep click's wording and exit 2.
+
+A `bool`'s `envvar` value is read as a word, trimmed and in any case: `1`, `true`, `yes`, `on`, `y`, `t` set it; `0`, `false`, `no`, `off`, `n`, `f` clear it, even over a `True` default; unset or empty leaves the default; anything else exits 1 with `error: option '--key' value '…' from env 'KEY' is invalid. Not a boolean.`
 
 ## `Argument()` and `Option()`
 
@@ -101,7 +103,7 @@ Both return a pydantic `FieldInfo` — what `Field()` returns — with Fireargs 
 | `conflicts`           | field name(s) of options that may not be combined with this    |
 | `implies`             | `{"other_field": value}` set when this option is given         |
 | `hidden`              | leave out of `--help`                                          |
-| `flag_value`          | value used when the flag is given without a value              |
+| `flag_value`          | value used when the flag is given alone: `--key [value]`       |
 | `help_group`          | heading this option is listed under in `--help`, e.g. `"Logs"` |
 | `default_description` | text shown for the default in `--help` instead of the literal  |
 | `parse`               | `(value: str) -> value` for the CLI string; see below          |
@@ -138,7 +140,7 @@ Anything else click supports can be done on the returned command, which is a rea
 1. **Give booleans a default.** An absent flag is not sent to pydantic, so a `bool` without a default fails whenever the flag is left off. Write `verbose: bool = False`.
 2. **Spell optional as `X | None = None`.** That spelling is left out of `--json` output while `None` and not required in either schema — the wire shape of a TypeScript `.optional()`. `X | None` without a default is still required.
 3. **Use `parse`, not a `BeforeValidator`, for shell syntax.** A validator is part of the model, so `--json` callers go through it too and `--llms` cannot show the string syntax. `int` and `float` need neither: fireargs parses their CLI strings.
-4. **Write snake_case fields; set `name` only to change the flag.** `header_rows` already gives `--header-rows`. Reach for `name` for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name="dryRun"`). A `no_…` field gives a plain `--no-…` flag, never a negation. `conflicts` and `implies` name fields, not flags.
+4. **Write snake_case fields; set `name` only to change the flag.** `header_rows` already gives `--header-rows`. Reach for `name` for a shorter flag (`to_path` → `--to`) or to keep an existing verbatim flag (`name="dryRun"`). A `bool` defaulting to `True` gets `--no-…` to clear it, the last flag winning; a `no_…` field gets none and stays a plain `--no-…` flag, `True` when passed. `conflicts` and `implies` name fields, not flags.
 5. **Share wire keys with a TypeScript twin through aliases.** `alias="headerRows"`, or `ConfigDict(alias_generator=to_camel, validate_by_name=True)` on a base model, makes `--json` and `--llms` use camelCase while the flag stays `--header-rows`.
 6. **Order positionals required first.** They are declared in field order — including fields inherited from mixin bases, which come first — so an optional one before a required one takes the first value. A variadic that may be empty needs `= []`.
 7. **Define reusable fields as `Annotated` aliases** (`Limit = Annotated[int, Option(short="l", ge=1)]`) and give the default at the use site.

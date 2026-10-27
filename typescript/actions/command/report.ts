@@ -1,5 +1,7 @@
 import type { Command as CommanderCommand, Option } from "commander"
 import { z } from "zod"
+import { FieldArgument } from "../../models/argument.ts"
+import { FieldOption } from "../../models/option.ts"
 
 type ReportProps =
   | { mode: "json" }
@@ -63,20 +65,40 @@ function formatCliIssue(
   const value = props.raw[key]
   const argIndex = props.fields.argKeys.indexOf(key)
   if (argIndex !== -1) {
-    const name = cmd.registeredArguments[argIndex]?.name() ?? key
+    const arg = cmd.registeredArguments[argIndex]
+    const name = arg?.name() ?? key
     if (value === undefined) return `error: missing required argument '${name}'`
-    const shown = formatIssueValue(value, issue)
+    const tokens = arg instanceof FieldArgument ? arg.tokens : []
+    const shown = formatIssueValue(value, tokens, issue)
     return `error: command-argument value '${shown}' is invalid for argument '${name}'. ${issue.message}`
   }
 
-  const flags = props.fields.optionKeys.get(key)?.flags ?? `--${key}`
+  const opt = props.fields.optionKeys.get(key)
+  const flags = opt?.flags ?? `--${key}`
   if (value === undefined) return `error: required option '${flags}' not specified`
-  const shown = formatIssueValue(value, issue)
+  const shown = formatIssueValue(
+    value,
+    opt instanceof FieldOption ? opt.tokens : [],
+    issue,
+  )
+  if (opt !== undefined && cmd.getOptionValueSource(opt.attributeName()) === "env") {
+    return `error: option '${flags}' value '${shown}' from env '${opt.envVar}' is invalid. ${issue.message}`
+  }
   return `error: option '${flags}' argument '${shown}' is invalid. ${issue.message}`
 }
 
-function formatIssueValue(value: unknown, issue: z.core.$ZodIssue) {
+// `tokens` are the strings typed, when a parser turned them into `value`
+function formatIssueValue(
+  value: unknown,
+  tokens: readonly string[],
+  issue: z.core.$ZodIssue,
+) {
   const index = issue.path[1]
-  if (Array.isArray(value) && typeof index === "number") return String(value[index])
-  return Array.isArray(value) ? value.join(" ") : String(value)
+  const items = tokens.length > 0 ? tokens : [value].flat()
+  const indexed =
+    tokens.length === 0 || (Array.isArray(value) && value.length === tokens.length)
+  if (indexed && Array.isArray(value) && typeof index === "number") {
+    return String(items[index])
+  }
+  return items.map(String).join(" ")
 }

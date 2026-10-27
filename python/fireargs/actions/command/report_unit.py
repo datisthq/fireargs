@@ -10,7 +10,7 @@ from pydantic_core import InitErrorDetails, PydanticCustomError
 from fireargs.models.command import FieldSpec
 from fireargs.models.field import OptionMeta
 
-from .report import report_input_error
+from .report import CliInput, report_input_error
 
 
 def report(
@@ -19,7 +19,8 @@ def report(
     raw: Mapping[str, object] | None = None,
 ):
     with pytest.raises(click.exceptions.Exit) as exit:
-        report_input_error(click.Context(click.Command("test")), error, fields or [], raw)
+        cli = None if raw is None else CliInput(values=raw)
+        report_input_error(click.Context(click.Command("test")), error, fields or [], cli)
     assert exit.value.exit_code == 1
 
 
@@ -186,7 +187,7 @@ class TestReportInputError:
         report(read_error(In, {}))
         assert "error: invalid --json input at 'c'" in capsys.readouterr().err
 
-    def test_masks_a_hide_input_value_and_omits_its_message(
+    def test_masks_a_hide_input_value_and_keeps_its_message(
         self, capsys: pytest.CaptureFixture[str]
     ):
         class In(BaseModel):
@@ -198,5 +199,6 @@ class TestReportInputError:
 
         report(read_error(In, raw), fields, raw)
         assert capsys.readouterr().err == (
-            "error: option '--token <value>' argument '***' is invalid.\n"
+            "error: option '--token <value>' argument '***' is invalid. "
+            "String should have at least 8 characters\n"
         )

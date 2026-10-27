@@ -101,6 +101,18 @@ impl Field {
         }
     }
 
+    /// Whether the flag also gets `--no-<name>`: a boolean defaulting to true does.
+    pub fn has_negation(&self) -> bool {
+        self.is_flag()
+            && self.default == Some(Value::Bool(true))
+            && !self.cli_name.starts_with("no-")
+    }
+
+    /// The clap id of the flag's `--no-<name>`.
+    pub fn negation_id(&self) -> String {
+        format!("fireargs:no:{}", self.key)
+    }
+
     /// The flags as commander prints them in errors: `-l, --limit <value>`.
     pub fn flags(&self) -> String {
         let short = self
@@ -112,7 +124,10 @@ impl Field {
         if self.is_flag() {
             return long;
         }
-        let suffix = if self.is_variadic() { "..." } else { "" };
-        format!("{long} <value{suffix}>")
+        let value = format!("value{}", if self.is_variadic() { "..." } else { "" });
+        match self.meta.preset {
+            Some(_) => format!("{long} [{value}]"),
+            None => format!("{long} <{value}>"),
+        }
     }
 }

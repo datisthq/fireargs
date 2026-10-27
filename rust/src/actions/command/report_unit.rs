@@ -1,4 +1,4 @@
-use serde_json::{Map, json};
+use serde_json::json;
 
 use super::*;
 use crate::actions::field::read::read_fields;
@@ -27,7 +27,8 @@ fn words_missing_values_like_commander() {
         issue(vec![PathSegment::Key("path".into())], "required"),
         issue(vec![PathSegment::Key("limit".into())], "required"),
     ]);
-    let text = format_input_error(&error, &read_echo_fields(), Some(&Map::new()));
+    let text =
+        format_input_error(&error, &read_echo_fields(), Some(&CliInput::default()));
     assert_eq!(
         text,
         "error: missing required argument 'path'\n\
@@ -37,8 +38,8 @@ fn words_missing_values_like_commander() {
 
 #[test]
 fn reports_the_failing_element_of_a_variadic_once() {
-    let mut raw = Map::new();
-    raw.insert("rows".into(), json!([1, -2, -3]));
+    let mut raw = CliInput::default();
+    raw.values.insert("rows".into(), json!([1, -2, -3]));
     let path = |i| vec![PathSegment::Key("rows".into()), PathSegment::Index(i)];
     let error = InputError::Invalid(vec![
         issue(path(1), "too small"),

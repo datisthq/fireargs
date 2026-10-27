@@ -60,8 +60,23 @@ class CopyInput(BaseModel):
     dry_run: DryRun = False
 ```
 
-A name starting with `no_` gives a plain `--no-…` flag, not a negation:
-`no_cache: bool = False` is `True` when `--no-cache` is passed.
+## Booleans
+
+A `bool` is a flag without a value. One that defaults to `True` also gets
+`--no-<flag>`, which sets it `False`; when both are given, the last wins.
+A name that already starts with `no_` gets none: `no_cache: bool = False` is
+a plain `--no-cache` flag, `True` when passed. A `--no-…` flag that clashes
+with another field's flag raises when the command is built. Help shows a
+`bool` default as commander does, `[default: true]` or `[default: false]`.
+
+A `bool`'s `envvar` value is read as a word, trimmed and in any case: `1`,
+`true`, `yes`, `on`, `y` or `t` sets it; `0`, `false`, `no`, `off`, `n` or
+`f` clears it, even over a `True` default; unset or empty leaves the
+default. Anything else exits 1:
+
+```text
+error: option '--force' value 'maybe' from env 'FORCE' is invalid. Not a boolean.
+```
 
 ## Wire keys shared with TypeScript
 
@@ -129,7 +144,7 @@ pydantic merges them.
 | `conflicts`           | Field name(s) of options that conflict with this one                |
 | `implies`             | `{"field_name": value}` set when this option is given               |
 | `hidden`              | Hide from `--help`                                                  |
-| `flag_value`          | Value used when the flag appears without an argument                |
+| `flag_value`          | Value used when the flag is given alone: `--key [value]`            |
 | `help_group`          | Heading under which this option is listed in help, e.g. `"Logging"` |
 | `default_description` | Display string for the default value in help                        |
 | `parse`               | Turns the CLI string into the field's value — see below             |
@@ -166,7 +181,8 @@ send that value directly:
   of them) turns `--rows 10` into `10`, and rejects `--rows abc` with
   `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
   `--json '{"rows":"10"}'` is still rejected — the JSON value must be a
-  number.
+  number. An error quotes the value as typed: `--rows 03` that fails
+  `ge=10` reports `'03'`, not `3`.
 - **`parse` handles any other syntax.** It receives the raw string from argv
   or the env var and returns the field's value, which pydantic then
   validates. It never runs on `--json` input or on defaults.

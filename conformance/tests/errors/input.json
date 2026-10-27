@@ -27,6 +27,12 @@
         "stderr": "error: option '--count <value>' argument '3' is invalid. "
       },
       {
+        "description": "an invalid value is quoted as typed, not as converted",
+        "argv": ["strict", "--count", "03"],
+        "exitCode": 1,
+        "stderr": "error: option '--count <value>' argument '03' is invalid. "
+      },
+      {
         "description": "--json given text that is not JSON",
         "argv": ["echo", "--json", "{bad"],
         "exitCode": 1,

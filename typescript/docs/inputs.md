@@ -44,13 +44,27 @@ choose the flag yourself:
   z.object({
     headerRows: z.coerce.number(),                      // --header-rows <value>
     toPath:     f.option({ name: "to" }).string(),      // --to <value>
-    dryRun:     f.option({ name: "dryRun" }).schema(z.boolean().default(false)), // --dryRun
+    dryRun:     f.option({ name: "dryRun" }).boolean().default(false), // --dryRun
   }),
 )
 ```
 
-A key starting with `no` gives a plain `--no-…` flag, not a commander
-negation: `noCache: z.boolean()` is `true` when `--no-cache` is passed.
+## Booleans
+
+A boolean is a flag without a value. One that defaults to `true` also gets
+`--no-<flag>`, which sets it `false`; when both are given, the last wins.
+A key that already starts with `no` gets none: `noCache: z.boolean()` is a
+plain `--no-cache` flag, `true` when passed. A `--no-…` flag that clashes
+with another field's flag throws when the command is built.
+
+A boolean's `env` value is read as a word, trimmed and in any case: `1`,
+`true`, `yes`, `on`, `y` or `t` sets it; `0`, `false`, `no`, `off`, `n` or
+`f` clears it, even over a `true` default; unset or empty leaves the
+default. Anything else exits 1:
+
+```text
+error: option '--force' value 'maybe' from env 'FORCE' is invalid. Not a boolean.
+```
 
 ## The wrappers
 
@@ -68,7 +82,8 @@ exposes the common zod constructors plus `.schema(any)` for arbitrary zod:
 
 The returned schema is _the same zod type_ — fireargs writes its metadata
 into Zod 4's global registry rather than wrapping the schema, so `z.infer`
-flows through cleanly:
+flows through cleanly, and chained modifiers such as `.default()`,
+`.optional()`, `.nullable()` and `.describe()` keep the metadata:
 
 ```ts
 const input = z.object({
@@ -89,7 +104,7 @@ type Input = z.infer<typeof input> // { port: number }
 | `conflicts`          | Input key(s) of options that conflict with this one           |
 | `implies`            | `{ inputKey: value }` set when this option is given           |
 | `hidden`             | Hide from `--help`                                            |
-| `preset`             | Preset value used when the flag appears without an argument   |
+| `preset`             | Value used when the flag is given alone: `--key [value]`      |
 | `helpGroup`          | Group heading under which this option is listed in help       |
 | `defaultDescription` | Display string for the default value in help                  |
 | `parse`              | Turns the CLI string into the field's value — see below       |
@@ -114,7 +129,8 @@ send that value directly:
 - **Numbers coerce automatically.** A field whose schema is `z.number()`
   (or an array of them) turns `--rows 10` into `10`, and rejects `--rows abc`
   with a commander error. `--json '{"rows":"10"}'` is still rejected — the
-  JSON value must be a number.
+  JSON value must be a number. An error quotes the value as typed:
+  `--rows 03` that fails `.min(10)` reports `'03'`, not `3`.
 - **`parse` handles any other syntax.** It receives the raw string from argv
   or the `env` variable and returns the field's value, which zod then
   validates. It never runs on `--json` input or on defaults.
@@ -158,17 +174,17 @@ field by its pre-transform type.
     name: f.argument().string().describe("user's name"),
 
     // positional, optional: [greeting]; keep required positionals first
-    greeting: f.argument().schema(z.string().optional()),
+    greeting: f.argument().string().optional(),
 
     // option with short alias and env fallback
-    port: f.option({ short: "p", env: "PORT" }).schema(z.number().default(8080)),
+    port: f.option({ short: "p", env: "PORT" }).number().default(8080),
 
     // booleans with explicit conflicts
-    rgb:  f.option({ conflicts: "cmyk" }).schema(z.boolean().default(false)),
+    rgb:  f.option({ conflicts: "cmyk" }).boolean().default(false),
     cmyk: z.boolean().default(false),
 
     // hidden internal option
-    secret: f.option({ hidden: true }).schema(z.string().optional()),
+    secret: f.option({ hidden: true }).string().optional(),
 
     // variadic with choices
     formats: z.array(z.enum(["json", "yaml", "toml"])).default([]),

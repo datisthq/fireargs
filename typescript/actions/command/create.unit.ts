@@ -3,6 +3,7 @@ import { afterEach, describe, expect, expectTypeOf, it } from "vite-plus/test"
 import { z } from "zod"
 import { f, type Command, type CommandContext, type RenderContext } from "../../index.ts"
 import { readFieldMeta } from "../field/read.ts"
+import type { Handler } from "./compile.ts"
 
 describe("f.command", () => {
   it("returns a Command instance", () => {
@@ -986,6 +987,148 @@ describe("f.command flag names", () => {
     expect(() =>
       captureInput(z.object({ toPath: z.string(), "to-path": z.string() })),
     ).toThrow(/conflicting flag/)
+  })
+})
+
+describe("chained field modifiers", () => {
+  it("keeps argument meta through .default()", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({ name: f.argument().string().default("world") }),
+    )
+
+    expect(cmd.helpInformation()).toContain("[name]")
+    await cmd.parseAsync(["moon"], { from: "user" })
+    expect(read()).toEqual({ name: "moon" })
+  })
+
+  it("keeps option meta through .optional(), .nullable() and .default()", () => {
+    const { cmd } = createCapturingCommand(
+      z.object({
+        verbose: f.option({ short: "v" }).boolean().default(false),
+        role: f.option({ short: "r" }).string().optional(),
+        tag: f.option({ short: "t" }).string().nullable(),
+        level: f.option({ short: "l" }).number().optional().default(1),
+      }),
+    )
+
+    const help = cmd.helpInformation()
+    expect(help).toContain("-v, --verbose")
+    expect(help).toContain("-r, --role <value>")
+    expect(help).toContain("-t, --tag <value>")
+    expect(help).toContain("-l, --level <value>")
+  })
+
+  it("keeps a description set before a wrapper", () => {
+    const { cmd } = createCapturingCommand(
+      z.object({
+        path: f.argument().string().describe("Path to read").default("."),
+        limit: f.option().number().describe("Rows to read").optional(),
+      }),
+    )
+
+    const help = cmd.helpInformation()
+    expect(help).toContain("Path to read")
+    expect(help).toContain("Rows to read")
+  })
+})
+
+describe("option semantics", () => {
+  it("lets a preset option take a value or stand alone", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({ color: f.option({ preset: "red" }).string().optional() }),
+    )
+
+    expect(cmd.helpInformation()).toContain("--color [value]")
+    await cmd.parseAsync(["--color"], { from: "user" })
+    expect(read()).toEqual({ color: "red" })
+    await cmd.parseAsync(["--color", "blue"], { from: "user" })
+    expect(read()).toEqual({ color: "blue" })
+  })
+
+  it("gives a boolean defaulting to true a --no- flag", async () => {
+    const { cmd, read } = createCapturingCommand(
+      z.object({
+        color: z.boolean().default(true),
+        quiet: z.boolean().default(false),
+        noCache: z.boolean().default(true),
+      }),
+    )
+
+    const help = cmd.helpInformation()
+    expect(help).toContain("--no-color")
+    expect(help).not.toContain("--no-quiet")
+    expect(help).not.toContain("--no-no-cache")
+    await cmd.parseAsync(["--no-color"], { from: "user" })
+    expect(read()).toEqual({ color: false, quiet: false, noCache: true })
+    await cmd.parseAsync(["--no-color", "--color"], { from: "user" })
+    expect(read()).toEqual({ color: true, quiet: false, noCache: true })
+  })
+
+  it("throws when a --no- flag clashes with a sibling field", () => {
+    expect(() =>
+      createCapturingCommand(
+        z.object({ color: z.boolean().default(true), noColor: z.boolean().optional() }),
+      ),
+    ).toThrow(/conflicting flag '--no-color'/)
+  })
+
+  it("hides the --no- flag of a hidden option", () => {
+    const { cmd } = createCapturingCommand(
+      z.object({ color: f.option({ hidden: true }).boolean().default(true) }),
+    )
+
+    expect(cmd.helpInformation()).not.toContain("--no-color")
+  })
+
+  it("quotes the argument token typed, not the number it parsed to", async () => {
+    const { cmd } = createCapturingCommand(
+      z.object({ count: f.argument().number().min(10) }),
+    )
+
+    await expect(cmd.parseAsync(["03"], { from: "user" })).rejects.toMatchObject({
+      message: expect.stringMatching(
+        /^error: command-argument value '03' is invalid for argument 'count'\. /,
+      ),
+    })
+  })
+
+  it("quotes each variadic token typed", async () => {
+    const { cmd } = createCapturingCommand(
+      z.object({ rows: z.array(z.number().min(10)) }),
+    )
+
+    await expect(
+      cmd.parseAsync(["--rows", "12", "--rows", "05"], { from: "user" }),
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(
+        /^error: option '--rows <value\.\.\.>' argument '05'/,
+      ),
+    })
+  })
+
+  it("names the env var of an env value the schema rejects", async () => {
+    const { cmd } = createCapturingCommand(
+      z.object({ times: f.option({ env: "FIREARGS_TEST_TIMES" }).number().min(1) }),
+    )
+
+    process.env.FIREARGS_TEST_TIMES = "0"
+    try {
+      await expect(cmd.parseAsync([], { from: "user" })).rejects.toMatchObject({
+        message: expect.stringMatching(
+          /^error: option '--times <value>' value '0' from env 'FIREARGS_TEST_TIMES' is invalid\. /,
+        ),
+      })
+    } finally {
+      delete process.env.FIREARGS_TEST_TIMES
+    }
+  })
+
+  it("types the handler's return as the output schema's input", () => {
+    const input = z.object({})
+    const output = z.object({ when: z.string().transform(text => new Date(text)) })
+    type Returned = Awaited<ReturnType<Handler<typeof input, typeof output>>>
+
+    expectTypeOf<Returned>().toEqualTypeOf<{ when: string }>()
   })
 })
 

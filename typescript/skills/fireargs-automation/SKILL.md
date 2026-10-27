@@ -79,7 +79,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 ## Errors and exits
 
 - A commander parse error (unknown option, unknown command, bad choice, missing positional, too many arguments) prints to stderr and exits with code 1. With `exitOverride: true` it throws a `CommanderError` instead.
-- Without a `renderError` hook, input failures take the same path: a `--json` value that is not JSON (`code: "fireargs.invalidJson"`) and input that fails the zod schema (`code: "fireargs.invalidInput"`), one `error: ...` line per field — `invalid --json input at 'a.b[0]': ...` in JSON mode, commander's own wording at the shell.
+- Without a `renderError` hook, input failures take the same path: a `--json` value that is not JSON (`code: "fireargs.invalidJson"`) and input that fails the zod schema (`code: "fireargs.invalidInput"`), one `error: ...` line per field — `invalid --json input at 'a.b[0]': ...` in JSON mode, commander's own wording at the shell, which quotes each value as typed (`argument '03'`, not `3`) and names the env var a value came from (`value '0' from env 'TIMES'`).
 - A zod output failure or an exception from the handler or `.render` rejects the `parseAsync(...)` promise — unless a `renderError` hook is set.
 - `renderError: (error, context) => value` on a command, or once on the root program for the whole tree (the nearest hook wins). It also receives input failures, as the original `SyntaxError` or `ZodError`. Under `--json` its return is written as JSON to `writeOut`; otherwise a returned string goes to `writeErr`. Then `process.exitCode` is set to 1 — the process is not exited and `exitOverride` does not apply. Rethrow to reject as before.
 

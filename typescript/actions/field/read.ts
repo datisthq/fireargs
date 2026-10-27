@@ -48,6 +48,42 @@ const fieldMetaSchema: z.ZodType<FieldMeta> = z.discriminatedUnion("kind", [
  * treats those as default `--option` fields.
  */
 export function readFieldMeta(schema: z.ZodType) {
-  const raw = schema.meta()?.[FIREARGS_META_KEY]
-  return fieldMetaSchema.safeParse(raw).data
+  const raw = findSchemaMeta(schema, meta => meta[FIREARGS_META_KEY] !== undefined)
+  return fieldMetaSchema.safeParse(raw?.[FIREARGS_META_KEY]).data
+}
+
+/**
+ * Read a field's description, set on it or on any schema it wraps.
+ */
+export function readFieldDescription(schema: z.ZodType) {
+  const meta = findSchemaMeta(schema, meta => meta.description !== undefined)
+  return meta?.description
+}
+
+// zod keeps meta on the instance it was set on, and a wrapper made after it
+// (`.default()`, `.optional()`…) starts empty: `f.option().boolean().default(false)`
+function findSchemaMeta(
+  schema: z.core.$ZodType,
+  test: (meta: z.core.GlobalMeta) => boolean,
+): z.core.GlobalMeta | undefined {
+  const meta = z.globalRegistry.get(schema)
+  if (meta !== undefined && test(meta)) return meta
+  const inner = unwrapSchema(schema)
+  return inner === undefined ? undefined : findSchemaMeta(inner, test)
+}
+
+function unwrapSchema(schema: z.core.$ZodType) {
+  if (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault ||
+    schema instanceof z.ZodPrefault ||
+    schema instanceof z.ZodNonOptional ||
+    schema instanceof z.ZodCatch ||
+    schema instanceof z.ZodReadonly
+  ) {
+    return schema.unwrap()
+  }
+  if (schema instanceof z.ZodPipe) return schema.in
+  return undefined
 }

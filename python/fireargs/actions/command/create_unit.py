@@ -726,6 +726,97 @@ class TestFlagNames:
             f.command(name="read")(read)
 
 
+class TestOptionSemantics:
+    def test_gives_a_bool_defaulting_to_true_a_no_flag(self):
+        class In(BaseModel):
+            color: bool = True
+            quiet: bool = False
+            no_cache: bool = True
+
+        seen: list[In] = []
+
+        @f.command(name="read")
+        def read(input: In) -> Empty:
+            seen.append(input)
+            return Empty()
+
+        help = read_help(read)
+        assert "--color / --no-color" in help
+        assert "--no-quiet" not in help
+        assert "--no-no-cache" not in help
+        invoke(read, "--no-color")
+        invoke(read, "--no-color", "--color")
+        assert [item.color for item in seen] == [False, True]
+
+    def test_throws_when_a_no_flag_clashes_with_a_sibling_field(self):
+        class In(BaseModel):
+            color: bool = True
+            no_color: bool | None = None
+
+        def read(input: In) -> Empty:
+            return Empty()
+
+        with pytest.raises(ValueError, match="conflicting flag '--no-color'"):
+            f.command(name="read")(read)
+
+    def test_shows_bool_defaults_lowercase_as_commander_does(self):
+        class In(BaseModel):
+            color: bool = True
+            quiet: bool = False
+
+        @f.command(name="read")
+        def read(input: In) -> Empty:
+            return Empty()
+
+        help = read_help(read)
+        assert "[default: true]" in help
+        assert "[default: false]" in help
+
+    def test_labels_a_count_and_an_is_flag_option_without_a_value(self):
+        class In(BaseModel):
+            verbose: Annotated[int, f.Option(count=True, conflicts="quiet")] = 0
+            quiet: Annotated[int, f.Option(is_flag=True, flag_value=1)] = 0
+
+        @f.command(name="read")
+        def read(input: In) -> Empty:
+            return Empty()
+
+        result = invoke(read, "--verbose", "--quiet")
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: option '--verbose' cannot be used with option '--quiet'\n"
+        )
+
+    def test_quotes_the_token_typed_not_the_value_parse_made(self):
+        class In(BaseModel):
+            pair: Annotated[
+                tuple[int, int], f.Option(parse=lambda text: tuple(text.split(":")))
+            ]
+
+        @f.command(name="read")
+        def read(input: In) -> Empty:
+            return Empty()
+
+        result = invoke(read, "--pair", "1:x")
+        assert result.exit_code == 1
+        assert result.stderr.startswith("error: option '--pair <value>' argument '1:x'")
+
+    def test_names_the_env_var_of_an_env_value_the_model_rejects(self):
+        class In(BaseModel):
+            times: Annotated[int, f.Option(envvar="FIREARGS_TEST_TIMES", ge=1)] = 1
+
+        @f.command(name="read")
+        def read(input: In) -> Empty:
+            return Empty()
+
+        result = invoke(read, env={"FIREARGS_TEST_TIMES": "0"})
+        assert result.exit_code == 1
+        assert result.stderr.startswith(
+            "error: option '--times <value>' value '0' from env 'FIREARGS_TEST_TIMES'"
+            " is invalid. "
+        )
+
+
 class TestCliValueParsing:
     def test_applies_option_parse_to_the_argv_string(self):
         class In(BaseModel):
@@ -1011,7 +1102,7 @@ class TestJsonOutput:
             "double": 4,
         }
 
-    def test_hides_a_hide_input_value_and_its_message_in_input_errors(self):
+    def test_masks_a_hide_input_value_but_keeps_the_reason_in_input_errors(self):
         class In(BaseModel):
             pin: Annotated[int, f.Option(hide_input=True, ge=1000)]
 
@@ -1019,12 +1110,15 @@ class TestJsonOutput:
         def login(input: In) -> Empty:
             return Empty()
 
-        for value in ["12", "secret"]:
+        reasons = {
+            "12": "Input should be greater than or equal to 1000",
+            "secret": "Not a number.",
+        }
+        for value, reason in reasons.items():
             result = invoke(login, "--pin", value)
             assert result.exit_code == 1
-            assert (
-                result.stderr
-                == "error: option '--pin <value>' argument '***' is invalid.\n"
+            assert result.stderr == (
+                f"error: option '--pin <value>' argument '***' is invalid. {reason}\n"
             )
 
 

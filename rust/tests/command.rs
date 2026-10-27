@@ -388,3 +388,69 @@ fn create_versioned() -> Command<TagsInput, TagsInput> {
         .version("3.0")
         .handler(async |input: TagsInput, _| Ok(input))
 }
+
+#[fireargs::input]
+struct FlagsInput {
+    #[fireargs(default = true)]
+    color: bool,
+    #[fireargs(default)]
+    quiet: bool,
+    #[fireargs(default = true)]
+    no_cache: bool,
+    #[fireargs(range(min = 20))]
+    count: Option<i64>,
+}
+
+fn create_flags() -> Command<FlagsInput, FlagsInput> {
+    fireargs::command().handler(async |input: FlagsInput, _| Ok(input))
+}
+
+#[test]
+fn a_bool_defaulting_to_true_gets_a_no_flag_and_the_last_flag_wins() {
+    let command = create_flags();
+    let (_, out, _) = run(&command, &["--no-color", "--json"]);
+    assert_eq!(read_json(&out)["color"], false);
+    let (_, out, _) = run(&command, &["--no-color", "--color", "--json"]);
+    assert_eq!(read_json(&out)["color"], true);
+    for flag in ["--no-quiet", "--no-no-cache"] {
+        let (code, _, err) = run(&command, &[flag]);
+        assert_eq!(code, 1);
+        assert!(
+            err.contains(&format!("unexpected argument '{flag}'")),
+            "{err}"
+        );
+    }
+}
+
+#[fireargs::input]
+struct ClashInput {
+    #[fireargs(default = true)]
+    color: bool,
+    no_color: Option<bool>,
+}
+
+#[test]
+#[should_panic(expected = "conflicting flag '--no-color'")]
+fn a_no_flag_clashing_with_a_sibling_field_panics() {
+    fireargs::command().handler(async |input: ClashInput, _| Ok(input));
+}
+
+#[test]
+fn an_invalid_value_quotes_the_token_typed() {
+    let (code, _, err) = run(&create_flags(), &["--count", "011"]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: option '--count <value>' argument '011' is invalid. "),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_preset_option_names_its_value_optional_in_errors() {
+    let (code, _, err) = run(&create_tags(), &["--level", "x"]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: option '--level [value]' argument 'x' is invalid. "),
+        "{err}"
+    );
+}

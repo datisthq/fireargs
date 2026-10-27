@@ -37,12 +37,16 @@ struct TagsInput {
     loud: Option<bool>,
     quiet: Option<bool>,
     level: Option<i64>,
+    #[fireargs(preset = "red")]
+    color: Option<String>,
 }
 
 #[fireargs::input]
 struct ResetInput {
-    #[fireargs(default)]
+    #[fireargs(env = "FIXTURE_FORCE", default)]
     force: bool,
+    #[fireargs(env = "FIXTURE_BACKUP", default = true)]
+    backup: bool,
 }
 
 #[fireargs::input]

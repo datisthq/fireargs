@@ -35,6 +35,7 @@ class TagsInput(BaseModel):
     loud: Annotated[bool | None, f.Option(conflicts="quiet", implies={"level": 3})] = None
     quiet: bool | None = None
     level: int | None = None
+    color: Annotated[str | None, f.Option(flag_value="red")] = None
 
 
 @f.command(description="Collect tags and rows")
@@ -43,7 +44,8 @@ def tags(input: TagsInput) -> TagsInput:
 
 
 class ResetInput(BaseModel):
-    force: bool = False
+    force: Annotated[bool, f.Option(envvar="FIXTURE_FORCE")] = False
+    backup: Annotated[bool, f.Option(envvar="FIXTURE_BACKUP")] = True
 
 
 @f.command(description="Reset everything")

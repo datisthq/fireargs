@@ -1,7 +1,8 @@
 import json
+import os
 import re
 import types
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Annotated, Literal, TypedDict, Union, get_args, get_origin
@@ -22,7 +23,7 @@ from ..error.handle import find_error_handler, handle_error
 from ..field.read import read_field_meta
 from ..route.read import read_route_path
 from .manifest import build_manifest
-from .report import CliValueError, fail_input, report_input_error
+from .report import CliInput, CliValueError, fail_input, report_input_error
 
 JSON_PARAM = "fireargs_json"
 LLMS_PARAM = "fireargs_llms"
@@ -242,12 +243,16 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
     shape = read_value_shape(info.annotation, meta.parse)
     name = derive_cli_name(key, meta.name)
     short = f"-{meta.short}" if meta.short else None
-    decls = [*([short] if short else []), f"--{name}", key]
     flag = shape.boolean and meta.flag_value is None
-    preset = meta.flag_value is not None and not flag
+    preset = meta.flag_value is not None and not flag and not meta.is_flag
+    default = read_click_default(info, shape.variadic)
+    long = f"--{name}"
+    if flag and default is True and not name.startswith("no-"):
+        long = f"--{name}/--no-{name}"
+    decls = [*([short] if short else []), long, key]
     value = (
         ""
-        if flag
+        if flag or meta.count or meta.is_flag
         else "[value]"
         if preset
         else "<value...>"
@@ -258,7 +263,9 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
         key=key,
         kind="option",
         name=name,
-        flags=" ".join(part for part in [", ".join(decls[:-1]), value] if part),
+        flags=" ".join(
+            part for part in [", ".join([*decls[:-2], f"--{name}"]), value] if part
+        ),
         description=info.description,
         default=None,
         required=info.is_required(),
@@ -267,9 +274,13 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
         parse=meta.parse,
         meta=meta,
     )
-    default = read_click_default(info, shape.variadic)
     show_default = meta.show_default
-    if show_default is None:
+    # Shown as commander shows it: lowercase, and a false default too
+    shown_flag_default = None
+    if show_default is None and flag and isinstance(info.get_default(), bool):
+        shown_flag_default = "true" if default else "false"
+        show_default = False
+    elif show_default is None:
         show_default = meta.default_description or default is not None
     shared: OptionSettings = {
         "show_default": show_default,
@@ -290,6 +301,12 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
             count=meta.count,
             metavar=meta.metavar,
             **shared,
+        )
+        option.boolean_flags = spec.flags
+        option.shown_default = shown_flag_default
+    elif meta.is_flag and meta.flag_value is not None:
+        option = FieldOption(
+            decls, is_flag=True, flag_value=meta.flag_value, default=default, **shared
         )
     elif preset:
         option = FieldOption(
@@ -404,15 +421,18 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
     if json_input is None:
         check_required_arguments(ctx, command.fields, params)
 
-    raw: dict[str, object] | None = None
+    raw: CliInput | None = None
     try:
         if json_input is not None:
             json.loads(json_input)
             # Strict, as zod is: `--json` carries typed values, so `"3"` is no number
             parsed = command.input.model_validate_json(json_input, strict=True)
         else:
-            raw = read_cli_input(command.fields, params, provided)
-            parsed = command.input.model_validate(raw, by_alias=True, by_name=True)
+            envs = read_env_sources(command.fields, ctx)
+            values = read_cli_input(command.fields, params, provided, envs)
+            tokens = {key: params[key] for key in provided}
+            raw = CliInput(values=values, tokens=tokens, envs=envs)
+            parsed = command.input.model_validate(values, by_alias=True, by_name=True)
     except (json.JSONDecodeError, CliValueError, ValidationError) as error:
         # A CLI value commander rejects at parse time never reaches the TS hook either
         if isinstance(error, CliValueError) or find_error_handler(ctx) is None:
@@ -481,18 +501,40 @@ def check_required_arguments(
             fail_input(ctx, f"error: missing required argument '{spec.name}'")
 
 
+def read_env_sources(fields: Sequence[FieldSpec], ctx: click.Context):
+    """The env var each key's value came from, for the keys read from the environment."""
+    envs: dict[str, str] = {}
+    for spec in fields:
+        if ctx.get_parameter_source(spec.key) is not ParameterSource.ENVIRONMENT:
+            continue
+        env = read_env_name(spec.meta.envvar if spec.meta is not None else None)
+        if env is not None:
+            envs[spec.key] = env
+    return envs
+
+
+def read_env_name(envvar: str | Sequence[str] | None):
+    """The env var a value is read from: the first of `envvar` set and not empty."""
+    names = [envvar] if isinstance(envvar, str) else list(envvar or [])
+    return next((name for name in names if os.environ.get(name)), None)
+
+
 def read_cli_input(
-    fields: Sequence[FieldSpec], params: dict[str, object], provided: set[str]
+    fields: Sequence[FieldSpec],
+    params: dict[str, object],
+    provided: set[str],
+    envs: Mapping[str, str],
 ):
     raw: dict[str, object] = {}
     for spec in fields:
         if spec.key not in provided:
             continue
         value = params[spec.key]
+        env = envs.get(spec.key)
         if isinstance(value, tuple):
-            raw[spec.key] = [convert_value(spec, item) for item in value]
+            raw[spec.key] = [convert_value(spec, item, env) for item in value]
         else:
-            raw[spec.key] = convert_value(spec, value)
+            raw[spec.key] = convert_value(spec, value, env)
     for spec in fields:
         if spec.key in provided and isinstance(spec.meta, OptionMeta):
             for key, value in spec.meta.implies.items():
@@ -501,7 +543,7 @@ def read_cli_input(
     return raw
 
 
-def convert_value(spec: FieldSpec, value: object):
+def convert_value(spec: FieldSpec, value: object, env: str | None = None):
     if not isinstance(value, str):
         return value
     try:
@@ -510,7 +552,7 @@ def convert_value(spec: FieldSpec, value: object):
         if spec.number:
             return parse_number(value)
     except Exception as error:
-        raise CliValueError(spec, value, str(error)) from error
+        raise CliValueError(spec, value, str(error), env) from error
     return value
 
 

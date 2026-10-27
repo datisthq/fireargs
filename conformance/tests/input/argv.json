@@ -30,7 +30,7 @@
         "description": "a nested route",
         "argv": ["admin", "reset", "--force", "--json"],
         "exitCode": 0,
-        "stdout": { "force": true }
+        "stdout": { "force": true, "backup": true }
       }
     ]
   }

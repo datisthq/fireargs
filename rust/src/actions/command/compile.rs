@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use clap::builder::StringValueParser;
 use clap::{Arg, ArgAction};
 use serde_json::{Map, Value};
 
@@ -32,6 +33,7 @@ pub(crate) fn compile_command(
         }
     }
     let mut fields = read_fields(&input);
+    assert_unique_negations(&fields);
     for spec in specs {
         let Some(parse) = spec.parse else { continue };
         match fields.iter_mut().find(|field| field.key == spec.key) {
@@ -50,6 +52,20 @@ pub(crate) fn compile_command(
         fields,
         defaults,
         runner,
+    }
+}
+
+fn assert_unique_negations(fields: &[Field]) {
+    for field in fields.iter().filter(|field| field.has_negation()) {
+        let negation = format!("no-{}", field.cli_name);
+        if fields
+            .iter()
+            .any(|other| !other.is_argument() && other.cli_name == negation)
+        {
+            panic!(
+                "Cannot add option '--{negation}' due to conflicting flag '--{negation}'"
+            );
+        }
     }
 }
 
@@ -89,6 +105,9 @@ pub(crate) fn declare_command(command: &Leaf, name: &str) -> clap::Command {
     }
     for field in command.fields.iter().filter(|field| !field.is_argument()) {
         clap = clap.arg(declare_option(field));
+        if field.has_negation() {
+            clap = clap.arg(declare_negation(field));
+        }
     }
     if let Some((long, description)) = read_flag(
         &config.json_option,
@@ -235,6 +254,11 @@ fn declare_option(field: &Field) -> Arg {
         arg = arg.help_heading(group.clone());
     }
     if field.is_flag() {
+        // Any string: clap would reject an env var's `1` or `yes`, and read `false` as true
+        arg = arg.value_parser(StringValueParser::new());
+        if field.has_negation() {
+            arg = arg.overrides_with(field.negation_id());
+        }
         return arg.action(ArgAction::SetTrue);
     }
     arg = arg.value_name("value");
@@ -249,6 +273,18 @@ fn declare_option(field: &Field) -> Arg {
         return arg.num_args(1..).action(ArgAction::Append);
     }
     arg.action(ArgAction::Set)
+}
+
+fn declare_negation(field: &Field) -> Arg {
+    let mut arg = Arg::new(field.negation_id())
+        .long(format!("no-{}", field.cli_name))
+        .hide(field.meta.hidden)
+        .overrides_with(field.key.clone())
+        .action(ArgAction::SetTrue);
+    if let Some(group) = &field.meta.help_group {
+        arg = arg.help_heading(group.clone());
+    }
+    arg
 }
 
 // Worded as commander's help: `Rows to read (choices: "a", "b", default: 20)`

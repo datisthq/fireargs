@@ -6,13 +6,19 @@
         "description": "parse turns one CLI string into the field's value",
         "argv": ["tags", "--tags", "a,b", "--json"],
         "exitCode": 0,
-        "stdout": { "tags": ["a", "b"], "rows": [] }
+        "stdout": {
+          "tags": ["a", "b"],
+          "rows": []
+        }
       },
       {
         "description": "a repeated array option collects numbers",
         "argv": ["tags", "--rows", "1", "--rows", "2", "--json"],
         "exitCode": 0,
-        "stdout": { "tags": [], "rows": [1, 2] }
+        "stdout": {
+          "tags": [],
+          "rows": [1, 2]
+        }
       },
       {
         "description": "an array option rejects the element that is not a number",
@@ -36,7 +42,64 @@
         "description": "implies sets another input key",
         "argv": ["tags", "--loud", "--json"],
         "exitCode": 0,
-        "stdout": { "tags": [], "rows": [], "loud": true, "level": 3 }
+        "stdout": {
+          "tags": [],
+          "rows": [],
+          "loud": true,
+          "level": 3
+        }
+      },
+      {
+        "description": "a preset option alone takes its preset",
+        "argv": ["tags", "--color", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "tags": [],
+          "rows": [],
+          "color": "red"
+        }
+      },
+      {
+        "description": "a preset option takes a value given after it",
+        "argv": ["tags", "--color", "blue", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "tags": [],
+          "rows": [],
+          "color": "blue"
+        }
+      }
+    ]
+  },
+  {
+    "description": "a boolean that defaults to true gets a --no- flag",
+    "tests": [
+      {
+        "description": "the --no- flag sets it false",
+        "argv": ["admin", "reset", "--no-backup", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "force": false,
+          "backup": false
+        }
+      },
+      {
+        "description": "left out, it keeps its default",
+        "argv": ["admin", "reset", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "force": false,
+          "backup": true
+        }
+      },
+      {
+        "description": "the last flag wins",
+        "argv": ["admin", "reset", "--no-backup", "--backup", "--json"],
+        "exitCode": 0,
+        "stdout": {
+          "force": false,
+          "backup": true
+        }
       }
     ]
   }

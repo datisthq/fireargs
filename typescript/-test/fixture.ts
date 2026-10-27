@@ -35,6 +35,7 @@ const tagsInput = z.object({
     .schema(z.boolean().optional()),
   quiet: z.boolean().optional(),
   level: z.number().int().optional(),
+  color: f.option({ preset: "red" }).string().optional(),
 })
 
 const tags = f
@@ -43,7 +44,10 @@ const tags = f
   .output(tagsInput)
   .handler(input => input)
 
-const resetInput = z.object({ force: z.boolean().default(false) })
+const resetInput = z.object({
+  force: f.option({ env: "FIXTURE_FORCE" }).boolean().default(false),
+  backup: f.option({ env: "FIXTURE_BACKUP" }).boolean().default(true),
+})
 
 const reset = f
   .command({ description: "Reset everything" })

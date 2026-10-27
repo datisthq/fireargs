@@ -54,8 +54,21 @@ struct CopyInput {
 }
 ```
 
-A key starting with `no` gives a plain `--no-…` flag, not a negation: a
-`no_cache: bool` is `true` when `--no-cache` is passed.
+## Booleans
+
+A `bool` is a flag without a value. One that defaults to `true`
+(`#[fireargs(default = true)]`) also gets `--no-<flag>`, which sets it `false`;
+when both are given, the last wins. A key that already starts with `no` gets none:
+a `no_cache: bool` is a plain `--no-cache` flag, `true` when passed. A `--no-…`
+flag that clashes with another field's flag panics when the command is built.
+
+A `bool`'s `env` value is read as a word, trimmed and in any case: `1`, `true`,
+`yes`, `on`, `y` or `t` sets it; `0`, `false`, `no`, `off`, `n` or `f` clears it,
+even over a `true` default; unset or empty leaves the default. Anything else exits 1:
+
+```text
+error: option '--force' value 'maybe' from env 'FORCE' is invalid. Not a boolean.
+```
 
 ## Wire keys shared with TypeScript
 
@@ -107,7 +120,7 @@ apply beside it, since the struct derives both.
 | `conflicts = other`          | Field or fields (`[a, b]`) that conflict with this one       |
 | `implies(level = 3, ..)`     | Values set on other fields when this option is given         |
 | `hidden`                     | Hide from `--help`                                           |
-| `preset = expr`              | Value used when the flag appears without an argument         |
+| `preset = expr`              | Value used when the flag is given alone: `--key [value]`     |
 | `help_group = "Logging"`     | Heading under which this option is listed in help            |
 | `default_description = ".."` | Display string for the default value in help                 |
 
@@ -137,6 +150,8 @@ directly:
   `Vec` of them) turns `--rows 10` into `10`, and rejects `--rows abc` with
   `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
   `--json '{"rows":"10"}'` is still rejected — the JSON value must be a number.
+  An error quotes the value as typed: `--rows 011` that fails `range(min = 20)`
+  reports `'011'`, not `11`.
 - **`parse = fn` handles any other syntax.** It receives the raw string from argv
   or the env var and returns `Result<T, E>`: any `Serialize` value, which the schema
   then validates, or an error that displays. It never runs on `--json` input or on
