@@ -47,6 +47,9 @@ mod actions {
     pub(crate) mod field {
         pub(crate) mod read;
     }
+    pub(crate) mod output {
+        pub(crate) mod serialize;
+    }
     pub(crate) mod program {
         pub(crate) mod compile;
         pub(crate) mod create;

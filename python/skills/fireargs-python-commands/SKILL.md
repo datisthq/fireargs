@@ -20,7 +20,7 @@ Invoke when the user asks to:
 
 ## The decorator
 
-`@command(**config)` turns a handler into a `Command`, a real click `Command`. The handler's first parameter annotation is the input model, its return annotation the output type; an optional second parameter receives `Context`. Always call the decorator, even bare: `@command()`.
+`@command(**config)` turns a handler into a `Command`, a real click `Command`. The handler's first parameter annotation is the input model, its return annotation the output type; an optional second parameter receives `Context`. Without config, `@command` and `@command()` are the same.
 
 ```python
 from typing import Annotated
@@ -72,19 +72,22 @@ def render_names(output: list[str]) -> str:
 
 Every field of the input model becomes a CLI field, shown in kebab-case (`dry_run` → `--dry-run`, `<dry-run>`). The handler, `--json` and `--llms` keep the field name — or its alias, when the model sets one.
 
-| Pydantic                     | CLI                                                        |
-| ---------------------------- | ---------------------------------------------------------- |
-| plain field                  | `--key <value>` option                                     |
-| `Annotated[T, Argument()]`   | positional `<key>`, declared in field order before options |
-| `bool`                       | `--key` flag, no value; `= True` adds `--no-key`           |
-| `int` / `float`              | CLI string parsed as a number before pydantic validates    |
-| `list[T]`                    | `--key <value>`, repeated; positional variadic `<key...>`  |
-| `Literal[...]` / string Enum | choices, checked by click before the handler runs          |
-| a default                    | shown as `[default: …]` in `--help`; pydantic fills it     |
-| `X \| None = None`           | optional; a positional shows as `[key]`                    |
-| `description=`               | help text, and `description` in the `--llms` manifest      |
+| Pydantic                   | CLI                                                        |
+| -------------------------- | ---------------------------------------------------------- |
+| plain field                | `--key <value>` option                                     |
+| `Annotated[T, Argument()]` | positional `<key>`, declared in field order before options |
+| `bool`                     | `--key` flag, no value; `= True` adds `--no-key`           |
+| `int` / `float`            | CLI string parsed as a number before pydantic validates    |
+| `list[T]`                  | `--key <value>`, repeated; positional variadic `<key...>`  |
+| `Literal[...]` / an `Enum` | choices, checked before pydantic validates                 |
+| `tuple[A, B]`              | repeated, each value converted by its position             |
+| a default                  | shown as `[default: …]` in `--help`; pydantic fills it     |
+| `X \| None = None`         | optional; a positional shows as `[key]`                    |
+| `description=`             | help text, and `description` in the `--llms` manifest      |
 
-A field without a default is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails pydantic prints one commander-style `error: ...` line per field and exits 1. Click's own parse errors (unknown option, bad choice, extra argument) keep click's wording and exit 2.
+A field without a default is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails pydantic prints one commander-style `error: ...` line per field and exits 1. Click's own parse errors (unknown option, extra argument) keep click's wording and exit 2.
+
+A number token is decimal — sign, digits, optional point and exponent, trimmed: `1e3` and `.5` parse, `int | float` too, `0x10`, `1_000`, `inf` and `NaN` exit 1 with `… is invalid. Not a number.` A choice is the JSON text of a value (`1`, `true`, `admin`) and maps back to that value; any other token exits 1 with `error: option '--key <value>' argument 'x' is invalid. Allowed choices are a, b.`
 
 A `bool`'s `envvar` value is read as a word, trimmed and in any case: `1`, `true`, `yes`, `on`, `y`, `t` set it; `0`, `false`, `no`, `off`, `n`, `f` clear it, even over a `True` default; unset or empty leaves the default; anything else exits 1 with `error: option '--key' value '…' from env 'KEY' is invalid. Not a boolean.`
 
@@ -121,7 +124,7 @@ missing_values: Annotated[
 props: Annotated[dict[str, int], Option(parse=json.loads)] = {}
 ```
 
-- A field with `parse` takes exactly one value (`--key <value>`), even for a list or bool type, and skips click's choices check.
+- A field with `parse` takes exactly one value (`--key <value>`), even for a list or bool type, and skips the choices check.
 - An exception raised by `parse` becomes `error: option '--key <value>' argument '…' is invalid. <message>` and exit 1; it never reaches `render_error`.
 
 ## `CommandConfig`

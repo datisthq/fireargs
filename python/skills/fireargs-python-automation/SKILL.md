@@ -30,7 +30,7 @@ With a value, the run is: `json.loads` the value → `model_validate` it with th
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys the input model does not declare are ignored, not rejected. Keys are field names, or aliases when the model sets them.
-- JSON input skips click, so env vars, choices checks, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — the model's defaults and validators still do. An invariant that must hold in both modes belongs in the model: a `@model_validator(mode="after")`. Input is validated in pydantic's strict mode, like zod: send each value in its real type — `["a","b"]`, not `"a,b"`; `3`, not `"3"`. An ISO 8601 `datetime`, a `UUID` and an `Enum` value are still sent as strings.
+- JSON input skips click, so env vars, choices checks, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — the model's defaults and validators still do. An invariant that must hold in both modes belongs in the model: a `@model_validator(mode="after")`. Input is validated in pydantic's strict mode, like zod: send each value in its real type — `["a","b"]`, not `"a,b"`; `3`, not `"3"`. An ISO 8601 `datetime`, a `UUID` and an `Enum` value are still sent as strings. `--json` takes strict JSON: `NaN`, `Infinity` and `1e400` fail with `error: --json value is not valid JSON: …`; `3.0` fills an integer field.
 - A `X | None = None` output field is left out while `None`, rather than written as `null`.
 
 ## `--llms`: the manifest
@@ -84,7 +84,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 ## Errors and exits
 
-- A click parse error (unknown option, bad choice, extra argument) prints click's usage and `Error: ...` to stderr and exits with code 2. An unknown subcommand is the exception: `error: unknown command 'nope'` with code 1, as in the twins.
+- A token that is no choice exits 1 with commander's `Allowed choices are a, b.` line. A click parse error (unknown option, extra argument) prints click's usage and `Error: ...` to stderr and exits with code 2. An unknown subcommand is the exception: `error: unknown command 'nope'` with code 1, as in the twins.
 - A missing required positional, a `conflicts` violation and a CLI value rejected by number parsing or a field's `parse` print one `error: ...` line in commander's wording and exit 1; none reaches `render_error`.
 - Without a `render_error` hook, input failures exit 1 the same way: a `--json` value that is not JSON (`error: --json value is not valid JSON: ...`) and input that fails pydantic, one line per field — `error: invalid --json input at 'a.b[0]': <pydantic message>` in JSON mode, commander's wording at the shell, which quotes each value as typed (`argument '03'`, not `3`) and names the env var a value came from (`value '0' from env 'TIMES'`).
 - An output validation failure or an exception from the handler or render propagates out of the click command — a traceback and exit 1 in standalone mode — unless a `render_error` hook is set.

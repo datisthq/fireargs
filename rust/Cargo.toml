@@ -28,6 +28,7 @@ pollster = "1.0.1"
 schemars = "1.2.3"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.152", features = ["preserve_order"] }
+serde_path_to_error = "0.1.20"
 
 [lints]
 workspace = true

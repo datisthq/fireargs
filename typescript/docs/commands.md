@@ -70,16 +70,17 @@ per field on stderr, exit code 1. Other errors propagate via the returned
 
 For each property of the input object schema:
 
-| Zod construct               | Becomes                                                                           |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `z.string()` / `z.number()` | `--key <value>` (mandatory unless wrapped); a number's CLI string is coerced      |
-| `z.boolean()`               | `--key` flag (boolean)                                                            |
-| `f.argument()...`           | positional `<key>`; `[key]` when `.optional()` or `.default(v)`                   |
-| `z.default(v)`              | forwarded to commander as `defaultValue`                                          |
-| `z.enum([...])`             | `cmd.choices([...])` on the option/argument                                       |
-| `z.array(T)`                | variadic — `<key...>` (or `[key...]`) for positional, `--key <value...>` option   |
-| `z.array(z.enum([...]))`    | variadic with choices on the element                                              |
-| `.describe("...")`          | shown in commander `--help` and surfaced as `description` in `--llms` JSON Schema |
+| Zod construct                                          | Becomes                                                                                          |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `z.string()` / `z.number()`                            | `--key <value>` (mandatory unless wrapped); a number's CLI string is coerced                     |
+| `z.boolean()`                                          | `--key` flag (boolean)                                                                           |
+| `f.argument()...`                                      | positional `<key>`; `[key]` when `.optional()` or `.default(v)`                                  |
+| `z.default(v)`                                         | forwarded to commander as `defaultValue`                                                         |
+| `z.enum(...)` / `z.literal(...)` / a union of literals | choices, each the JSON text of a value: `1`, `true`, `admin`; the token maps back to the value   |
+| `z.array(T)`                                           | variadic — `<key...>` (or `[key...]`) for positional, `--key <value...>` option                  |
+| `z.array(z.enum([...]))`                               | variadic with choices on the element                                                             |
+| `z.tuple([A, B])`                                      | variadic, each value converted by its position: `--pair 1 --pair a`; the schema checks the count |
+| `.describe("...")`                                     | shown in commander `--help` and surfaced as `description` in `--llms` JSON Schema                |
 
 `key` is shown in kebab-case: `headerRows` becomes `--header-rows` and
 `<header-rows>`, while the handler and `--json` keep `headerRows`. See

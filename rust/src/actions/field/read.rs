@@ -18,7 +18,7 @@ pub(crate) fn read_fields(schema: &Value) -> Vec<Field> {
         .iter()
         .map(|(key, property)| {
             let meta = read_field_meta(key, property);
-            let (shape, choices) = read_shape(property);
+            let shape = read_shape(property);
             Field {
                 key: key.clone(),
                 cli_name: derive_cli_name(key, meta.name.as_deref()),
@@ -29,7 +29,6 @@ pub(crate) fn read_fields(schema: &Value) -> Vec<Field> {
                 default: property.get("default").cloned(),
                 required: required.contains(&key.as_str()),
                 shape,
-                choices,
                 parse: None,
                 meta,
             }
@@ -75,34 +74,59 @@ pub(crate) fn derive_cli_name(key: &str, name: Option<&str>) -> String {
     text
 }
 
-fn read_shape(property: &Value) -> (Shape, Option<Vec<String>>) {
+fn read_shape(property: &Value) -> Shape {
     let schema = unwrap_nullable(property);
-    let choices = schema.get("enum").and_then(Value::as_array).map(|values| {
-        values
-            .iter()
-            .filter_map(Value::as_str)
-            .map(str::to_owned)
-            .collect()
-    });
+    if let Some(values) = read_choice_values(schema) {
+        return Shape::Choice(values);
+    }
     let types: Vec<&str> = match schema.get("type") {
         Some(Value::String(name)) => vec![name.as_str()],
         Some(Value::Array(names)) => names.iter().filter_map(Value::as_str).collect(),
         _ => vec![],
     };
     let types: Vec<&str> = types.into_iter().filter(|name| *name != "null").collect();
-    let shape = match types.as_slice() {
+    match types.as_slice() {
         ["boolean"] => Shape::Bool,
         ["integer"] | ["number"] => Shape::Number,
         ["string"] => Shape::String,
-        ["array"] => {
-            let items = schema.get("items").unwrap_or(&Value::Null);
-            let (inner, item_choices) = read_shape(items);
-            return (Shape::Array(Box::new(inner)), item_choices);
-        }
-        _ if choices.is_some() => Shape::String,
+        ["array"] => match schema.get("prefixItems").and_then(Value::as_array) {
+            Some(items) => Shape::Tuple(items.iter().map(read_shape).collect()),
+            None => Shape::Array(Box::new(read_shape(
+                schema.get("items").unwrap_or(&Value::Null),
+            ))),
+        },
         _ => Shape::Other,
-    };
-    (shape, choices)
+    }
+}
+
+// An enum reads as `enum`, or as `oneOf` consts once a variant has a doc comment
+fn read_choice_values(schema: &Value) -> Option<Vec<Value>> {
+    let values: Vec<Value> =
+        if let Some(values) = schema.get("enum").and_then(Value::as_array) {
+            values.clone()
+        } else if let Some(value) = schema.get("const") {
+            vec![value.clone()]
+        } else {
+            let branches = ["oneOf", "anyOf"]
+                .iter()
+                .find_map(|key| schema.get(*key).and_then(Value::as_array))?;
+            let mut values = vec![];
+            for branch in branches
+                .iter()
+                .filter(|b| b.get("type") != Some(&"null".into()))
+            {
+                values.extend(read_choice_values(branch)?);
+            }
+            values
+        };
+    let values: Vec<Value> = values
+        .into_iter()
+        .filter(|value| !value.is_null())
+        .collect();
+    match values.is_empty() {
+        true => None,
+        false => Some(values),
+    }
 }
 
 // `Option<T>` reads as `anyOf: [T, {type: null}]` when `T` is not a plain type

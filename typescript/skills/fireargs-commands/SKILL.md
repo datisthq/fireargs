@@ -61,19 +61,23 @@ f.command({ name: "list" })
 
 Every key of the input object becomes a field, shown in kebab-case (`dryRun` → `--dry-run`, `<dry-run>`). The handler, `--json` and `--llms` keep the key itself (`dryRun`).
 
-| Zod                | CLI                                                      |
-| ------------------ | -------------------------------------------------------- |
-| bare field         | `--key <value>` option                                   |
-| `f.argument()...`  | positional `<key>`, declared in input-key order          |
-| `z.boolean()`      | `--key` flag, no value; `.default(true)` adds `--no-key` |
-| `z.number()`       | CLI string coerced to a number before zod parses it      |
-| `z.array(T)`       | variadic: `<key...>` or `--key <value...>`               |
-| `z.enum([...])`    | choices, checked by commander before the handler runs    |
-| `.default(v)`      | default shown in `--help` and applied by commander       |
-| `.optional()`      | field may be absent; a positional shows as `[key]`       |
-| `.describe("...")` | help text, and `description` in the `--llms` manifest    |
+| Zod                | CLI                                                        |
+| ------------------ | ---------------------------------------------------------- |
+| bare field         | `--key <value>` option                                     |
+| `f.argument()...`  | positional `<key>`, declared in input-key order            |
+| `z.boolean()`      | `--key` flag, no value; `.default(true)` adds `--no-key`   |
+| `z.number()`       | CLI string coerced to a number before zod parses it        |
+| `z.array(T)`       | variadic: `<key...>` or `--key <value...>`                 |
+| `z.enum([...])`    | choices, checked by commander before the handler runs      |
+| `z.literal(...)`   | choices too, as do a union of literals and `z.enum({...})` |
+| `z.tuple([A, B])`  | variadic, each value converted by its position             |
+| `.default(v)`      | default shown in `--help` and applied by commander         |
+| `.optional()`      | field may be absent; a positional shows as `[key]`         |
+| `.describe("...")` | help text, and `description` in the `--llms` manifest      |
 
 A boolean's `env` value is read as a word, trimmed and in any case: `1`, `true`, `yes`, `on`, `y`, `t` set it; `0`, `false`, `no`, `off`, `n`, `f` clear it, even over a `true` default; unset or empty leaves the default; anything else exits 1 with `error: option '--key' value '…' from env 'KEY' is invalid. Not a boolean.`
+
+A number token is decimal — sign, digits, optional point and exponent, trimmed: `1e3` and `.5` parse, `0x10`, `1_000`, `inf` and `NaN` exit 1 with `… is invalid. Not a number.` A choice is the JSON text of a value (`1`, `true`, `admin`) and maps back to that value; any other token exits 1 with `error: option '--key <value>' argument 'x' is invalid. Allowed choices are a, b.`
 
 A positional is required (`<key>`) unless its schema accepts `undefined` — `.optional()` or `.default(...)` make it `[key]`. A missing required one fails with commander's `error: missing required argument 'key'`; `--json '<value>'` and `--llms` runs need no positionals on the command line. Without a `renderError` hook, any other input that fails zod prints one commander-style `error: ...` line per field and exits 1.
 

@@ -131,6 +131,15 @@ send that value directly:
   with a commander error. `--json '{"rows":"10"}'` is still rejected — the
   JSON value must be a number. An error quotes the value as typed:
   `--rows 03` that fails `.min(10)` reports `'03'`, not `3`.
+  A number token is decimal: an optional sign, digits with an optional
+  point, an optional exponent, surrounding whitespace trimmed — `1e3`, `.5`
+  and `+7` parse; `0x10`, `1_000`, `inf` and `NaN` are not a number.
+- **Choices map back to their values.** A choice is the JSON text of each
+  value of a `z.enum`, a `z.literal` or a union of literals, so
+  `z.literal([1, 2])` takes `--level 2` as the number `2`, and `--level 3`
+  fails with `Allowed choices are 1, 2.`
+- **A tuple converts by position.** `z.tuple([z.number(), z.string()])` takes
+  `--pair 1 --pair a` as `[1, "a"]`; the schema checks how many were given.
 - **`parse` handles any other syntax.** It receives the raw string from argv
   or the `env` variable and returns the field's value, which zod then
   validates. It never runs on `--json` input or on defaults.

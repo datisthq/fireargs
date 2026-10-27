@@ -40,3 +40,29 @@ fn fills_properties_only_on_a_bare_object_root() {
         assert_eq!(fill_properties(schema.clone()), schema);
     }
 }
+
+#[test]
+fn bounds_integer_formats_without_loosening_a_declared_range() {
+    let schema = json!({
+        "properties": {
+            "count": {"type": "integer", "format": "uint32", "minimum": 1},
+            "small": {"type": "integer", "format": "int8", "maximum": 1000},
+            "rows": {"type": "array", "items": {"type": "integer", "format": "uint16"}},
+            "format": {"type": "string", "default": "uint8"},
+        },
+    });
+    assert_eq!(
+        bound_integers(schema),
+        json!({
+            "properties": {
+                "count": {"type": "integer", "format": "uint32", "minimum": 1, "maximum": 4_294_967_295_u32},
+                "small": {"type": "integer", "format": "int8", "maximum": 127, "minimum": -128},
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "integer", "format": "uint16", "minimum": 0, "maximum": 65_535},
+                },
+                "format": {"type": "string", "default": "uint8"},
+            },
+        })
+    );
+}

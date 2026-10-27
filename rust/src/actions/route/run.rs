@@ -67,7 +67,7 @@ where
                     Ok(1)
                 }
                 _ => {
-                    write!(err, "{text}")?;
+                    write!(err, "{}", strip_usage(&text))?;
                     Ok(1)
                 }
             };
@@ -129,4 +129,12 @@ fn read_binary_name(args: &[OsString]) -> String {
         .and_then(|arg| Path::new(arg).file_stem())
         .and_then(|stem| stem.to_str())
         .map_or_else(|| "command".to_owned(), str::to_owned)
+}
+
+// clap's usage line ignores fireargs' own required checks, so it contradicts `--help`
+fn strip_usage(text: &str) -> String {
+    text.split("\n\n")
+        .filter(|block| !block.starts_with("Usage:"))
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }

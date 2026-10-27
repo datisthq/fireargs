@@ -44,7 +44,7 @@ pub(crate) fn compile_command(
     let input = fill_properties(strip_schema(input));
     let output = fill_properties(strip_schema(output));
     Leaf {
-        input_validator: Arc::new(build_validator(&input)),
+        input_validator: Arc::new(build_validator(&bound_integers(input.clone()))),
         output_validator: Arc::new(build_validator(&output)),
         input_schema: input,
         output_schema: output,
@@ -290,7 +290,7 @@ fn declare_negation(field: &Field) -> Arg {
 // Worded as commander's help: `Rows to read (choices: "a", "b", default: 20)`
 fn describe_field(field: &Field) -> String {
     let mut notes = vec![];
-    if let Some(choices) = field.choices.as_ref().filter(|_| field.parse.is_none()) {
+    if let Some(choices) = field.choices().filter(|_| field.parse.is_none()) {
         let quoted: Vec<String> = choices.iter().map(|c| format!("\"{c}\"")).collect();
         notes.push(format!("choices: {}", quoted.join(", ")));
     }
@@ -306,6 +306,67 @@ fn describe_field(field: &Field) -> String {
             .trim()
             .to_owned(),
     }
+}
+
+// schemars gives most integer types only a `format`, so an overflow would reach serde,
+// which words it with no field. The manifest keeps the schema schemars wrote
+fn bound_integers(mut schema: Value) -> Value {
+    if let Value::Object(map) = &mut schema {
+        let bounds = map
+            .get("format")
+            .and_then(Value::as_str)
+            .and_then(read_bounds);
+        if let Some((min, max)) = bounds {
+            tighten(map, "minimum", min, |a, b| a.max(b));
+            tighten(map, "maximum", max, |a, b| a.min(b));
+        }
+        for (key, value) in map.iter_mut() {
+            match key.as_str() {
+                "properties" | "$defs" | "patternProperties" => {
+                    if let Value::Object(named) = value {
+                        for value in named.values_mut() {
+                            *value = bound_integers(value.take());
+                        }
+                    }
+                }
+                "enum" | "const" | "default" | "examples" => {}
+                _ => *value = bound_integers(value.take()),
+            }
+        }
+    } else if let Value::Array(items) = &mut schema {
+        for item in items.iter_mut() {
+            *item = bound_integers(item.take());
+        }
+    }
+    schema
+}
+
+fn read_bounds(format: &str) -> Option<(Value, Value)> {
+    let bounds: (Value, Value) = match format {
+        "int8" => (i8::MIN.into(), i8::MAX.into()),
+        "int16" => (i16::MIN.into(), i16::MAX.into()),
+        "int32" => (i32::MIN.into(), i32::MAX.into()),
+        "int64" | "int" => (i64::MIN.into(), i64::MAX.into()),
+        "uint8" => (0.into(), u8::MAX.into()),
+        "uint16" => (0.into(), u16::MAX.into()),
+        "uint32" => (0.into(), u32::MAX.into()),
+        "uint64" | "uint" => (0.into(), u64::MAX.into()),
+        _ => return None,
+    };
+    Some(bounds)
+}
+
+fn tighten(
+    map: &mut Map<String, Value>,
+    key: &str,
+    bound: Value,
+    pick: fn(f64, f64) -> f64,
+) {
+    let tighter = match (map.get(key).and_then(Value::as_f64), bound.as_f64()) {
+        (Some(current), Some(limit)) if pick(current, limit) == current => return,
+        _ => bound,
+    };
+    map.insert(key.to_owned(), tighter);
 }
 
 fn build_validator(schema: &Value) -> jsonschema::Validator {

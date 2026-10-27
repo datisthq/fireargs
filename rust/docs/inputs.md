@@ -151,7 +151,19 @@ directly:
   `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
   `--json '{"rows":"10"}'` is still rejected — the JSON value must be a number.
   An error quotes the value as typed: `--rows 011` that fails `range(min = 20)`
-  reports `'011'`, not `11`.
+  reports `'011'`, not `11`. A value out of the integer type's range — `300`
+  for a `u8` — fails at its field like any other schema error.
+  A number token is decimal: an optional sign, digits with an optional
+  point, an optional exponent, surrounding whitespace trimmed — `1e3`, `.5`
+  and `+7` parse; `0x10`, `1_000`, `inf` and `NaN` are not a number.
+  A plain integer parses exactly as an `i64` or `u64`, and `1e3` reaches a `u32`
+  field as `1000`.
+- **Choices map back to their values.** A choice is the JSON text of each `enum`
+  value or `oneOf` const in the schema, so a `u8` with
+  `#[schemars(extend("enum" = [1, 2]))]` takes `--level 2` as `2`, and
+  `--level 3` fails with `Allowed choices are 1, 2.`
+- **A tuple converts by position.** `(i64, String)` takes `--pair 1 --pair a`
+  as `[1, "a"]`; the schema checks how many were given.
 - **`parse = fn` handles any other syntax.** It receives the raw string from argv
   or the env var and returns `Result<T, E>`: any `Serialize` value, which the schema
   then validates, or an error that displays. It never runs on `--json` input or on

@@ -30,7 +30,7 @@ With a value, the run is: parse the value as JSON → validate it against the in
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys are the camelCase wire keys `#[fireargs::input]` gives (`headerRows`), or a `rename_all`'s. Keys the struct does not declare are ignored, unless it sets `#[serde(deny_unknown_fields)]`.
-- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — defaults and the schema's validation, choices included, still do. An invariant that must hold in both modes belongs in the handler: check it there and return an `Err`. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings.
+- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — defaults and the schema's validation, choices included, still do. An invariant that must hold in both modes belongs in the handler: check it there and return an `Err`. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings. `--json` takes strict JSON: `NaN`, `Infinity` and `1e400` fail with `error: --json value is not valid JSON: …`; `3.0` fills an integer field.
 - An `Option<T>` field of a `#[fireargs::output]` struct is left out while `None`; on a hand-derived output it is written as `null` unless it has `#[serde(skip_serializing_if = "Option::is_none")]`.
 
 ## `--llms`: the manifest
@@ -83,7 +83,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 ## Errors and exits
 
-- A clap parse error (unknown option, extra argument) prints clap's `error: ...` and usage to stderr and exits with code 1. An unknown subcommand prints only `error: unknown command 'nope'`, as in the twins. `--help` and `--version` print to stdout and exit 0.
+- A clap parse error (unknown option, extra argument) prints clap's `error: ...` and its tip, without a usage block, to stderr and exits with code 1. An unknown subcommand prints only `error: unknown command 'nope'`, as in the twins. `--help` and `--version` print to stdout and exit 0.
 - A missing required positional, a `conflicts` violation and a CLI value rejected by number parsing or a field's `parse` print one `error: ...` line in commander's wording and exit 1; none reaches `render_error`.
 - Without a `render_error` hook, input failures exit 1 the same way: a `--json` value that is not JSON (`error: --json value is not valid JSON: ...`) and input that fails the schema, one line per field — `error: invalid --json input at 'a.b[0]': <message>` in JSON mode, commander's wording at the shell, which quotes each value as typed (`argument '011'`, not `11`) and names the env var a value came from (`value '0' from env 'TIMES'`).
 - An error from the handler or an output that fails its schema ends the run: `.run()` prints `error: <message>` and exits 1; `.try_run_from(...)` returns it as `Err`.

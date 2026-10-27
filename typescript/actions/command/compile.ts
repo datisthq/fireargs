@@ -193,15 +193,16 @@ function declareArgument(
   const description = readFieldDescription(schema) ?? ""
   const dflt = getDefault(schema)
   const inner = unwrap(schema)
-  const { variadic, choices } = readValueShape(inner, meta?.parse)
+  const shape = readValueShape(inner, meta?.parse)
 
-  const name = `${deriveCliName(key, meta?.name)}${variadic ? "..." : ""}`
+  const name = `${deriveCliName(key, meta?.name)}${shape.variadic ? "..." : ""}`
   const required = !schema.safeParse(undefined).success
   const arg = new FieldArgument(required ? `<${name}>` : `[${name}]`, description)
-  if (choices !== undefined) arg.choices(choices)
+  if (shape.choices !== undefined) arg.choices(shape.choices)
   if (dflt !== undefined) arg.default(dflt, meta?.defaultDescription)
-  const parser = createValueParser(inner, meta?.parse, dflt)
-  if (parser !== undefined) arg.argParser(recordTokens(arg.tokens, variadic, parser))
+  const parser = createValueParser(shape, dflt)
+  if (parser !== undefined)
+    arg.argParser(recordTokens(arg.tokens, shape.variadic, parser))
   cmd.addArgument(arg)
 }
 
@@ -225,13 +226,14 @@ function declareOption(
     return opt
   }
 
-  const { variadic, choices } = readValueShape(inner, meta?.parse)
-  const value = `value${variadic ? "..." : ""}`
+  const shape = readValueShape(inner, meta?.parse)
+  const value = `value${shape.variadic ? "..." : ""}`
   const placeholder = meta?.preset === undefined ? `<${value}>` : `[${value}]`
   const opt = new FieldOption(`${shortPrefix}--${name} ${placeholder}`, description)
-  if (choices !== undefined) opt.choices(choices)
-  const parser = createValueParser(inner, meta?.parse, dflt)
-  if (parser !== undefined) opt.argParser(recordTokens(opt.tokens, variadic, parser))
+  if (shape.choices !== undefined) opt.choices(shape.choices)
+  const parser = createValueParser(shape, dflt)
+  if (parser !== undefined)
+    opt.argParser(recordTokens(opt.tokens, shape.variadic, parser))
   return addOption(cmd, opt, dflt, meta)
 }
 
@@ -307,37 +309,83 @@ function applyOptionRelations(
   }
 }
 
-// A field with `parse` takes one token: commander's own variadic collecting and its
-// choices (an argParser too) would otherwise run before, or instead of, `parse`.
-function readValueShape(inner: unknown, parse: ((value: string) => unknown) | undefined) {
-  let variadic = false
-  let choices: readonly string[] | undefined
-  if (parse !== undefined) return { variadic, choices }
-  if (inner instanceof z.ZodArray) {
-    variadic = true
-    const element = unwrap(inner.element)
-    if (element instanceof z.ZodEnum) choices = stringChoices(element.options)
-  } else if (inner instanceof z.ZodEnum) {
-    choices = stringChoices(inner.options)
-  }
-  return { variadic, choices }
+type Convert = (value: string) => unknown
+
+type ValueShape = {
+  variadic: boolean
+  choices: string[] | undefined
+  convert: ((value: string, index: number) => unknown) | undefined
 }
 
-function createValueParser(
+// A field with `parse` takes one token: commander's own variadic collecting would
+// otherwise hand `parse` each token apart.
+function readValueShape(
   inner: unknown,
   parse: ((value: string) => unknown) | undefined,
-  dflt: unknown,
-) {
-  if (parse !== undefined) return (value: string) => runParse(parse, value)
-  if (inner instanceof z.ZodNumber) return parseNumber
-  if (inner instanceof z.ZodArray && unwrap(inner.element) instanceof z.ZodNumber) {
-    return (value: string, previous: unknown) => {
-      // Mirrors commander's `_collectValue`: a repeated value replaces the default.
-      const values = previous === dflt || !Array.isArray(previous) ? [] : previous
-      return [...values, parseNumber(value)]
-    }
+): ValueShape {
+  if (parse !== undefined) {
+    const convert = (value: string) => runParse(parse, value)
+    return { variadic: false, choices: undefined, convert }
   }
-  return undefined
+  if (inner instanceof z.ZodArray) {
+    const element = readValueType(inner.element)
+    return { variadic: true, ...element }
+  }
+  if (inner instanceof z.ZodTuple) {
+    const items: unknown[] = [...inner.def.items]
+    const types = items.map(readValueType)
+    const rest = inner.def.rest === null ? undefined : readValueType(inner.def.rest)
+    const convert = (value: string, index: number) => {
+      const convert = (types[index] ?? rest)?.convert
+      return convert === undefined ? value : convert(value)
+    }
+    return { variadic: true, choices: undefined, convert }
+  }
+  return { variadic: false, ...readValueType(inner) }
+}
+
+// A choice is the JSON text of a literal: the token `1` stands for the number 1
+function readValueType(schema: unknown): {
+  choices: string[] | undefined
+  convert: Convert | undefined
+} {
+  const inner = unwrap(schema)
+  if (inner instanceof z.ZodNumber) return { choices: undefined, convert: parseNumber }
+  const values = readLiteralValues(inner)
+  if (values === undefined) return { choices: undefined, convert: undefined }
+  const choices = values.map(value => (typeof value === "string" ? value : String(value)))
+  const convert = (value: string) => {
+    const index = choices.indexOf(value)
+    if (index === -1) {
+      throw new InvalidArgumentError(`Allowed choices are ${choices.join(", ")}.`)
+    }
+    return values[index]
+  }
+  return { choices, convert }
+}
+
+function readLiteralValues(schema: unknown): unknown[] | undefined {
+  let values: unknown[] | undefined
+  if (schema instanceof z.ZodEnum) values = schema.options
+  else if (schema instanceof z.ZodLiteral) values = [...schema.values]
+  else if (schema instanceof z.ZodUnion) {
+    const options: unknown[] = [...schema.options]
+    const members = options.map(option => readLiteralValues(unwrap(option)))
+    if (members.some(member => member === undefined)) return undefined
+    values = members.flatMap(member => member ?? [])
+  }
+  return values?.filter(value => value !== undefined)
+}
+
+function createValueParser(shape: ValueShape, dflt: unknown) {
+  const convert = shape.convert
+  if (convert === undefined) return undefined
+  if (!shape.variadic) return (value: string) => convert(value, 0)
+  return (value: string, previous: unknown) => {
+    // Mirrors commander's `_collectValue`: a repeated value replaces the default.
+    const values = previous === dflt || !Array.isArray(previous) ? [] : previous
+    return [...values, convert(value, values.length)]
+  }
 }
 
 function runParse(parse: (value: string) => unknown, value: string) {
@@ -348,9 +396,13 @@ function runParse(parse: (value: string) => unknown, value: string) {
   }
 }
 
+// Shared by every twin: no hex, no digit separators, no `Infinity`
+const NUMBER = /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?$/
+
 function parseNumber(value: string) {
-  const number = value.trim() === "" ? Number.NaN : Number(value)
-  if (Number.isNaN(number)) throw new InvalidArgumentError("Not a number.")
+  const text = value.replace(/^[ \t\n\f\r]+|[ \t\n\f\r]+$/g, "")
+  const number = NUMBER.test(text) ? Number(text) : Number.NaN
+  if (!Number.isFinite(number)) throw new InvalidArgumentError("Not a number.")
   return number
 }
 
@@ -385,9 +437,7 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
     const context: CommandContext = { json: json !== undefined, command: cmd }
     let parsed: z.output<I>
     try {
-      parsed = input.parse(
-        typeof json === "string" ? JSON.parse(json) : buildRawFromCli(),
-      )
+      parsed = input.parse(typeof json === "string" ? parseJson(json) : buildRawFromCli())
     } catch (error) {
       // Without a renderError hook, input failures read like commander's own parse errors
       if (findErrorHandler(cmd) === undefined) {
@@ -431,8 +481,14 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
   })
 }
 
-function stringChoices(options: readonly unknown[]) {
-  return options.filter((o): o is string => typeof o === "string")
+// `JSON.parse` reads `1e400` as Infinity, which JSON cannot hold
+function parseJson(text: string): unknown {
+  return JSON.parse(text, (_key, value: unknown) => {
+    if (typeof value === "number" && !Number.isFinite(value)) {
+      throw new SyntaxError("number out of range")
+    }
+    return value
+  })
 }
 
 function unwrap(schema: unknown) {

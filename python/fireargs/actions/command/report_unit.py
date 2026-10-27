@@ -39,7 +39,6 @@ def make_field(
         description=None,
         required=True,
         variadic=False,
-        number=False,
         parse=None,
         meta=meta,
     )

@@ -49,6 +49,15 @@ The flag takes an optional value (`--json [<value>]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 2–6 are identical.
 
+The value must be strict JSON (RFC 8259): `NaN`, `Infinity` and a number out
+of a double's range such as `1e400` fail as
+`error: --json value is not valid JSON: …`. An integral float such as `3.0`
+fills an integer field, which serde alone would reject.
+
+Output holding a non-finite float — `f64::NAN` — fails as
+`invalid output; at 'path': NaN is not a finite number`, with or without
+`--json`, where serde_json would silently write `null`.
+
 JSON input bypasses clap, so env vars, a field's `parse`, number parsing,
 `conflicts` and `implies` do not apply — defaults and the schema's validation,
 choices included, still do. An invariant that must hold in both modes belongs
@@ -133,12 +142,13 @@ to stderr and exits with code 101, with nothing on stdout. Return an `Err`
 for every failure a caller should see.
 
 Clap's parse errors (unknown option, extra argument) happen before the run
-starts: clap prints `error: ...` and its usage line to stderr and exits
-with code 1. A missing required positional, an unknown subcommand, a
-`conflicts` violation and a CLI value that number parsing or a field's
-`parse` rejects are reported in commander's wording, also with exit code 1. None of these reach
-`render_error`. A value that parses but fails the schema — a bound, a
-choice, a missing required option — does, like `--json` input.
+starts: clap prints `error: ...` and its tip, without a usage block, to
+stderr and exits with code 1. A missing required positional, an unknown
+subcommand, a `conflicts` violation, a token that is no choice and a CLI value
+that number parsing or a field's `parse` rejects are reported in commander's
+wording, also with exit code 1. None of these reach `render_error`. A value
+that parses but fails the schema — a bound, a missing required option — does,
+like `--json` input.
 
 ## Composes with subcommands
 

@@ -14,6 +14,8 @@
           { "name": "echo", "description": "Echo the input back" },
           { "name": "strict", "description": "Require a count of at least 10" },
           { "name": "tags", "description": "Collect tags and rows" },
+          { "name": "pick", "description": "Pick typed values" },
+          { "name": "ratio", "description": "Divide zero by zero" },
           { "name": "admin reset", "description": "Reset everything" }
         ],
         "instances": [
@@ -66,6 +68,23 @@
           },
           { "tool": "tags", "io": "input", "data": { "tags": "a,b" }, "valid": false },
           { "tool": "tags", "io": "input", "data": { "rows": [1.5] }, "valid": false },
+          {
+            "tool": "pick",
+            "io": "input",
+            "data": { "level": 2, "pair": [1, "a"], "tone": "low" },
+            "valid": true
+          },
+          { "tool": "pick", "io": "input", "data": { "level": 3 }, "valid": false },
+          { "tool": "pick", "io": "input", "data": { "level": "2" }, "valid": false },
+          {
+            "tool": "pick",
+            "io": "input",
+            "data": { "pair": ["1", "a"] },
+            "valid": false
+          },
+          { "tool": "pick", "io": "input", "data": { "tone": "mid" }, "valid": false },
+          { "tool": "ratio", "io": "output", "data": { "value": 0.5 }, "valid": true },
+          { "tool": "ratio", "io": "output", "data": {}, "valid": false },
           { "tool": "admin reset", "io": "input", "data": {}, "valid": true }
         ]
       },

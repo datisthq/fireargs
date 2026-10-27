@@ -10,11 +10,32 @@ from ...models.context import Context
 from .compile import compile_command
 
 
-def create_command(**config: Unpack[CommandConfig]):
+@overload
+def create_command[I: BaseModel, O](
+    handler: Callable[[I], Awaitable[O]], /
+) -> Command[I, O]: ...
+@overload
+def create_command[I: BaseModel, O](
+    handler: Callable[[I, Context], Awaitable[O]], /
+) -> Command[I, O]: ...
+@overload
+def create_command[I: BaseModel, O](handler: Callable[[I], O], /) -> Command[I, O]: ...
+@overload
+def create_command[I: BaseModel, O](
+    handler: Callable[[I, Context], O], /
+) -> Command[I, O]: ...
+@overload
+def create_command(
+    handler: None = None, /, **config: Unpack[CommandConfig]
+) -> "CommandBuilder": ...
+def create_command(
+    handler: Callable[..., object] | None = None, /, **config: Unpack[CommandConfig]
+):
     """Open a command decorator: the decorated handler's first parameter annotation is the
     input model and its return annotation the output type; a second parameter receives
-    the `Context`."""
-    return CommandBuilder(config)
+    the `Context`. Bare `@command` takes the default config."""
+    builder = CommandBuilder(config)
+    return builder if handler is None else builder(handler)
 
 
 class CommandBuilder:

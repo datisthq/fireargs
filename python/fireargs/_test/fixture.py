@@ -43,6 +43,30 @@ def tags(input: TagsInput) -> TagsInput:
     return input
 
 
+class PickInput(BaseModel):
+    level: Literal[1, 2] | None = None
+    pair: tuple[int, str] | None = None
+    tone: Literal["low", "high"] | None = None
+
+
+@f.command(description="Pick typed values")
+def pick(input: PickInput) -> PickInput:
+    return input
+
+
+class EmptyInput(BaseModel):
+    pass
+
+
+class RatioOutput(BaseModel):
+    value: float
+
+
+@f.command(description="Divide zero by zero")
+def ratio(input: EmptyInput) -> RatioOutput:
+    return RatioOutput(value=float("nan"))
+
+
 class ResetInput(BaseModel):
     force: Annotated[bool, f.Option(envvar="FIXTURE_FORCE")] = False
     backup: Annotated[bool, f.Option(envvar="FIXTURE_BACKUP")] = True
@@ -59,6 +83,8 @@ fixture = f.Program(
         "echo": echo,
         "strict": strict,
         "tags": tags,
+        "pick": pick,
+        "ratio": ratio,
         "admin": f.Program(description="Admin tasks", router={"reset": reset}),
     },
 )

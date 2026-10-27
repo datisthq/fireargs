@@ -11,8 +11,8 @@ description: The @command(...) decorator and the leaf it builds from a handler.
 `@command(**config)` turns a handler function into a `Command`, a subclass
 of click's `Command`. The handler's first parameter annotation is the input
 model, its return annotation is the output type, and an optional second
-parameter receives a `Context`. Always call the decorator — `@command()`,
-even without config.
+parameter receives a `Context`. Without config,
+`@command` and `@command()` are the same.
 
 ```python
 from pydantic import BaseModel
@@ -126,17 +126,18 @@ traceback and exit 1. A `render_error` hook takes all of them instead (see
 
 For each field of the input model:
 
-| Pydantic construct                  | Becomes                                                                     |
-| ----------------------------------- | --------------------------------------------------------------------------- |
-| `str` / `int` / `float`             | `--key <value>`, required unless defaulted; a number's CLI string is parsed |
-| `bool`                              | `--key` flag                                                                |
-| `Annotated[T, Argument()]`          | positional `<key>`; `[key]` when it has a default                           |
-| a default value                     | shown as `[default: …]` in `--help`; pydantic fills it                      |
-| `Literal["a", "b"]` / a string Enum | a click `Choice`: `--key [a\|b]`                                            |
-| `list[T]`                           | `--key <value>`, repeated `--key a --key b`; positional variadic `<key...>` |
-| `list[Literal[...]]`                | repeated, with choices on each value                                        |
-| `X \| None = None`                  | optional; left out of `--json` output while `None`                          |
-| `description=` on the field         | shown in `--help` and surfaced as `description` in `--llms` JSON Schema     |
+| Pydantic construct          | Becomes                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `str` / `int` / `float`     | `--key <value>`, required unless defaulted; a number's CLI string is parsed              |
+| `bool`                      | `--key` flag                                                                             |
+| `Annotated[T, Argument()]`  | positional `<key>`; `[key]` when it has a default                                        |
+| a default value             | shown as `[default: …]` in `--help`; pydantic fills it                                   |
+| `Literal[...]` / an `Enum`  | choices, each the JSON text of a value: `--key [1\|2]`; the token maps back to the value |
+| `list[T]`                   | `--key <value>`, repeated `--key a --key b`; positional variadic `<key...>`              |
+| `list[Literal[...]]`        | repeated, with choices on each value                                                     |
+| `tuple[A, B]`               | repeated, each value converted by its position; `tuple[T, ...]` as `list[T]`             |
+| `X \| None = None`          | optional; left out of `--json` output while `None`                                       |
+| `description=` on the field | shown in `--help` and surfaced as `description` in `--llms` JSON Schema                  |
 
 Positional arguments are declared in field order, before every option. `key`
 is shown in kebab-case: `header_rows` becomes `--header-rows`, while the

@@ -1,0 +1,89 @@
+[
+  {
+    "description": "a choice is the JSON text of each literal, mapped back to its value",
+    "tests": [
+      {
+        "description": "a numeric literal arrives as a number",
+        "argv": ["pick", "--level", "2", "--json"],
+        "exitCode": 0,
+        "stdout": { "level": 2 }
+      },
+      {
+        "description": "a token that is no choice is rejected in commander's words",
+        "argv": ["pick", "--level", "3"],
+        "exitCode": 1,
+        "stderr": "error: option '--level <value>' argument '3' is invalid. Allowed choices are 1, 2.\n"
+      },
+      {
+        "description": "a string enum rejects in the same words",
+        "argv": ["echo", "a.csv", "--role", "root"],
+        "exitCode": 1,
+        "stderr": "error: option '--role <value>' argument 'root' is invalid. Allowed choices are admin, user.\n"
+      },
+      {
+        "description": "a nullable enum lists no null among its choices",
+        "argv": ["pick", "--tone", "mid"],
+        "exitCode": 1,
+        "stderr": "error: option '--tone <value>' argument 'mid' is invalid. Allowed choices are low, high.\n"
+      },
+      {
+        "description": "a nullable enum takes one of its choices",
+        "argv": ["pick", "--tone", "high", "--json"],
+        "exitCode": 0,
+        "stdout": { "tone": "high" }
+      }
+    ]
+  },
+  {
+    "description": "a tuple converts each element by its position",
+    "tests": [
+      {
+        "description": "a number, then a string",
+        "argv": ["pick", "--pair", "1", "--pair", "a", "--json"],
+        "exitCode": 0,
+        "stdout": { "pair": [1, "a"] }
+      },
+      {
+        "description": "the number position rejects a word",
+        "argv": ["pick", "--pair", "x", "--pair", "a"],
+        "exitCode": 1,
+        "stderr": "error: option '--pair <value...>' argument 'x' is invalid. Not a number.\n"
+      }
+    ]
+  },
+  {
+    "description": "a number token follows one grammar",
+    "tests": [
+      {
+        "description": "hex is not a number",
+        "argv": ["echo", "a.csv", "-l", "0x10"],
+        "exitCode": 1,
+        "stderr": "error: option '-l, --limit <value>' argument '0x10' is invalid. Not a number.\n"
+      },
+      {
+        "description": "digit separators are not a number",
+        "argv": ["echo", "a.csv", "-l", "1_000"],
+        "exitCode": 1,
+        "stderr": "error: option '-l, --limit <value>' argument '1_000' is invalid. Not a number.\n"
+      },
+      {
+        "description": "infinity is not a number",
+        "argv": ["echo", "a.csv", "-l", "inf"],
+        "exitCode": 1,
+        "stderr": "error: option '-l, --limit <value>' argument 'inf' is invalid. Not a number.\n"
+      },
+      {
+        "description": "an integral exponent is an integer",
+        "argv": ["echo", "a.csv", "-l", "1e3", "--json"],
+        "exitCode": 0,
+        "stdout": { "path": "a.csv", "limit": 1000, "verbose": false }
+      },
+      {
+        "description": "surrounding whitespace is trimmed",
+        "argv": ["echo", "a.csv", "-l", " 7 ", "--json"],
+        "exitCode": 0,
+        "stdout": { "path": "a.csv", "limit": 7, "verbose": false }
+      }
+    ]
+  }
+]

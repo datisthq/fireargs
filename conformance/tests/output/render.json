@@ -17,5 +17,22 @@
         "stdout": { "name": "bob", "times": 1, "loud": true }
       }
     ]
+  },
+  {
+    "description": "output is checked before it is printed",
+    "tests": [
+      {
+        "description": "a non-finite number fails under --json",
+        "argv": ["ratio", "--json"],
+        "exitCode": 1,
+        "stdoutText": ""
+      },
+      {
+        "description": "a non-finite number fails without --json",
+        "argv": ["ratio"],
+        "exitCode": 1,
+        "stdoutText": ""
+      }
+    ]
   }
 ]

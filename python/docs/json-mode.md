@@ -48,6 +48,15 @@ The flag takes an optional value (`--json [value]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 3–5 are identical.
 
+The value must be strict JSON (RFC 8259): `NaN`, `Infinity` and a number out
+of a double's range such as `1e400` fail as
+`error: --json value is not valid JSON: …`. An integral float such as `3.0`
+fills an `int` field, as zod takes it.
+
+Output holding a non-finite float — `float("nan")` — fails at its path with
+pydantic's `finite_number` error, with or without `--json`, instead of
+printing `NaN`.
+
 JSON input bypasses click, so env vars, choices checks, a field's `parse`,
 number parsing, `conflicts` and `implies` do not apply — the model's defaults
 and validation still do. An invariant that must hold in both modes belongs in
@@ -120,11 +129,11 @@ cli = Program(name="myapp", render_error=render_error, router={"greet": greet})
 - It also catches render failures. The nearest hook wins: the leaf's own,
   then each enclosing program's. A hook may be `async def`.
 
-Click's parse errors (unknown option, bad choice, extra argument) happen
-before the run starts: click prints its usage line and `Error: ...` to
-stderr and exits with code 2. A missing required positional, an
-unknown subcommand, a `conflicts` violation and a CLI value that number parsing or a field's
-`parse` rejects are reported in commander's wording, with exit code 1 — in
+Click's parse errors (unknown option, extra argument) happen before the run
+starts: click prints its usage line and `Error: ...` to stderr and exits with
+code 2. A missing required positional, an unknown subcommand, a `conflicts`
+violation, a token that is no choice and a CLI value that number parsing or a
+field's `parse` rejects are reported in commander's wording, with exit code 1 — in
 TypeScript commander rejects them while parsing. None of these reach
 `render_error`.
 

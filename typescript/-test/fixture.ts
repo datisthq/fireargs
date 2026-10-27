@@ -44,6 +44,24 @@ const tags = f
   .output(tagsInput)
   .handler(input => input)
 
+const pickInput = z.object({
+  level: z.union([z.literal(1), z.literal(2)]).optional(),
+  pair: z.tuple([z.number().int(), z.string()]).optional(),
+  tone: z.enum(["low", "high"]).nullable().optional(),
+})
+
+const pick = f
+  .command({ description: "Pick typed values" })
+  .input(pickInput)
+  .output(pickInput)
+  .handler(input => input)
+
+const ratio = f
+  .command({ description: "Divide zero by zero" })
+  .input(z.object({}))
+  .output(z.object({ value: z.number() }))
+  .handler(() => ({ value: Number.NaN }))
+
 const resetInput = z.object({
   force: f.option({ env: "FIXTURE_FORCE" }).boolean().default(false),
   backup: f.option({ env: "FIXTURE_BACKUP" }).boolean().default(true),
@@ -80,6 +98,8 @@ export const fixture = f.program({ name: "fixture" }).router({
   echo,
   strict,
   tags,
+  pick,
+  ratio,
   admin: f.program({ description: "Admin tasks" }).router({ reset }),
 })
 

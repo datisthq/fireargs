@@ -21,5 +21,34 @@
         "stdout": { "count": 12 }
       }
     ]
+  },
+  {
+    "description": "--json input is strict JSON with finite numbers",
+    "tests": [
+      {
+        "description": "NaN is not JSON",
+        "argv": ["echo", "--json", "{\"path\":\"a.csv\",\"limit\":NaN}"],
+        "exitCode": 1,
+        "stderr": "error: --json value is not valid JSON: "
+      },
+      {
+        "description": "Infinity is not JSON",
+        "argv": ["echo", "--json", "{\"path\":\"a.csv\",\"limit\":Infinity}"],
+        "exitCode": 1,
+        "stderr": "error: --json value is not valid JSON: "
+      },
+      {
+        "description": "a number out of range is not JSON",
+        "argv": ["echo", "--json", "{\"path\":\"a.csv\",\"limit\":1e400}"],
+        "exitCode": 1,
+        "stderr": "error: --json value is not valid JSON: "
+      },
+      {
+        "description": "an integral float fills an integer field",
+        "argv": ["echo", "--json", "{\"path\":\"a.csv\",\"limit\":3.0}"],
+        "exitCode": 0,
+        "stdout": { "path": "a.csv", "limit": 3, "verbose": false }
+      }
+    ]
   }
 ]

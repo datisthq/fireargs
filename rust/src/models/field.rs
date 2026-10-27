@@ -56,13 +56,34 @@ impl OneOrMany {
 }
 
 /// The value type a field's schema describes, with `null` and optionality removed.
+/// `Choice` holds an `enum`'s values, `Tuple` the shape of each `prefixItems` position.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Shape {
     Bool,
     Number,
     String,
+    Choice(Vec<Value>),
     Array(Box<Shape>),
+    Tuple(Vec<Shape>),
     Other,
+}
+
+impl Shape {
+    fn takes_number(&self) -> bool {
+        match self {
+            Shape::Number => true,
+            Shape::Choice(values) => values.iter().any(Value::is_number),
+            _ => false,
+        }
+    }
+}
+
+/// A choice as typed on the command line: the JSON text of its value, a string as-is.
+pub(crate) fn format_choice(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        value => value.to_string(),
+    }
 }
 
 /// One input field, compiled from its property schema and meta.
@@ -75,7 +96,6 @@ pub(crate) struct Field {
     pub default: Option<Value>,
     pub required: bool,
     pub shape: Shape,
-    pub choices: Option<Vec<String>>,
     pub parse: Option<ParseFn>,
 }
 
@@ -90,14 +110,37 @@ impl Field {
 
     // A field with `parse` takes one token, so `parse` sees the whole string
     pub fn is_variadic(&self) -> bool {
-        self.parse.is_none() && matches!(self.shape, Shape::Array(_))
+        self.parse.is_none() && matches!(self.shape, Shape::Array(_) | Shape::Tuple(_))
     }
 
+    /// Whether a token can be a number, so clap must let `-1` through as a value.
     pub fn is_numeric(&self) -> bool {
         match &self.shape {
-            Shape::Number => true,
-            Shape::Array(inner) => **inner == Shape::Number,
-            _ => false,
+            Shape::Array(inner) => inner.takes_number(),
+            Shape::Tuple(items) => items.iter().any(Shape::takes_number),
+            shape => shape.takes_number(),
+        }
+    }
+
+    /// The shape of the value at `index`: a tuple's own position, any array element,
+    /// or the field itself; `None` past a tuple's end, which the schema rejects.
+    pub fn read_shape_at(&self, index: usize) -> Option<&Shape> {
+        match &self.shape {
+            Shape::Array(inner) => Some(inner),
+            Shape::Tuple(items) => items.get(index),
+            shape => Some(shape),
+        }
+    }
+
+    /// The choices a token must equal, as help and errors list them.
+    pub fn choices(&self) -> Option<Vec<String>> {
+        let shape = match &self.shape {
+            Shape::Array(inner) => inner,
+            shape => shape,
+        };
+        match shape {
+            Shape::Choice(values) => Some(values.iter().map(format_choice).collect()),
+            _ => None,
         }
     }
 

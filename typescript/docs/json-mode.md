@@ -46,6 +46,11 @@ The flag takes an optional value (`--json [value]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 3–5 are identical.
 
+The value must be strict JSON (RFC 8259): `NaN`, `Infinity` and a number out
+of a double's range such as `1e400` fail as
+`error: --json value is not valid JSON: …`. An integral float such as `3.0`
+fills an integer field.
+
 JSON input bypasses commander, so `env` fallbacks, choices checks, a field's
 `parse`, number coercion, `conflicts` and `implies` do not apply — zod's
 `.default(...)` and validation still do. An invariant that must hold in both

@@ -454,3 +454,154 @@ fn a_preset_option_names_its_value_optional_in_errors() {
         "{err}"
     );
 }
+
+#[fireargs::option]
+enum Mode {
+    /// Run quickly
+    Fast,
+    /// Run carefully
+    Slow,
+}
+
+#[fireargs::option]
+enum Tone {
+    Low,
+    High,
+}
+
+#[fireargs::input]
+struct ValuesInput {
+    small: Option<u8>,
+    count: Option<u32>,
+    big: Option<i64>,
+    ratio: Option<f64>,
+    mode: Option<Mode>,
+    tone: Option<Tone>,
+    #[schemars(extend("enum" = [1, 2]))]
+    level: Option<u8>,
+    modes: Option<Vec<Mode>>,
+}
+
+fn create_values() -> Command<ValuesInput, ValuesInput> {
+    fireargs::command().handler(async |input: ValuesInput, _| Ok(input))
+}
+
+#[test]
+fn a_number_token_follows_the_shared_grammar() {
+    let command = create_values();
+    for token in [
+        "0x10", "1_000", "inf", "NaN", "1e400", "", "+-1", "1.2.3", "e5",
+    ] {
+        let (code, _, err) = run(&command, &["--big", token]);
+        assert_eq!(code, 1, "{token}");
+        assert_eq!(
+            err,
+            format!(
+                "error: option '--big <value>' argument '{token}' is invalid. Not a number.\n"
+            )
+        );
+    }
+    let cases = [
+        ("1e3", json!(1000)),
+        (" 7 ", json!(7)),
+        ("+3", json!(3)),
+        ("-2", json!(-2)),
+        ("9223372036854775807", json!(9_223_372_036_854_775_807_i64)),
+    ];
+    for (token, expected) in cases {
+        let (code, out, err) = run(&command, &["--big", token, "--json"]);
+        assert_eq!(code, 0, "{token}: {err}");
+        assert_eq!(read_json(&out)["big"], expected, "{token}");
+    }
+    let (_, out, _) = run(&command, &["--ratio", ".5", "--json"]);
+    assert_eq!(read_json(&out)["ratio"], 0.5);
+}
+
+#[test]
+fn an_integer_out_of_its_type_range_fails_at_its_field() {
+    let command = create_values();
+    let (code, _, err) = run(&command, &["--small", "300"]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: option '--small <value>' argument '300' is invalid. "),
+        "{err}"
+    );
+    let (code, _, err) = run(&command, &["--count", "-1"]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: option '--count <value>' argument '-1' is invalid. "),
+        "{err}"
+    );
+    let (code, _, err) = run(&command, &["--json", r#"{"count":5000000000}"#]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: invalid --json input at 'count': "),
+        "{err}"
+    );
+    let (code, out, _) = run(&command, &["--json", r#"{"count":3.0,"ratio":2}"#]);
+    assert_eq!(code, 0);
+    assert_eq!(read_json(&out), json!({"count": 3, "ratio": 2.0}));
+}
+
+#[test]
+fn a_choice_maps_back_to_its_value_and_rejects_in_commander_words() {
+    let command = create_values();
+    let argv = ["--level", "2", "--modes", "slow", "fast", "--json"];
+    let (code, out, err) = run(&command, &argv);
+    assert_eq!(code, 0, "{err}");
+    assert_eq!(
+        read_json(&out),
+        json!({"level": 2, "modes": ["slow", "fast"]})
+    );
+    let (code, _, err) = run(&command, &["--mode", "medium"]);
+    assert_eq!(code, 1);
+    assert_eq!(
+        err,
+        "error: option '--mode <value>' argument 'medium' is invalid. Allowed choices are fast, slow.\n"
+    );
+    let (code, _, err) = run(&command, &["--level", "3"]);
+    assert_eq!(code, 1);
+    assert_eq!(
+        err,
+        "error: option '--level <value>' argument '3' is invalid. Allowed choices are 1, 2.\n"
+    );
+    let (_, _, err) = run(&command, &["--json", r#"{"tone":"mid"}"#]);
+    assert_eq!(
+        err,
+        "error: invalid --json input at 'tone': \"mid\" is not one of \"low\" or \"high\"\n"
+    );
+}
+
+#[fireargs::output]
+struct RatioOutput {
+    rows: Vec<f64>,
+}
+
+#[test]
+fn a_non_finite_output_number_fails_at_its_path() {
+    let command = fireargs::command().handler(async |_: ValuesInput, _| {
+        Ok(RatioOutput {
+            rows: vec![1.0, f64::NAN],
+        })
+    });
+    let argv = ["cli", "--json"];
+    let (mut out, mut err) = (vec![], vec![]);
+    let error =
+        pollster::block_on(command.try_run_from(argv, &mut out, &mut err)).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "invalid output; at 'rows[1]': NaN is not a finite number"
+    );
+    assert!(out.is_empty());
+}
+
+#[test]
+fn a_clap_error_prints_no_usage_block() {
+    let (code, _, err) = run(&create_values(), &["--bogus"]);
+    assert_eq!(code, 1);
+    assert!(
+        err.starts_with("error: unexpected argument '--bogus' found"),
+        "{err}"
+    );
+    assert!(!err.contains("Usage:"), "{err}");
+}

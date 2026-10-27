@@ -140,17 +140,18 @@ error. A `render_error` hook takes all of them instead (see
 
 For each field of the input struct:
 
-| Rust construct                            | Becomes                                                                     |
-| ----------------------------------------- | --------------------------------------------------------------------------- |
-| `String` / an integer / a float           | `--key <value>`, required unless defaulted; a number's CLI string is parsed |
-| `bool`                                    | `--key` flag                                                                |
-| `#[fireargs(argument)]`                   | positional `[key]`, read in field order                                     |
-| `#[fireargs(default)]` / `default = expr` | shown as `(default: …)` in `--help`; filled in when absent                  |
-| a `#[fireargs::option]` enum              | choices: `(choices: "a", "b")` in `--help`, checked against the schema      |
-| `Vec<T>`                                  | `--key <value>...`: `--key a b` or `--key a --key b`; positional `[key]...` |
-| `Vec<SomeEnum>`                           | repeated, with choices on each value                                        |
-| `Option<T>`                               | optional, with no default needed                                            |
-| a doc comment on the field                | shown in `--help` and surfaced as `description` in `--llms` JSON Schema     |
+| Rust construct                                          | Becomes                                                                                              |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `String` / an integer / a float                         | `--key <value>`, required unless defaulted; a number's CLI string is parsed                          |
+| `bool`                                                  | `--key` flag                                                                                         |
+| `#[fireargs(argument)]`                                 | positional `[key]`, read in field order                                                              |
+| `#[fireargs(default)]` / `default = expr`               | shown as `(default: …)` in `--help`; filled in when absent                                           |
+| a `#[fireargs::option]` enum or an `enum` in the schema | choices: `(choices: "a", "b")` in `--help`, each the JSON text of a value, checked before the schema |
+| `Vec<T>`                                                | `--key <value>...`: `--key a b` or `--key a --key b`; positional `[key]...`                          |
+| `Vec<SomeEnum>`                                         | repeated, with choices on each value                                                                 |
+| `(A, B)`                                                | `--key <value>...`, each value converted by its position                                             |
+| `Option<T>`                                             | optional, with no default needed                                                                     |
+| a doc comment on the field                              | shown in `--help` and surfaced as `description` in `--llms` JSON Schema                              |
 
 `key` is the camelCase wire key, shown in kebab-case: `header_rows` is `headerRows`
 in `--json` and `--header-rows` at the shell. See

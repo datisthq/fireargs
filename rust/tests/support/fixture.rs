@@ -41,6 +41,28 @@ struct TagsInput {
     color: Option<String>,
 }
 
+#[fireargs::option]
+enum Tone {
+    Low,
+    High,
+}
+
+#[fireargs::input]
+struct PickInput {
+    #[schemars(extend("enum" = [1, 2]))]
+    level: Option<u8>,
+    pair: Option<(i64, String)>,
+    tone: Option<Tone>,
+}
+
+#[fireargs::input]
+struct EmptyInput {}
+
+#[fireargs::output]
+struct RatioOutput {
+    value: f64,
+}
+
 #[fireargs::input]
 struct ResetInput {
     #[fireargs(env = "FIXTURE_FORCE", default)]
@@ -76,6 +98,12 @@ pub fn create_fixture() -> Program {
     let tags = fireargs::command()
         .description("Collect tags and rows")
         .handler(async |input: TagsInput, _| Ok(input));
+    let pick = fireargs::command()
+        .description("Pick typed values")
+        .handler(async |input: PickInput, _| Ok(input));
+    let ratio = fireargs::command()
+        .description("Divide zero by zero")
+        .handler(async |_: EmptyInput, _| Ok(RatioOutput { value: f64::NAN }));
     let reset = fireargs::command()
         .description("Reset everything")
         .handler(async |input: ResetInput, _| Ok(input));
@@ -87,6 +115,8 @@ pub fn create_fixture() -> Program {
         .command("echo", echo)
         .command("strict", strict)
         .command("tags", tags)
+        .command("pick", pick)
+        .command("ratio", ratio)
         .program("admin", admin)
 }
 

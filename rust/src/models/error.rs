@@ -76,3 +76,21 @@ pub(crate) fn format_path(path: &[PathSegment]) -> String {
     }
     text
 }
+
+/// Turn a `serde_path_to_error` path into issue segments.
+pub(crate) fn read_path(path: &serde_path_to_error::Path) -> Vec<PathSegment> {
+    path.iter()
+        .filter_map(|segment| match segment {
+            serde_path_to_error::Segment::Seq { index } => {
+                Some(PathSegment::Index(*index))
+            }
+            serde_path_to_error::Segment::Map { key } => {
+                Some(PathSegment::Key(key.clone()))
+            }
+            serde_path_to_error::Segment::Enum { variant } => {
+                Some(PathSegment::Key(variant.clone()))
+            }
+            serde_path_to_error::Segment::Unknown => None,
+        })
+        .collect()
+}

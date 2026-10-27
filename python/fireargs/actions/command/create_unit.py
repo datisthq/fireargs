@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from enum import IntEnum
 from typing import Annotated, Literal, TypedDict
 
 import click
@@ -151,7 +152,13 @@ class TestCommand:
 
         invoke(greet, "--kind", "b")
         assert seen == [In(kind="b")]
-        assert invoke(greet, "--kind", "z").exit_code == 2
+        result = invoke(greet, "--kind", "z")
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: option '--kind <value>' argument 'z' is invalid. "
+            "Allowed choices are a, b, c.\n"
+        )
+        assert "--kind [a|b|c]" in read_help(greet)
 
     def test_derives_choices_from_a_literal_on_positionals(self):
         class In(BaseModel):
@@ -166,7 +173,57 @@ class TestCommand:
 
         invoke(greet, "a")
         assert seen == [In(kind="a")]
-        assert invoke(greet, "z").exit_code == 2
+        result = invoke(greet, "z")
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: command-argument value 'z' is invalid for argument 'kind'. "
+            "Allowed choices are a, b.\n"
+        )
+
+    def test_maps_each_choice_the_json_text_of_a_value_back_to_it(self):
+        class Code(IntEnum):
+            A = 1
+            B = 2
+
+        class In(BaseModel):
+            level: Literal[1, 2]
+            code: Code
+            on: Literal[True, "auto"]
+            sizes: list[Literal[1, 2]] = []
+
+        seen: list[In] = []
+
+        @f.command(name="pick")
+        def pick(input: In) -> Empty:
+            seen.append(input)
+            return Empty()
+
+        argv = ["--level", "2", "--code", "1", "--on", "true", "--sizes", "2"]
+        result = invoke(pick, *argv, "--sizes", "1")
+        assert result.exit_code == 0, result.output
+        assert seen == [In(level=2, code=Code.A, on=True, sizes=[2, 1])]
+        assert "--on [true|auto]" in read_help(pick)
+
+    def test_converts_each_tuple_element_by_its_position(self):
+        class In(BaseModel):
+            pair: Annotated[tuple[int, Literal["a", "b"]], f.Argument()]
+            rows: tuple[float, ...] = ()
+
+        seen: list[In] = []
+
+        @f.command(name="pair")
+        def pair(input: In) -> Empty:
+            seen.append(input)
+            return Empty()
+
+        result = invoke(pair, "1", "a", "--rows", "1.5", "--rows", "2")
+        assert result.exit_code == 0, result.output
+        assert seen == [In(pair=(1, "a"), rows=(1.5, 2.0))]
+        result = invoke(pair, "1", "c")
+        assert result.stderr == (
+            "error: command-argument value 'c' is invalid for argument 'pair'. "
+            "Allowed choices are a, b.\n"
+        )
 
     def test_fills_pydantic_defaults(self):
         class In(BaseModel):
@@ -368,6 +425,51 @@ class TestCommand:
         result = invoke(greet, "--json", "{not json")
         assert result.exit_code == 1
         assert result.stderr.startswith("error: --json value is not valid JSON: ")
+
+    @pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e400"])
+    def test_json_mode_rejects_a_number_json_cannot_hold(self, number: str):
+        class In(BaseModel):
+            n: float
+
+        @f.command(name="greet")
+        def greet(input: In) -> Empty:
+            return Empty()
+
+        result = invoke(greet, "--json", f'{{"n":{number}}}')
+        assert result.exit_code == 1
+        assert result.stderr.startswith("error: --json value is not valid JSON: ")
+
+    def test_json_mode_takes_an_integral_float_for_an_int(self):
+        class In(BaseModel):
+            n: int
+            x: float
+
+        seen: list[In] = []
+
+        @f.command(name="greet")
+        def greet(input: In) -> Empty:
+            seen.append(input)
+            return Empty()
+
+        result = invoke(greet, "--json", '{"n":3.0,"x":2}')
+        assert result.exit_code == 0, result.output
+        assert seen == [In(n=3, x=2.0)]
+        assert invoke(greet, "--json", '{"n":3.5,"x":2}').exit_code == 1
+
+    @pytest.mark.parametrize("args", [["--json"], []])
+    def test_raises_on_a_non_finite_number_in_the_output(self, args: list[str]):
+        class Out(BaseModel):
+            rows: list[float]
+
+        @f.command(name="greet")
+        def greet(input: Empty) -> Out:
+            return Out(rows=[1.0, float("inf")])
+
+        result = invoke(greet, *args)
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert isinstance(result.exception, ValidationError)
+        assert result.exception.errors()[0]["loc"] == ("rows", 1)
 
     def test_still_raises_the_validation_error_when_the_output_is_invalid(self):
         @f.command(name="greet")
@@ -818,6 +920,49 @@ class TestOptionSemantics:
 
 
 class TestCliValueParsing:
+    @pytest.mark.parametrize(
+        ("token", "expected"),
+        [
+            ("0x10", None),
+            ("0b1", None),
+            ("1_000", None),
+            ("inf", None),
+            ("nan", None),
+            ("1e400", None),
+            ("", None),
+            ("\u0661", None),
+            ("1e3", 1000),
+            (" 7 ", 7),
+            ("+3", 3),
+            ("-2.5", -2.5),
+            (".5", 0.5),
+            ("5.", 5),
+            ("123456789012345678901234567890", 123456789012345678901234567890),
+        ],
+    )
+    def test_reads_a_number_token_by_the_shared_grammar(
+        self, token: str, expected: float | None
+    ):
+        class In(BaseModel):
+            n: int | float
+
+        seen: list[In] = []
+
+        @f.command(name="count")
+        def count(input: In) -> Empty:
+            seen.append(input)
+            return Empty()
+
+        result = invoke(count, "--n", token)
+        if expected is None:
+            assert result.stderr == (
+                f"error: option '--n <value>' argument '{token}' is invalid. Not a number.\n"
+            )
+        else:
+            assert result.exit_code == 0, result.output
+            assert seen[0].n == expected
+            assert type(seen[0].n) is type(expected)
+
     def test_applies_option_parse_to_the_argv_string(self):
         class In(BaseModel):
             missing: Annotated[list[str], f.Option(parse=lambda v: v.split(","))]
@@ -1339,6 +1484,14 @@ class TestVersionOption:
 
 
 class TestHandlerShapes:
+    def test_takes_a_bare_decorator(self):
+        @f.command
+        def show_status(input: Empty) -> Ok:
+            return Ok()
+
+        assert show_status.name == "show-status"
+        assert json.loads(invoke(show_status, "--json").stdout) == {"ok": True}
+
     def test_derives_the_command_name_from_the_handler(self):
         @f.command()
         def show_status(input: Empty) -> Empty:

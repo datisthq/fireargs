@@ -77,19 +77,22 @@ Without `--json` nothing is printed unless the command has a render. It receives
 
 `#[fireargs::input]` derives serde and schemars, renames the fields to camelCase wire keys and makes `Option` fields optional. Every field becomes a CLI field, its key shown in kebab-case (`dry_run` → `dryRun` → `--dry-run`, `[dry-run]`). The handler, `--json` and `--llms` keep the key.
 
-| Rust                                     | CLI                                                                |
-| ---------------------------------------- | ------------------------------------------------------------------ |
-| plain field                              | `--key <value>` option                                             |
-| `#[fireargs(argument)]`                  | positional `[key]`, read in field order                            |
-| `bool`                                   | `--key` flag, no value; `default = true` adds `--no-key`           |
-| integers / floats                        | CLI string parsed as a number before the schema validates          |
-| `Vec<T>`                                 | `--key <value>...`: `--key a b` or repeated; positional `[key]...` |
-| a `#[fireargs::option]` enum             | choices, kebab-case, listed in `--help` and checked by the schema  |
-| `#[fireargs(default)]`, `default = expr` | shown as `(default: …)` in `--help`; filled in when absent         |
-| `Option<T>`                              | optional, no default needed                                        |
-| doc comment                              | help text, and `description` in the `--llms` manifest              |
+| Rust                                     | CLI                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------- |
+| plain field                              | `--key <value>` option                                                |
+| `#[fireargs(argument)]`                  | positional `[key]`, read in field order                               |
+| `bool`                                   | `--key` flag, no value; `default = true` adds `--no-key`              |
+| integers / floats                        | CLI string parsed as a number before the schema validates             |
+| `Vec<T>`                                 | `--key <value>...`: `--key a b` or repeated; positional `[key]...`    |
+| a `#[fireargs::option]` enum             | choices, kebab-case, listed in `--help` and checked before the schema |
+| `(A, B)`                                 | `--key <value>...`, each value converted by its position              |
+| `#[fireargs(default)]`, `default = expr` | shown as `(default: …)` in `--help`; filled in when absent            |
+| `Option<T>`                              | optional, no default needed                                           |
+| doc comment                              | help text, and `description` in the `--llms` manifest                 |
 
-A field without a default that is not an `Option` is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails the schema prints one commander-style `error: ...` line per field and exits 1. Clap's own parse errors (unknown option, extra argument) keep clap's wording and also exit 1.
+A field without a default that is not an `Option` is required. A missing positional fails with `error: missing required argument 'key'`, a missing option with `error: required option '--key <value>' not specified`; `--json '<value>'` and `--llms` runs need neither. Any other input that fails the schema prints one commander-style `error: ...` line per field and exits 1. Clap's own parse errors (unknown option, extra argument) keep clap's wording, without its usage block, and also exit 1. An integer out of its type's range — `300` for a `u8` — fails at its field.
+
+A number token is decimal — sign, digits, optional point and exponent, trimmed: `1e3` and `.5` parse, `0x10`, `1_000`, `inf` and `NaN` exit 1 with `… is invalid. Not a number.` A choice is the JSON text of an `enum` value in the schema (`1`, `true`, `admin`) and maps back to that value; any other token exits 1 with `error: option '--key <value>' argument 'x' is invalid. Allowed choices are a, b.`
 
 A `bool`'s `env` value is read as a word, trimmed and in any case: `1`, `true`, `yes`, `on`, `y`, `t` set it; `0`, `false`, `no`, `off`, `n`, `f` clear it, even over a `true` default; unset or empty leaves the default; anything else exits 1 with `error: option '--key' value '…' from env 'KEY' is invalid. Not a boolean.`
 

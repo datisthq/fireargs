@@ -155,6 +155,111 @@ describe("f.command", () => {
     expect(captured).toEqual({ kind: "a" })
   })
 
+  it("maps each choice, the JSON text of a literal, back to its value", async () => {
+    let captured: unknown
+    const cmd = f
+      .command({ name: "pick" })
+      .input(
+        z.object({
+          level: z.literal([1, 2]),
+          code: z.enum({ A: 1, B: 2 }),
+          on: z.union([z.literal(true), z.literal("auto")]),
+          sizes: z.array(z.union([z.literal(1), z.literal(2)])),
+        }),
+      )
+      .output(z.object({}))
+      .handler(input => {
+        captured = input
+        return {}
+      })
+
+    const argv = ["--level", "2", "--code", "1", "--on", "true", "--sizes", "2", "1"]
+    await cmd.parseAsync(argv, { from: "user" })
+    expect(captured).toEqual({ level: 2, code: 1, on: true, sizes: [2, 1] })
+    expect(cmd.helpInformation()).toContain('(choices: "1", "2")')
+  })
+
+  it("rejects a token that is no choice in commander's words", async () => {
+    let stderr = ""
+    const cmd = f
+      .command({
+        name: "pick",
+        exitOverride: true,
+        configureOutput: { writeErr: str => (stderr += str) },
+      })
+      .input(z.object({ code: f.argument().schema(z.enum({ A: 1, B: 2 })) }))
+      .output(z.object({}))
+      .handler(() => ({}))
+
+    await expect(cmd.parseAsync(["3"], { from: "user" })).rejects.toMatchObject({
+      exitCode: 1,
+    })
+    expect(stderr).toBe(
+      "error: command-argument value '3' is invalid for argument 'code'. Allowed choices are 1, 2.\n",
+    )
+  })
+
+  it("converts each tuple element by its position", async () => {
+    let captured: unknown
+    const cmd = f
+      .command({ name: "pair" })
+      .input(
+        z.object({
+          pair: f.argument().schema(z.tuple([z.number(), z.enum(["a", "b"])])),
+          rest: z.tuple([z.string()], z.number()).optional(),
+        }),
+      )
+      .output(z.object({}))
+      .handler(input => {
+        captured = input
+        return {}
+      })
+
+    await cmd.parseAsync(["1", "a", "--rest", "x", "2", "3"], { from: "user" })
+    expect(captured).toEqual({ pair: [1, "a"], rest: ["x", 2, 3] })
+  })
+
+  it.each([
+    ["0x10", undefined],
+    ["0b1", undefined],
+    ["1_000", undefined],
+    ["Infinity", undefined],
+    ["1e400", undefined],
+    ["", undefined],
+    ["1e3", 1000],
+    [" 7 ", 7],
+    ["+3", 3],
+    ["-2.5", -2.5],
+    [".5", 0.5],
+    ["5.", 5],
+  ])("reads the number token %j as %j", async (token, expected) => {
+    let captured: unknown
+    let stderr = ""
+    const cmd = f
+      .command({
+        name: "count",
+        exitOverride: true,
+        configureOutput: { writeErr: str => (stderr += str) },
+      })
+      .input(z.object({ n: z.number() }))
+      .output(z.object({}))
+      .handler(input => {
+        captured = input
+        return {}
+      })
+
+    const run = cmd.parseAsync(["--n", token], { from: "user" })
+    if (expected === undefined) {
+      await expect(run).rejects.toMatchObject({ exitCode: 1 })
+      expect(stderr).toBe(
+        `error: option '--n <value>' argument '${token}' is invalid. Not a number.\n`,
+      )
+    } else {
+      await run
+      expect(captured).toEqual({ n: expected })
+    }
+  })
+
   it("forwards z.default values to commander", async () => {
     let captured: unknown
     const cmd = f
@@ -529,6 +634,25 @@ describe("f.command", () => {
       cmd.parseAsync(["--json", "{not json"], { from: "user" }),
     ).rejects.toMatchObject({ code: "fireargs.invalidJson", exitCode: 1 })
   })
+
+  it.each(["NaN", "Infinity", "1e400", "-1e400"])(
+    "--json mode rejects the number %s as not JSON",
+    async number => {
+      const cmd = f
+        .command({
+          name: "greet",
+          exitOverride: true,
+          configureOutput: { writeErr: () => {} },
+        })
+        .input(z.object({ n: z.number() }))
+        .output(z.object({}))
+        .handler(() => ({}))
+
+      await expect(
+        cmd.parseAsync(["--json", `{"n":${number}}`], { from: "user" }),
+      ).rejects.toMatchObject({ code: "fireargs.invalidJson", exitCode: 1 })
+    },
+  )
 
   it("still rejects with the ZodError when the output is invalid", async () => {
     const cmd = f

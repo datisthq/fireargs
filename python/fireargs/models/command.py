@@ -17,9 +17,20 @@ type Render[I, O] = (
 type RenderError = Callable[[Exception], object] | Callable[[Exception, Context], object]
 
 
+@dataclass(frozen=True)
+class ValueType:
+    """How one CLI string converts before validation: to a number, to the value among
+    `values` whose JSON text it equals in `choices`, or not at all."""
+
+    number: bool = False
+    choices: tuple[str, ...] | None = None
+    values: tuple[object, ...] = ()
+
+
 @dataclass(frozen=True, kw_only=True)
 class FieldSpec:
-    """How one input field is read from argv: its key, CLI name and value shape."""
+    """How one input field is read from argv: its key, CLI name and value shape, where a
+    fixed tuple's `items` type each position and `element` types every other value."""
 
     key: str
     kind: Literal["argument", "option"]
@@ -29,7 +40,8 @@ class FieldSpec:
     default: object = None
     required: bool
     variadic: bool
-    number: bool
+    element: ValueType = ValueType()
+    items: tuple[ValueType, ...] | None = None
     parse: Callable[[str], object] | None
     meta: FieldMeta | None
 

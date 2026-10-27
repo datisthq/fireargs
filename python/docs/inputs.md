@@ -182,7 +182,19 @@ send that value directly:
   `error: option '--rows <value>' argument 'abc' is invalid. Not a number.`
   `--json '{"rows":"10"}'` is still rejected — the JSON value must be a
   number. An error quotes the value as typed: `--rows 03` that fails
-  `ge=10` reports `'03'`, not `3`.
+  `ge=10` reports `'03'`, not `3`. `int | float` parses the same way.
+  A number token is decimal: an optional sign, digits with an optional
+  point, an optional exponent, surrounding whitespace trimmed — `1e3`, `.5`
+  and `+7` parse; `0x10`, `1_000`, `inf` and `NaN` are not a number.
+  A plain integer parses exactly, however long.
+- **Choices map back to their values.** A choice is the JSON text of each
+  value of a `Literal` or an `Enum` (an `IntEnum` too), so `Literal[1, 2]`
+  takes `--level 2` as the int `2`, and `--level 3` fails with
+  `error: option '--level <value>' argument '3' is invalid. Allowed choices are 1, 2.`
+  and exit code 1. `Literal[True]` takes the token `true`; it is no flag.
+- **A tuple converts by position.** `tuple[int, str]` takes
+  `--pair 1 --pair a` as `(1, "a")`; `tuple[int, ...]` reads like
+  `list[int]`. pydantic checks how many were given.
 - **`parse` handles any other syntax.** It receives the raw string from argv
   or the env var and returns the field's value, which pydantic then
   validates. It never runs on `--json` input or on defaults.

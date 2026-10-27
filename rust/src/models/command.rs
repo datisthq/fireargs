@@ -10,9 +10,10 @@ use serde_json::Value;
 
 use super::config::Config;
 use super::context::{Context, RenderContext};
-use super::error::Error;
+use super::error::{Error, Issue, OutputError, read_path};
 use super::field::Field;
 use super::route::Route;
+use crate::actions::output::serialize::serialize_output;
 use crate::actions::route::run::{run_route, run_route_from};
 
 pub(crate) type BoxFuture<T> = Pin<Box<dyn Future<Output = T>>>;
@@ -33,7 +34,7 @@ pub(crate) struct Outcome {
 }
 
 pub(crate) enum RunError {
-    Input(serde_json::Error),
+    Input(Issue),
     Failed(Error),
 }
 
@@ -129,12 +130,20 @@ where
         let render = render.clone();
         Box::pin(async move {
             let input: I =
-                serde_json::from_value(value.clone()).map_err(RunError::Input)?;
+                serde_path_to_error::deserialize(value.clone()).map_err(|error| {
+                    RunError::Input(Issue {
+                        path: read_path(error.path()),
+                        message: error.into_inner().to_string(),
+                    })
+                })?;
             let output = handler(input, context.clone())
                 .await
                 .map_err(RunError::Failed)?;
-            let json = serde_json::to_value(&output)
-                .map_err(|error| RunError::Failed(error.into()))?;
+            let json = serialize_output(&output).map_err(|issue| {
+                RunError::Failed(Box::new(OutputError {
+                    issues: vec![issue],
+                }))
+            })?;
             let render = render.filter(|_| !context.json).map(|render| {
                 Box::new(move || {
                     let input: I = serde_json::from_value(value).ok()?;

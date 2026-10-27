@@ -12,7 +12,7 @@ use crate::models::command::{Leaf, RunError};
 use crate::models::config::RenderError;
 use crate::models::context::Context;
 use crate::models::error::{Error, InputError, Issue, OutputError, PathSegment};
-use crate::models::field::Field;
+use crate::models::field::{Field, Shape, format_choice};
 
 /// Where a leaf runs: the root's name, the route path below it and the `render_error`
 /// hooks, nearest first.
@@ -76,6 +76,7 @@ pub(crate) async fn run_command(
     let mut raw = None;
     let value = match &json_input {
         Some(text) => serde_json::from_str::<Value>(text)
+            .map(normalize_integers)
             .map_err(|error| InputError::InvalidJson(error.to_string())),
         None => {
             if let Some(line) = check_required_arguments(&command.fields, &provided) {
@@ -133,11 +134,7 @@ pub(crate) async fn run_command(
             }
             Ok(0)
         }
-        Err(RunError::Input(error)) => {
-            let issue = Issue {
-                path: vec![],
-                message: error.to_string(),
-            };
+        Err(RunError::Input(issue)) => {
             let error = InputError::Invalid(vec![issue]);
             report_input_error(error, command, raw.as_ref(), &hooks, &context, out, err)
         }
@@ -295,13 +292,16 @@ fn read_cli_input(
                 Value::Array(
                     texts
                         .iter()
-                        .map(|text| convert_value(field, text, env_name))
+                        .enumerate()
+                        .map(|(index, text)| convert_value(field, text, index, env_name))
                         .collect::<Result<_, _>>()?,
                 ),
                 texts,
             ),
             false => match texts.last() {
-                Some(text) => (convert_value(field, text, env_name)?, vec![text.clone()]),
+                Some(text) => {
+                    (convert_value(field, text, 0, env_name)?, vec![text.clone()])
+                }
                 None => continue,
             },
         };
@@ -321,27 +321,101 @@ fn read_cli_input(
     Ok(raw)
 }
 
-fn convert_value(field: &Field, text: &str, env: Option<&str>) -> Result<Value, String> {
+fn convert_value(
+    field: &Field,
+    text: &str,
+    index: usize,
+    env: Option<&str>,
+) -> Result<Value, String> {
     let result = match &field.parse {
         Some(parse) => parse(text),
-        None if field.is_numeric() => parse_number(text),
-        None => Ok(Value::String(text.to_owned())),
+        None => convert_token(field.read_shape_at(index), text),
     };
     result.map_err(|message| format_value_error(field, text, &message, env))
 }
 
-fn parse_number(text: &str) -> Result<Value, String> {
-    let trimmed = text.trim();
-    let number: f64 = trimmed.parse().map_err(|_| "Not a number.".to_owned())?;
-    if !number.is_finite() {
-        return Err("Not a number.".to_owned());
+fn convert_token(shape: Option<&Shape>, text: &str) -> Result<Value, String> {
+    match shape {
+        Some(Shape::Number) => parse_number(text),
+        Some(Shape::Choice(values)) => {
+            let choices: Vec<String> = values.iter().map(format_choice).collect();
+            match choices.iter().position(|choice| choice == text) {
+                Some(index) => Ok(values[index].clone()),
+                None => Err(format!("Allowed choices are {}.", choices.join(", "))),
+            }
+        }
+        _ => Ok(Value::String(text.to_owned())),
     }
-    if let Ok(integer) = trimmed.parse::<i64>() {
+}
+
+// Shared by every twin: no hex, no digit separators, no `inf` or `nan`
+fn parse_number(text: &str) -> Result<Value, String> {
+    let text = text.trim_matches([' ', '\t', '\n', '\x0C', '\r']);
+    let fail = || "Not a number.".to_owned();
+    if !is_number_token(text) {
+        return Err(fail());
+    }
+    if let Ok(integer) = text.parse::<i64>() {
         return Ok(Value::Number(integer.into()));
     }
-    Number::from_f64(number)
-        .map(Value::Number)
-        .ok_or_else(|| "Not a number.".to_owned())
+    if let Ok(integer) = text.parse::<u64>() {
+        return Ok(Value::Number(integer.into()));
+    }
+    let number: f64 = text.parse().map_err(|_| fail())?;
+    match read_integral(number) {
+        Some(integer) => Ok(integer),
+        None => Number::from_f64(number).map(Value::Number).ok_or_else(fail),
+    }
+}
+
+fn is_number_token(text: &str) -> bool {
+    let digits = |part: &str| part.bytes().all(|byte| byte.is_ascii_digit());
+    let unsigned = text.strip_prefix(['+', '-']).unwrap_or(text);
+    let (mantissa, exponent) = match unsigned.split_once(['e', 'E']) {
+        Some((mantissa, exponent)) => (mantissa, Some(exponent)),
+        None => (unsigned, None),
+    };
+    let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let exponent_valid = exponent.is_none_or(|exponent| {
+        let exponent = exponent.strip_prefix(['+', '-']).unwrap_or(exponent);
+        !exponent.is_empty() && digits(exponent)
+    });
+    !(whole.is_empty() && fraction.is_empty())
+        && digits(whole)
+        && digits(fraction)
+        && exponent_valid
+}
+
+// An integral float is an integer to the schema: serde reads no `u32` from `1000.0`
+fn read_integral(number: f64) -> Option<Value> {
+    const LIMIT: f64 = 18_446_744_073_709_551_616.0;
+    if number.fract() != 0.0 || number.abs() >= LIMIT {
+        return None;
+    }
+    match number < 0.0 {
+        true if number >= i64::MIN as f64 => Some(Value::Number((number as i64).into())),
+        true => None,
+        false => Some(Value::Number((number as u64).into())),
+    }
+}
+
+// zod and pydantic take `3.0` for an integer field; serde reads no `u32` from it
+fn normalize_integers(value: Value) -> Value {
+    match value {
+        Value::Number(number) => match number.as_f64().filter(|_| number.is_f64()) {
+            Some(float) => read_integral(float).unwrap_or(Value::Number(number)),
+            None => Value::Number(number),
+        },
+        Value::Array(items) => {
+            Value::Array(items.into_iter().map(normalize_integers).collect())
+        }
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(key, value)| (key, normalize_integers(value)))
+                .collect(),
+        ),
+        value => value,
+    }
 }
 
 fn collect_issues(validator: &jsonschema::Validator, value: &Value) -> Vec<Issue> {
@@ -356,12 +430,33 @@ fn collect_issues(validator: &jsonschema::Validator, value: &Value) -> Vec<Issue
             {
                 path.push(PathSegment::Key(key.to_owned()));
             }
-            Issue {
-                path,
-                message: error.to_string(),
-            }
+            let message = match error.kind() {
+                jsonschema::error::ValidationErrorKind::Enum { options } => {
+                    format_enum_message(error.instance(), options)
+                }
+                _ => error.to_string(),
+            };
+            Issue { path, message }
         })
         .collect()
+}
+
+// `Option<T>` puts `null` among an enum's values, which no `--json` value needs named
+fn format_enum_message(instance: &Value, options: &Value) -> String {
+    let options: Vec<String> = options
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|option| !option.is_null())
+        .map(Value::to_string)
+        .collect();
+    let listed = match options.split_last() {
+        Some((last, rest)) if !rest.is_empty() => {
+            format!("{} or {last}", rest.join(", "))
+        }
+        _ => options.join(""),
+    };
+    format!("{instance} is not one of {listed}")
 }
 
 fn read_pointer(pointer: &str) -> Vec<PathSegment> {

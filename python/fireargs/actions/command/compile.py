@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import types
@@ -11,9 +12,9 @@ import click
 from click.core import ParameterSource
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic.fields import FieldInfo
-from pydantic_core import PydanticUndefined
+from pydantic_core import InitErrorDetails, PydanticUndefined
 
-from ...models.command import Command, FieldOption, FieldSpec, Leaf
+from ...models.command import Command, FieldOption, FieldSpec, Leaf, ValueType
 from ...models.config import CommandConfig, FlagConfig, RouteConfig
 from ...models.context import Context, RenderContext
 from ...models.field import ArgumentMeta, OptionMeta
@@ -186,8 +187,8 @@ class OptionSettings(TypedDict):
 class ValueShape:
     boolean: bool
     variadic: bool
-    number: bool
-    choices: tuple[str, ...] | None
+    element: ValueType
+    items: tuple[ValueType, ...] | None = None
 
 
 def declare_fields(input: type[BaseModel]):
@@ -223,7 +224,8 @@ def declare_argument(key: str, info: FieldInfo, meta: ArgumentMeta):
         default=meta.default_description or read_click_default(info, False),
         required=required,
         variadic=shape.variadic,
-        number=shape.number,
+        element=shape.element,
+        items=shape.items,
         parse=meta.parse,
         meta=meta,
     )
@@ -231,7 +233,6 @@ def declare_argument(key: str, info: FieldInfo, meta: ArgumentMeta):
         [key],
         required=False,
         nargs=-1 if shape.variadic else 1,
-        type=click.Choice(shape.choices) if shape.choices else None,
         envvar=meta.envvar,
         metavar=meta.metavar or (f"<{label}>" if required else f"[{label}]"),
     )
@@ -270,7 +271,8 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
         default=None,
         required=info.is_required(),
         variadic=shape.variadic,
-        number=shape.number,
+        element=shape.element,
+        items=shape.items,
         parse=meta.parse,
         meta=meta,
     )
@@ -318,14 +320,15 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
             **shared,
         )
     else:
+        # click.Choice would reject a token in click's words, with exit code 2
+        choices = shape.element.choices
         option = FieldOption(
             decls,
-            type=click.Choice(shape.choices) if shape.choices else None,
             multiple=shape.variadic,
             is_flag=meta.is_flag,
             default=default,
             count=meta.count,
-            metavar=meta.metavar or (None if shape.choices else "<value>"),
+            metavar=meta.metavar or (f"[{'|'.join(choices)}]" if choices else "<value>"),
             **shared,
         )
     option.help_group = meta.help_group
@@ -351,23 +354,32 @@ def format_default(value: object):
 
 def read_value_shape(annotation: object, parse: Callable[[str], object] | None):
     if parse is not None:
-        return ValueShape(boolean=False, variadic=False, number=False, choices=None)
+        return ValueShape(boolean=False, variadic=False, element=ValueType())
     inner = unwrap_annotation(annotation)
-    if get_origin(inner) in (list, tuple, set, frozenset):
-        args = get_args(inner)
-        element = unwrap_annotation(args[0]) if args else str
-        return ValueShape(
-            boolean=False,
-            variadic=True,
-            number=is_number(element),
-            choices=read_choices(element),
-        )
+    origin = get_origin(inner)
+    args = get_args(inner)
+    if origin is tuple and not (len(args) == 2 and args[1] is Ellipsis):
+        items = tuple(read_value_type(arg) for arg in args)
+        return ValueShape(boolean=False, variadic=True, element=ValueType(), items=items)
+    if origin in (list, tuple, set, frozenset):
+        element = read_value_type(args[0]) if args else ValueType()
+        return ValueShape(boolean=False, variadic=True, element=element)
     return ValueShape(
-        boolean=inner is bool,
-        variadic=False,
-        number=is_number(inner),
-        choices=read_choices(inner),
+        boolean=inner is bool, variadic=False, element=read_value_type(inner)
     )
+
+
+def read_value_type(annotation: object):
+    inner = unwrap_annotation(annotation)
+    if is_number(inner):
+        return ValueType(number=True)
+    values = read_choice_values(inner)
+    if values is None:
+        return ValueType()
+    choices = tuple(
+        value if isinstance(value, str) else json.dumps(value) for value in values
+    )
+    return ValueType(choices=choices, values=values)
 
 
 def unwrap_annotation(annotation: object):
@@ -385,19 +397,37 @@ def unwrap_annotation(annotation: object):
             return current
 
 
+def read_union_members(annotation: object):
+    if get_origin(annotation) not in (Union, types.UnionType):
+        return None
+    return [
+        unwrap_annotation(arg) for arg in get_args(annotation) if arg is not type(None)
+    ]
+
+
 def is_number(annotation: object):
+    members = read_union_members(annotation)
+    if members is not None:
+        return all(member is int or member is float for member in members)
     return annotation is int or annotation is float
 
 
-def read_choices(annotation: object):
+def read_choice_values(annotation: object) -> tuple[object, ...] | None:
+    members = read_union_members(annotation)
+    if members is not None:
+        groups = [read_choice_values(member) for member in members]
+        if any(group is None for group in groups):
+            return None
+        return tuple(value for group in groups for value in group or ())
     if get_origin(annotation) is Literal:
         values = get_args(annotation)
     elif isinstance(annotation, type) and issubclass(annotation, Enum):
         values = tuple(member.value for member in annotation)
     else:
         return None
-    if values and all(isinstance(value, str) for value in values):
-        return tuple(str(value) for value in values)
+    values = tuple(value for value in values if value is not None)
+    if values and all(isinstance(value, str | int | float) for value in values):
+        return values
     return None
 
 
@@ -424,9 +454,9 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
     raw: CliInput | None = None
     try:
         if json_input is not None:
-            json.loads(json_input)
+            data = json.dumps(load_json(json_input))
             # Strict, as zod is: `--json` carries typed values, so `"3"` is no number
-            parsed = command.input.model_validate_json(json_input, strict=True)
+            parsed = command.input.model_validate_json(data, strict=True)
         else:
             envs = read_env_sources(command.fields, ctx)
             values = read_cli_input(command.fields, params, provided, envs)
@@ -443,11 +473,12 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
     try:
         args = (parsed, context) if command.takes_context else (parsed,)
         validated = command.output.validate_python(run_awaitable(command.handler(*args)))
+        # A render-only output may hold what JSON mode cannot serialize
+        mode = "json" if context.json else "python"
+        dumped = command.output.dump_python(validated, mode=mode, by_alias=True)
+        check_finite_output(dumped)
         if context.json:
-            dumped = drop_unset_optionals(
-                validated,
-                command.output.dump_python(validated, mode="json", by_alias=True),
-            )
+            dumped = drop_unset_optionals(validated, dumped)
             click.echo(json.dumps(dumped, indent=2, ensure_ascii=False))
             return
         if command.renderer is not None:
@@ -463,6 +494,38 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
         raise
     except Exception as error:
         handle_error(ctx, error, context)
+
+
+def load_json(text: str):
+    """Parse `--json` input as RFC 8259 JSON: `NaN`, `Infinity` and a number out of a
+    float's range are not JSON. An integral float reads as an int, as zod takes `3.0`."""
+
+    def reject(token: str):
+        raise json.JSONDecodeError(
+            f"{token} is not a JSON number", text, max(text.find(token), 0)
+        )
+
+    def read_float(token: str):
+        number = float(token)
+        if not math.isfinite(number):
+            reject(token)
+        return int(number) if number.is_integer() else number
+
+    return json.loads(text, parse_constant=reject, parse_float=read_float)
+
+
+def check_finite_output(value: object, path: tuple[str | int, ...] = ()):
+    """Raise a `ValidationError` at the first non-finite number in dumped output: JSON
+    cannot hold it, and `json.dumps` would write `NaN`."""
+    if isinstance(value, float) and not math.isfinite(value):
+        error: InitErrorDetails = {"type": "finite_number", "loc": path, "input": value}
+        raise ValidationError.from_exception_data("output", [error])
+    if isinstance(value, dict):
+        for key, item in value.items():
+            check_finite_output(item, (*path, str(key)))
+    elif isinstance(value, list | tuple):
+        for index, item in enumerate(value):
+            check_finite_output(item, (*path, index))
 
 
 def read_provided_keys(command: Leaf, ctx: click.Context):
@@ -532,9 +595,11 @@ def read_cli_input(
         value = params[spec.key]
         env = envs.get(spec.key)
         if isinstance(value, tuple):
-            raw[spec.key] = [convert_value(spec, item, env) for item in value]
+            raw[spec.key] = [
+                convert_value(spec, item, index, env) for index, item in enumerate(value)
+            ]
         else:
-            raw[spec.key] = convert_value(spec, value, env)
+            raw[spec.key] = convert_value(spec, value, 0, env)
     for spec in fields:
         if spec.key in provided and isinstance(spec.meta, OptionMeta):
             for key, value in spec.meta.implies.items():
@@ -543,25 +608,47 @@ def read_cli_input(
     return raw
 
 
-def convert_value(spec: FieldSpec, value: object, env: str | None = None):
+def convert_value(spec: FieldSpec, value: object, index: int, env: str | None = None):
     if not isinstance(value, str):
         return value
     try:
         if spec.parse is not None:
             return spec.parse(value)
-        if spec.number:
-            return parse_number(value)
+        return convert_token(read_value_type_at(spec, index), value)
     except Exception as error:
         raise CliValueError(spec, value, str(error), env) from error
-    return value
+
+
+def read_value_type_at(spec: FieldSpec, index: int):
+    if spec.items is None:
+        return spec.element
+    return spec.items[index] if index < len(spec.items) else ValueType()
+
+
+def convert_token(value_type: ValueType, value: str):
+    if value_type.number:
+        return parse_number(value)
+    choices = value_type.choices
+    if choices is None:
+        return value
+    if value not in choices:
+        raise ValueError(f"Allowed choices are {', '.join(choices)}.")
+    return value_type.values[choices.index(value)]
+
+
+# Shared by every twin: no hex, no digit separators, no `inf` or `nan`
+NUMBER = re.compile(r"[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)([eE][+-]?[0-9]+)?")
+INTEGER = re.compile(r"[+-]?[0-9]+")
 
 
 def parse_number(value: str):
-    try:
-        number = float(value)
-    except ValueError:
-        raise ValueError("Not a number.") from None
-    return int(number) if number.is_integer() and "." not in value else number
+    text = value.strip(" \t\n\f\r")
+    if INTEGER.fullmatch(text):
+        return int(text)
+    number = float(text) if NUMBER.fullmatch(text) else math.nan
+    if not math.isfinite(number):
+        raise ValueError("Not a number.")
+    return int(number) if number.is_integer() else number
 
 
 def drop_unset_optionals(value: object, dumped: object) -> object:
