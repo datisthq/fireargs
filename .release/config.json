@@ -3,7 +3,8 @@
   "packages": {
     "typescript": {
       "release-type": "node",
-      "include-component-in-tag": false
+      "component": "typescript",
+      "include-component-in-tag": true
     },
     "python": {
       "release-type": "python",
