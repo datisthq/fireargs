@@ -83,7 +83,7 @@ Shipped skills live in `typescript/skills/`, `python/skills/` and `rust/skills/`
 The root is a private pnpm workspace (`package.json`, `pnpm-workspace.yaml`): format, lint, the docs site, the repo guards and the scripts that chain each language section with `pnpm -C <section>` — never `pnpm -r`. Each section is one published package.
 
 - `typescript/` — the npm package. `tsgo` compiles it into `typescript/build/`, which ships with `typescript/skills/` and nothing else; `typescript/vite.config.ts` holds only its `test` block
-  - `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree
+  - `actions/<entity>/<verb>.ts` — the **operations**: `argument/`, `option/` and `field/` build and read per-field meta; `command/` creates, compiles and describes (manifest) a command; `program/` wires a subcommand tree; `route/` mounts a route and reads its path from the root
   - `models/<entity>.ts` — types for each builder's config; `index.ts` the public façade, `settings.ts`
   - Unit tests sit beside their module as `<module>.unit.ts`; `docs/` the section's pages, `skills/` its shipped skills
 - `python/` — the PyPI package, a uv project; `python/fireargs/` mirrors `typescript/` module for module, with `docs/` and `skills/` beside it (**`python-development`**)

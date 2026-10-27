@@ -23,19 +23,25 @@ class Manifest(TypedDict):
     tools: list[Tool]
 
 
-def build_manifest(route: Leaf | Program, prefix: str) -> Manifest:
+def build_manifest(route: Leaf | Program, prefix: str, standalone: bool) -> Manifest:
     """Build the `--llms` manifest of a route: the `help` tool, then every leaf below it."""
-    return {"tools": [build_help_tool(), *collect_tools(route, prefix)]}
+    return {"tools": [build_help_tool(standalone), *collect_tools(route, prefix)]}
 
 
-def build_help_tool() -> Tool:
-    """Build the reserved `help` tool whose description carries the calling convention."""
+def build_help_tool(standalone: bool) -> Tool:
+    """Build the reserved `help` tool whose description carries the calling convention:
+    by path beneath the binary, or as the binary itself for a standalone command."""
     return {
         "name": "help",
-        "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+        "description": STANDALONE_HELP if standalone else PROGRAM_HELP,
         "inputSchema": {"type": "object", "properties": {}},
         "outputSchema": {"type": "object", "properties": {}},
     }
+
+
+PROGRAM_HELP = "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+
+STANDALONE_HELP = "Documentation tool, not callable. The other tool is this binary itself. Invoke it with `<binary> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
 
 
 def collect_tools(route: Leaf | Program, prefix: str) -> list[Tool]:

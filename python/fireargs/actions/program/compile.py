@@ -9,6 +9,7 @@ from ...models.program import Program, Route
 from ..command.compile import LLMS_PARAM, apply_route_config, create_llms_option
 from ..command.manifest import build_manifest
 from ..command.report import fail_input
+from ..route.read import read_route_path
 
 
 def compile_program(program: Program, router: Mapping[str, Route], config: ProgramConfig):
@@ -39,7 +40,11 @@ def compile_program(program: Program, router: Mapping[str, Route], config: Progr
         ctx = click.get_current_context()
         if params.get(LLMS_PARAM):
             click.echo(
-                json.dumps(build_manifest(program, ""), indent=2, ensure_ascii=False)
+                json.dumps(
+                    build_manifest(program, read_route_path(ctx), False),
+                    indent=2,
+                    ensure_ascii=False,
+                )
             )
             ctx.exit()
         if ctx.invoked_subcommand is None:

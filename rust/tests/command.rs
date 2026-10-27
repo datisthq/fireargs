@@ -268,3 +268,69 @@ fn one_leaf_mounts_under_two_keys_and_in_two_programs() {
         );
     }
 }
+
+#[fireargs::input]
+struct EmptyInput {}
+
+#[fireargs::output]
+struct CommandOutput {
+    command: String,
+}
+
+fn create_reporter() -> fireargs::CommandBuilder {
+    fireargs::command().version("2.0")
+}
+
+#[test]
+fn an_unnamed_command_is_named_after_its_binary() {
+    let command = create_reporter().handler(async |_: EmptyInput, context| {
+        Ok(CommandOutput {
+            command: context.command,
+        })
+    });
+    let run_from = |argv: &[&str]| {
+        let (mut out, mut err) = (vec![], vec![]);
+        pollster::block_on(command.try_run_from(argv.to_vec(), &mut out, &mut err))
+            .unwrap();
+        String::from_utf8(out).unwrap()
+    };
+    assert_eq!(run_from(&["/usr/bin/tool.sh", "--version"]), "tool 2.0\n");
+    assert_eq!(read_json(&run_from(&["tool", "--json"]))["command"], "tool");
+    let tools = read_json(&run_from(&["tool", "--llms"]))["tools"].clone();
+    assert_eq!(tools[1]["name"], "tool");
+    assert_eq!(run_from(&["", "--version"]), "command 2.0\n");
+}
+
+#[test]
+fn a_named_command_shows_its_name_in_usage() {
+    let command = create_reporter()
+        .name("solo")
+        .handler(async |input: EmptyInput, _| Ok(input));
+    let (_, out, _) = run(&command, &["--help"]);
+    assert!(out.contains("Usage: solo"), "{out}");
+}
+
+#[test]
+fn an_empty_input_struct_has_empty_properties() {
+    let command = fireargs::command().handler(async |input: EmptyInput, _| Ok(input));
+    let (_, out, _) = run(&command, &["--llms"]);
+    let tool = read_json(&out)["tools"][1].clone();
+    assert_eq!(tool["inputSchema"]["properties"], json!({}));
+    assert_eq!(tool["outputSchema"]["properties"], json!({}));
+}
+
+#[test]
+fn nested_tools_are_named_by_their_full_path() {
+    let program = fireargs::program()
+        .program("api", fireargs::program().command("tags", create_tags()));
+    for argv in [
+        &["cli", "api", "--llms"][..],
+        &["cli", "api", "tags", "--llms"],
+    ] {
+        let (mut out, mut err) = (vec![], vec![]);
+        pollster::block_on(program.try_run_from(argv.to_vec(), &mut out, &mut err))
+            .unwrap();
+        let tools = read_json(&String::from_utf8(out).unwrap())["tools"].clone();
+        assert_eq!(tools[1]["name"], "api tags");
+    }
+}

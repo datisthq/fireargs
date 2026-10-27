@@ -28,17 +28,24 @@ export type Manifest = {
 /**
  * Build the reserved `help` tool that prefaces every manifest. The schemas
  * are empty so accidental invocation is a no-op; the description tells
- * model-readers it's documentation rather than a callable.
+ * model-readers it's documentation rather than a callable, and how to call the
+ * tools: by their path beneath the binary, or as the binary itself when the
+ * manifest comes from a standalone command.
  */
-export function buildHelpTool(): Tool {
+export function buildHelpTool(standalone: boolean): Tool {
   return {
     name: "help",
-    description:
-      "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.",
+    description: standalone ? STANDALONE_HELP : PROGRAM_HELP,
     inputSchema: { type: "object", properties: {} },
     outputSchema: { type: "object", properties: {} },
   }
 }
+
+const PROGRAM_HELP =
+  "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+
+const STANDALONE_HELP =
+  "Documentation tool, not callable. The other tool is this binary itself. Invoke it with `<binary> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
 
 const builders = new WeakMap<CommanderCommand, (prefix: string) => Tool[]>()
 
@@ -57,9 +64,8 @@ export function registerManifestBuilder(
 
 /**
  * Invoke the registered tools builder for a Command with a path prefix.
- * Returns the flat list of tools at and below this Command. The empty
- * prefix `""` is used at the root of an `--llms` invocation; nested calls
- * pass the accumulated path.
+ * Returns the flat list of tools at and below this Command, named by the
+ * path from the root program; the empty prefix `""` is the root itself.
  */
 export function readManifestBuilder(cmd: CommanderCommand, prefix: string) {
   return builders.get(cmd)?.(prefix)

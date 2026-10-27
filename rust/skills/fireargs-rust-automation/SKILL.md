@@ -65,8 +65,8 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 }
 ```
 
-- The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`). Never call it.
-- On a program, nested leaves are flattened and `name` is the space-separated path below the binary. `myapp db migrate --llms` prints only that leaf, named `migrate`: take tool names from the root's manifest.
+- The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`, or `<binary> --json '<value>'` when the manifest comes from a standalone command, which is itself the binary's only tool). Never call it.
+- On a program, nested leaves are flattened and `name` is the space-separated path below the binary, at every level: `myapp --llms`, `myapp db --llms` and `myapp db migrate --llms` all name that leaf `db migrate`.
 - Schemas are schemars' JSON Schema (draft 2020-12), subschemas inlined: `inputSchema` for deserialization, `outputSchema` for serialization. They carry types, formats, descriptions from doc comments, defaults, enums and validation bounds. The CLI config (flag names, short flags, env vars, conflicts, …) is stripped: properties are the wire keys (`headerRows`), not the flags (`--header-rows`).
 - `inputSchema` describes what `--json` accepts: a defaulted or `Option<T>` field is not `required`. In `outputSchema` every field always written is required.
 

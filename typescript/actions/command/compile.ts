@@ -14,6 +14,7 @@ import type { OptionConfig } from "../../models/option-config.ts"
 import { findErrorHandler, handleError, registerErrorHandler } from "../error/handle.ts"
 import { readFieldMeta } from "../field/read.ts"
 import { registerRoute } from "../route/mount.ts"
+import { readRoutePath } from "../route/read.ts"
 import {
   buildLeafTool,
   buildHelpTool,
@@ -329,8 +330,8 @@ function wireAction<I extends z.ZodObject, O extends z.ZodType>(
     const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
 
     if (options.llms === true) {
-      const tools = readManifestBuilder(cmd, "") ?? []
-      const manifest = { tools: [buildHelpTool(), ...tools] }
+      const tools = readManifestBuilder(cmd, readRoutePath(cmd)) ?? []
+      const manifest = { tools: [buildHelpTool(cmd.parent === null), ...tools] }
       writer(`${JSON.stringify(manifest, null, 2)}\n`)
       return
     }

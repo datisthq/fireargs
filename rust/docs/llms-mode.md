@@ -53,6 +53,13 @@ calling convention. MCP descriptions are first-class and always surfaced to
 the model, so this is the most reliable place to put guidance. Its schemas
 are empty so an accidental invocation is a no-op.
 
+A standalone command, with no program above it, is itself the binary's only
+tool, so its `help` says so instead:
+
+```text
+Documentation tool, not callable. The other tool is this binary itself. Invoke it with `<binary> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.
+```
+
 ## How it composes for programs
 
 The same shape comes back from a `Program`'s `--llms`. Each leaf in the tree
@@ -63,7 +70,9 @@ myapp api greet --json '{"name":"world"}'
 ```
 
 ⇒ `tools[]` entry with `"name": "api greet"`. Nested programs flatten the
-same way — `myapp db migrate` becomes `"db migrate"`. A leaf mounted under two
+same way — `myapp db migrate` becomes `"db migrate"`. A name is always the
+path from the binary, whichever level prints the manifest: `myapp db --llms`
+and `myapp db migrate --llms` both name that leaf `"db migrate"`. A leaf mounted under two
 router keys appears once per key; aliases add no tools.
 
 ## Why MCP shape

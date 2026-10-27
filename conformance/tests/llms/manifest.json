@@ -82,7 +82,20 @@
         ]
       },
       {
-        "description": "a nested leaf names itself by its key",
+        "description": "a nested program names its tools by their full path",
+        "argv": ["admin", "--llms"],
+        "exitCode": 0,
+        "tools": [
+          {
+            "name": "help",
+            "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+          },
+          { "name": "admin reset", "description": "Reset everything" }
+        ],
+        "instances": [{ "tool": "admin reset", "io": "input", "data": {}, "valid": true }]
+      },
+      {
+        "description": "a nested leaf names itself by its full path",
         "argv": ["admin", "reset", "--llms"],
         "exitCode": 0,
         "tools": [
@@ -90,7 +103,30 @@
             "name": "help",
             "description": "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
           },
-          { "name": "reset", "description": "Reset everything" }
+          { "name": "admin reset", "description": "Reset everything" }
+        ]
+      },
+      {
+        "description": "a standalone command lists the help tool and itself, called as the binary",
+        "argv": ["--llms"],
+        "fixture": "command",
+        "exitCode": 0,
+        "tools": [
+          {
+            "name": "help",
+            "description": "Documentation tool, not callable. The other tool is this binary itself. Invoke it with `<binary> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
+          },
+          { "name": "solo", "description": "Greet someone" }
+        ],
+        "instances": [
+          { "tool": "solo", "io": "input", "data": {}, "valid": true },
+          { "tool": "solo", "io": "input", "data": { "times": 0 }, "valid": false },
+          {
+            "tool": "solo",
+            "io": "output",
+            "data": { "name": "world", "times": 1, "loud": false },
+            "valid": true
+          }
         ]
       }
     ]

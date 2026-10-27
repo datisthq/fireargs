@@ -60,7 +60,7 @@ fn main() -> std::process::ExitCode {
 - The input implements `fireargs::Input` — `#[fireargs::input]` does it; a command without input takes `#[fireargs::input] struct NoInput {}`. The output may be any `Serialize + JsonSchema` type — `Vec<String>` writes a bare JSON array — but prefer a struct when the CLI is served over MCP, whose `outputSchema` must be an object.
 - The return value is serialized and validated against the output's JSON Schema on every run; a mismatch fails the run with `fireargs::OutputError`.
 - The error type is `fireargs::Error` (`Box<dyn std::error::Error + Send + Sync>`): `?` converts any `std::error::Error`, and `"text".into()` makes one.
-- A program's router key names the command; `name` only matters for a command run on its own, where it is the `--llms` tool name.
+- A program's router key names the command; `name` only matters for a command run on its own, where it is the usage line's and the `--llms` tool's name (unset, the binary's file stem).
 - `.run()` blocks on the handler with a minimal executor and returns an `ExitCode`. A handler awaiting tokio I/O or timers needs `.run_async().await` inside `#[tokio::main]`.
 - `context.json` is `true` under `--json`, with or without a value. Anything else written to stdout then corrupts the result: skip spinners, colors and progress output. `context.command` is the route path (`"admin reset"`).
 - Put each command in its own function returning `fireargs::Command<I, O>`; `main` only runs the CLI.

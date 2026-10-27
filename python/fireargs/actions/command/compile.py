@@ -20,6 +20,7 @@ from ..awaitable.run import run_awaitable
 from ..context.accept import accepts_context
 from ..error.handle import find_error_handler, handle_error
 from ..field.read import read_field_meta
+from ..route.read import read_route_path
 from .manifest import build_manifest
 from .report import CliValueError, fail_input, report_input_error
 
@@ -388,8 +389,8 @@ def run_command[I: BaseModel, O](command: Command[I, O], ctx: click.Context):
     or argv, validate it, call the handler, validate and print its result."""
     params = ctx.params
     if command.llms_param is not None and params.get(command.llms_param):
-        prefix = ctx.info_name if ctx.parent is not None else command.name
-        manifest = build_manifest(command, prefix or "")
+        prefix = read_route_path(ctx) or command.name or ""
+        manifest = build_manifest(command, prefix, ctx.parent is None)
         click.echo(json.dumps(manifest, indent=2, ensure_ascii=False))
         return
 

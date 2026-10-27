@@ -456,6 +456,31 @@ describe("f.program routing", () => {
     expect(names).toEqual(["help", "admin reset", "ops reset"])
   })
 
+  it.each(["admin", "admin reset"])(
+    "names tools by their full path from the root at %s --llms",
+    async path => {
+      const { out, config } = buildCapture()
+      const admin = f.program().router({ reset: buildLeaf("reset", out) })
+      const cli = f.program({ name: "myapp", ...config }).router({ admin })
+
+      await cli.parseAsync([...path.split(" "), "--llms"], { from: "user" })
+      const tools = JSON.parse(out.stdout).tools
+      expect(tools.map((t: { name: string }) => t.name)).toEqual(["help", "admin reset"])
+      expect(tools[0].description).toContain("<binary> <name> --json")
+    },
+  )
+
+  it("fails on an unknown command after help", async () => {
+    const { out, config } = buildCapture()
+    const cli = f.program({ name: "myapp", ...config }).router({ run: buildLeaf("run") })
+
+    await expect(
+      cli.parseAsync(["help", "nope"], { from: "user" }),
+    ).rejects.toMatchObject({ code: "commander.unknownCommand", exitCode: 1 })
+    expect(out.stderr).toBe("error: unknown command 'nope'\n")
+    expect(out.stdout).toBe("")
+  })
+
   it.each([{}, { llmsOption: false } as const])(
     "prints help on stdout for a bare program (%o)",
     async extra => {

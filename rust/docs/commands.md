@@ -38,8 +38,8 @@ fn main() -> std::process::ExitCode {
 ```
 
 The command is named by `.name(...)`. Under a [program](/rust/programs/) the router
-key names it instead; a command run on its own has no other name, so set `name` for
-its `--llms` tool name and `--version` line.
+key names it instead. A command run on its own without a `name` falls back to the
+binary's file stem, which names its usage line, `--llms` tool and `--version` line.
 
 ## Input and output
 

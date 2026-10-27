@@ -10,6 +10,7 @@ import {
 } from "../command/manifest.ts"
 import { registerErrorHandler } from "../error/handle.ts"
 import { inheritRouteSettings, mountRoute, registerRoute } from "../route/mount.ts"
+import { readRoutePath } from "../route/read.ts"
 
 /**
  * Build a fully-wired `Program` from a program config and a map of routes. Applies all `ProgramConfig` pass-throughs (identity,
@@ -121,7 +122,7 @@ function wireDispatcher(
     if (llms === undefined || options[llms] !== true) cmd.help()
     const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
-      tools: [buildHelpTool(), ...collectTools(routes, "")],
+      tools: [buildHelpTool(false), ...collectTools(routes, readRoutePath(cmd))],
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })

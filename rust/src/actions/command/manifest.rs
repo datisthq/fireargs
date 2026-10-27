@@ -22,25 +22,31 @@ pub struct Manifest {
 }
 
 /// Build a manifest: the reserved `help` tool, then the given tools.
-pub(crate) fn build_manifest(tools: Vec<Tool>) -> Manifest {
-    let mut all = vec![build_help_tool()];
+pub(crate) fn build_manifest(tools: Vec<Tool>, standalone: bool) -> Manifest {
+    let mut all = vec![build_help_tool(standalone)];
     all.extend(tools);
     Manifest { tools: all }
 }
 
 /// The reserved `help` tool that prefaces every manifest; its description carries the
-/// calling convention, since MCP clients always show descriptions to the model.
-fn build_help_tool() -> Tool {
+/// calling convention, since MCP clients always show descriptions to the model: by path
+/// beneath the binary, or as the binary itself for a standalone command.
+fn build_help_tool(standalone: bool) -> Tool {
+    let description = match standalone {
+        true => STANDALONE_HELP,
+        false => PROGRAM_HELP,
+    };
     Tool {
         name: "help".to_owned(),
-        description: Some(
-            "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`."
-                .to_owned(),
-        ),
+        description: Some(description.to_owned()),
         input_schema: json!({"type": "object", "properties": {}}),
         output_schema: json!({"type": "object", "properties": {}}),
     }
 }
+
+const PROGRAM_HELP: &str = "Documentation tool, not callable. Each `tools[].name` is the space-separated path beneath this binary. Invoke a tool with `<binary> <name> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.";
+
+const STANDALONE_HELP: &str = "Documentation tool, not callable. The other tool is this binary itself. Invoke it with `<binary> --json '<value>'` matching that tool's `inputSchema`; output is JSON on stdout matching `outputSchema`.";
 
 /// Build a leaf's tool under its route path.
 pub(crate) fn build_leaf_tool(command: &Leaf, name: &str) -> Tool {

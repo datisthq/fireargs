@@ -387,7 +387,7 @@ class TestCommand:
         tools = json.loads(invoke(greet, "--llms").stdout)["tools"]
         assert len(tools) == 2
         assert tools[0]["name"] == "help"
-        assert "--json" in tools[0]["description"]
+        assert "<binary> --json" in tools[0]["description"]
         assert tools[1]["name"] == "greet"
         assert tools[1]["description"] == "Greet someone"
         assert tools[1]["inputSchema"]["type"] == "object"

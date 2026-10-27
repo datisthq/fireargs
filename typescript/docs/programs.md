@@ -155,4 +155,4 @@ Suppress program-level `--llms` with `llmsOption: false` in the program
 config; subcommands keep theirs.
 
 An unknown subcommand prints `error: unknown command 'nope'` to stderr and
-exits 1, at every level.
+exits 1, at every level, and so does `myapp help nope`.

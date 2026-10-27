@@ -174,4 +174,4 @@ Suppress program-level `--llms` with `.llms_option(FlagConfig::Disabled)` on the
 program; subcommands keep theirs.
 
 An unknown subcommand prints `error: unknown command 'nope'` to stderr and
-exits 1, at every level.
+exits 1, at every level, and so does `myapp help nope`.

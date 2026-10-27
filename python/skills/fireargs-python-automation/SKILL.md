@@ -65,8 +65,8 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 }
 ```
 
-- The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`). Never call it.
-- On a program, nested leaves are flattened and `name` is the space-separated path below the binary. `myapp db migrate --llms` prints only that leaf, named `migrate`: take tool names from the root's manifest.
+- The first tool is always the reserved `help`: its description carries the calling convention (`<binary> <name> --json '<value>'`, or `<binary> --json '<value>'` when the manifest comes from a standalone command, which is itself the binary's only tool). Never call it.
+- On a program, nested leaves are flattened and `name` is the space-separated path below the binary, at every level: `myapp --llms`, `myapp db --llms` and `myapp db migrate --llms` all name that leaf `db migrate`.
 - Schemas are pydantic's JSON Schema (draft 2020-12): `inputSchema` in validation mode, `outputSchema` in serialization mode. They carry types, titles, descriptions, defaults, enums, formats, constraints and `$defs`. CLI-only config (flag names, short flags, env vars, conflicts, …) is not in them: properties are the field names or aliases (`header_rows`), not the flags (`--header-rows`).
 - `inputSchema` describes what `--json` accepts: a defaulted field is not `required`. In `outputSchema` every defaulted field is required except `X | None = None` ones.
 - A type pydantic cannot describe (an arbitrary class) makes `--llms` fail.

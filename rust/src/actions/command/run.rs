@@ -14,8 +14,10 @@ use crate::models::context::Context;
 use crate::models::error::{Error, InputError, Issue, OutputError, PathSegment};
 use crate::models::field::Field;
 
-/// Where a leaf runs: its route path and the `render_error` hooks, nearest first.
+/// Where a leaf runs: the root's name, the route path below it and the `render_error`
+/// hooks, nearest first.
 pub(crate) struct Scope<'a> {
+    pub name: String,
     pub path: Vec<String>,
     pub hooks: Vec<RenderError>,
     pub out: &'a mut dyn Write,
@@ -30,17 +32,20 @@ pub(crate) async fn run_command(
     scope: Scope<'_>,
 ) -> Result<u8, Error> {
     let Scope {
+        name,
         path,
         mut hooks,
         out,
         err,
     } = scope;
-    let name = match path.last() {
-        Some(key) => key.clone(),
-        None => command.config.name.clone().unwrap_or_default(),
+    let standalone = path.is_empty();
+    let name = match standalone {
+        true => name,
+        false => path.join(" "),
     };
     if read_flag(matches, LLMS_ID) {
-        let manifest = build_manifest(vec![build_leaf_tool(command, &name)]);
+        let tools = vec![build_leaf_tool(command, &name)];
+        let manifest = build_manifest(tools, standalone);
         writeln!(out, "{}", serde_json::to_string_pretty(&manifest)?)?;
         return Ok(0);
     }
@@ -60,11 +65,7 @@ pub(crate) async fn run_command(
     };
     let context = Context {
         json: json_given,
-        command: if path.is_empty() {
-            name.clone()
-        } else {
-            path.join(" ")
-        },
+        command: name.clone(),
     };
     let provided = read_provided_keys(command, matches);
 

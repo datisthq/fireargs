@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Annotated, Literal
 
 import click
+import pytest
 from click.testing import CliRunner, Result
 from pydantic import BaseModel
 
@@ -181,6 +182,26 @@ class TestProgram:
         assert tools[1]["name"] == "api greet"
         assert tools[1]["description"] == "Greets"
         assert "name" in tools[1]["inputSchema"]["properties"]
+
+    @pytest.mark.parametrize("path", [["api"], ["api", "greet"]])
+    def test_names_tools_by_their_full_path_from_the_root(self, path: list[str]):
+        api = f.Program(name="api", router={"greet": build_greet()})
+        cli = f.Program(name="myapp", router={"api": api})
+
+        tools = json.loads(invoke(cli, *path, "--llms").stdout)["tools"]
+        assert [tool["name"] for tool in tools] == ["help", "api greet"]
+        assert "<binary> <name> --json" in tools[0]["description"]
+
+    def test_names_a_tool_reached_by_aliases_by_its_router_keys(self):
+        @f.command(name="greet", aliases=["hi"])
+        def greet(input: Name) -> Greeting:
+            return Greeting(greeting=f"hello {input.name}")
+
+        api = f.Program(name="api", aliases=["d"], router={"greet": greet})
+        cli = f.Program(name="myapp", router={"api": api})
+
+        tools = json.loads(invoke(cli, "d", "hi", "--llms").stdout)["tools"]
+        assert [tool["name"] for tool in tools] == ["help", "api greet"]
 
     def test_dispatches_through_nested_programs(self):
         api = f.Program(name="api", router={"greet": build_greet()})

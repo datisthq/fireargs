@@ -23,6 +23,12 @@
         "exitCode": 0
       },
       {
+        "description": "help with an unknown command fails with exit 1",
+        "argv": ["help", "nope"],
+        "exitCode": 1,
+        "stderr": "error: unknown command 'nope'"
+      },
+      {
         "description": "an unknown command fails with exit 1",
         "argv": ["nope"],
         "exitCode": 1,

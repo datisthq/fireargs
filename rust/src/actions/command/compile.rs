@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use clap::{Arg, ArgAction};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::actions::field::read::read_fields;
 use crate::models::command::{Leaf, Runner};
@@ -38,8 +38,8 @@ pub(crate) fn compile_command(
             None => panic!("`parse` names '{}', which is not an input key", spec.key),
         }
     }
-    let input = strip_schema(input);
-    let output = strip_schema(output);
+    let input = fill_properties(strip_schema(input));
+    let output = fill_properties(strip_schema(output));
     Leaf {
         input_validator: Arc::new(build_validator(&input)),
         output_validator: Arc::new(build_validator(&output)),
@@ -256,6 +256,18 @@ pub(crate) fn strip_schema(mut schema: Value) -> Value {
         root.remove("title");
     }
     strip_meta(&mut schema);
+    schema
+}
+
+/// Give a bare object root an empty `properties`, as the twins' empty models have.
+pub(crate) fn fill_properties(mut schema: Value) -> Value {
+    if let Some(root) = schema.as_object_mut() {
+        let keys = ["properties", "additionalProperties", "patternProperties"];
+        let bare = keys.iter().all(|key| !root.contains_key(*key));
+        if bare && root.get("type").and_then(Value::as_str) == Some("object") {
+            root.insert("properties".to_owned(), Value::Object(Map::new()));
+        }
+    }
     schema
 }
 

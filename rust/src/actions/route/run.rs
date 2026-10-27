@@ -1,5 +1,6 @@
 use std::ffi::OsString;
 use std::io::Write;
+use std::path::Path;
 use std::process::ExitCode;
 
 use clap::ArgMatches;
@@ -37,12 +38,17 @@ where
     A: IntoIterator<Item = T>,
     T: Into<OsString>,
 {
-    let name = match route {
+    let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    let configured = match route {
         Route::Command(command) => command.config.name.clone(),
         Route::Program(program) => program.config.name.clone(),
     };
-    let args: Vec<OsString> = args.into_iter().map(Into::into).collect();
-    let mut clap = declare_route(route, &name.unwrap_or_default());
+    let name = configured.unwrap_or_else(|| read_binary_name(&args));
+    let mut clap = declare_route(route, &name);
+    // clap names the usage line after argv[0] unless told otherwise
+    if clap.get_bin_name().is_none() {
+        clap = clap.bin_name(&name);
+    }
     let matches = match clap.try_get_matches_from_mut(args) {
         Ok(matches) => matches,
         Err(error) => {
@@ -77,6 +83,7 @@ where
         let program = match route {
             Route::Command(command) => {
                 let scope = Scope {
+                    name,
                     path,
                     hooks,
                     out,
@@ -91,7 +98,7 @@ where
         }
         let llms = matches.try_get_one::<bool>(LLMS_ID).ok().flatten().copied();
         if llms == Some(true) {
-            let manifest = build_manifest(collect_tools(program, &path.join(" ")));
+            let manifest = build_manifest(collect_tools(program, &path.join(" ")), false);
             writeln!(out, "{}", serde_json::to_string_pretty(&manifest)?)?;
             return Ok(0);
         }
@@ -110,4 +117,11 @@ where
         matches = sub_matches;
         clap = sub_clap;
     }
+}
+
+fn read_binary_name(args: &[OsString]) -> String {
+    args.first()
+        .and_then(|arg| Path::new(arg).file_stem())
+        .and_then(|stem| stem.to_str())
+        .map_or_else(|| "command".to_owned(), str::to_owned)
 }
