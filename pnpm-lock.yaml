@@ -52,8 +52,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       livemark:
-        specifier: 0.28.5
-        version: 0.28.5(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
+        specifier: 0.29.2
+        version: 0.29.2(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.3.0)
@@ -3320,6 +3320,9 @@ packages:
       typescript:
         optional: true
 
+  country-flag-icons@1.6.20:
+    resolution: {integrity: sha512-py8JiEKzjhYw6HPJ0L7SxLgCYim36UPRTZX43/kqGueUCZLSvnrqAiwW8HtQibur7mdkFQUkjOgdK+o/9FBtaw==}
+
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
@@ -4470,8 +4473,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  livemark@0.28.5:
-    resolution: {integrity: sha512-kLFCsiauJxxEu2EJkZ9EH3QPwznU3w3r5jm0VV2gfouPLfsKVUywh0tnZ99TxQ32QvBzQwkoUzCgJJyyGq6Jwg==}
+  livemark@0.29.2:
+    resolution: {integrity: sha512-JSfi7lgp+zRiTVuMekjVFdbXB1Ewwr18fztQK9w2qKWTcQiu678tG6J29NAFTyft0UE/+rOADL67hRRSZwOCNA==}
     engines: {node: ^24.11.0, pnpm: ^11.0.0}
     hasBin: true
     peerDependencies:
@@ -8912,6 +8915,8 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  country-flag-icons@1.6.20: {}
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -10153,7 +10158,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  livemark@0.28.5(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
+  livemark@0.29.2(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.25.12)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.4.1)(@types/react@19.3.0)(date-fns@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clack/prompts': 1.8.1
@@ -10184,6 +10189,7 @@ snapshots:
       cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       cn: 0.4.0
       commander: 15.0.0
+      country-flag-icons: 1.6.20
       embla-carousel-react: 8.6.0(react@19.3.0)
       es-toolkit: 1.52.0
       github-slugger: 2.0.0
