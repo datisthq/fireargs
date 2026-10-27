@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.2](https://github.com/datisthq/fireargs/compare/typescript-v0.6.1...typescript-v0.6.2) (2026-10-27)
+
+
+### Bug Fixes
+
+* correct doc and skill examples found in the bug hunt ([40b9de6](https://github.com/datisthq/fireargs/commit/40b9de69d96e97463e91ab4f68c621a622105f20))
+* **llms:** name tools by their full path at every level in every twin ([08d90a5](https://github.com/datisthq/fireargs/commit/08d90a5f980acb3ea1e1d7b76eb6b7d437031167))
+* **options:** read boolean env, add --no- flags and quote typed values in every twin ([ba2daac](https://github.com/datisthq/fireargs/commit/ba2daac47d62e3619c16633d1ce11b1b043fca2f))
+* **program:** route bare programs, help and unknown commands alike in every twin ([8e14f73](https://github.com/datisthq/fireargs/commit/8e14f738b4febee6904782a8abf1ab12f799b075))
+* **values:** type choices, tuples and numbers alike in every twin ([b6a6036](https://github.com/datisthq/fireargs/commit/b6a60362508fc8f4336b4df885629348e55b5a0b))
+
 ## [0.6.1](https://github.com/datisthq/fireargs/compare/v0.6.0...v0.6.1) (2026-10-27)
 
 
