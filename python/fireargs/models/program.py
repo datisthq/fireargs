@@ -3,6 +3,7 @@ from typing import Unpack
 
 import click
 
+from ..actions.command.report import fail_input
 from .command import Leaf, RenderError
 from .config import ProgramConfig
 
@@ -14,6 +15,7 @@ class Program(click.Group):
     aliases: tuple[str, ...] = ()
     help_group: str | None = None
     error_renderer: RenderError | None = None
+    help_command: click.Command | None = None
 
     def __init__(self, *, router: Mapping[str, "Route"], **config: Unpack[ProgramConfig]):
         from ..actions.program.compile import compile_program
@@ -44,7 +46,18 @@ class Program(click.Group):
         for route in self.routes.values():
             if cmd_name in route.aliases:
                 return route
+        if cmd_name == "help":
+            return self.help_command
         return None
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        name = args[0]
+        if self.get_command(ctx, name) is None and not name.startswith("-"):
+            if not ctx.resilient_parsing:
+                fail_input(ctx, f"error: unknown command '{name}'")
+        return super().resolve_command(ctx, args)
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         return list(self.commands)
@@ -59,6 +72,9 @@ class Program(click.Group):
                 continue
             group = groups.setdefault(route.help_group or "Commands", [])
             group.append((name, route.get_short_help_str(width)))
+        if self.help_command is not None and "help" not in self.commands:
+            group = groups.setdefault("Commands", [])
+            group.append(("help", self.help_command.get_short_help_str(width)))
         for title, records in groups.items():
             if records:
                 with formatter.section(title):

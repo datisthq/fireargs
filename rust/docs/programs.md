@@ -162,7 +162,9 @@ the rest to the subcommand, so `myapp --llms` is the program's flag and
 Each level keeps its own:
 
 ```bash
+myapp                      # top-level help, the same as --help
 myapp --help               # top-level help, lists subcommands
+myapp help greet           # leaf-level help, the same as greet --help
 myapp greet --help         # leaf-level help, lists args/options
 myapp --llms               # entire tree as a flat MCP tools/list
 myapp greet --llms         # just the greet leaf
@@ -170,3 +172,6 @@ myapp greet --llms         # just the greet leaf
 
 Suppress program-level `--llms` with `.llms_option(FlagConfig::Disabled)` on the
 program; subcommands keep theirs.
+
+An unknown subcommand prints `error: unknown command 'nope'` to stderr and
+exits 1, at every level.

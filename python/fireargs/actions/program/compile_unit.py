@@ -65,7 +65,7 @@ class TestProgram:
 
         assert list(cli.commands) == ["greet"]
         assert invoke(cli, "greet").exit_code == 0
-        assert invoke(cli, "x").exit_code == 2
+        assert invoke(cli, "x").exit_code == 1
 
     def test_dispatches_subcommand_json_invocation(self):
         cli = f.Program(name="myapp", router={"greet": build_greet()})
@@ -239,6 +239,58 @@ class TestProgram:
         result = invoke(cli)
         assert result.exit_code == 0
         assert "Commands:" in result.stdout
+
+    def test_fails_on_an_unknown_command(self):
+        cli = f.Program(name="myapp", router={"greet": build_empty("greet")})
+
+        result = invoke(cli, "nope")
+        assert result.exit_code == 1
+        assert result.stderr == "error: unknown command 'nope'\n"
+
+    def test_prints_a_command_help_through_help(self):
+        cli = f.Program(name="myapp", router={"greet": build_greet("Greets the user")})
+
+        result = invoke(cli, "help", "greet")
+        assert result.exit_code == 0
+        assert result.stdout.startswith("Usage: myapp greet")
+        assert "Greets the user" in result.stdout
+
+    def test_prints_its_own_help_through_help(self):
+        cli = f.Program(name="myapp", router={"greet": build_empty("greet")})
+
+        result = invoke(cli, "help")
+        assert result.exit_code == 0
+        assert result.stdout == invoke(cli).stdout
+        assert re.search(r"^  help +display help for command$", result.stdout, re.M)
+
+    def test_fails_on_help_for_an_unknown_command(self):
+        cli = f.Program(name="myapp", router={"greet": build_empty("greet")})
+
+        result = invoke(cli, "help", "nope")
+        assert result.exit_code == 1
+        assert result.stderr == "error: unknown command 'nope'\n"
+
+    def test_keeps_a_route_named_help_over_the_help_command(self):
+        cli = f.Program(name="myapp", router={"help": build_greet()})
+
+        result = invoke(cli, "help", "--json", '{"name":"world"}')
+        assert json.loads(result.stdout) == {"greeting": "hello world"}
+        assert len(re.findall(r"^  help", invoke(cli).stdout, re.M)) == 1
+
+    def test_leaves_the_help_command_out_of_llms(self):
+        cli = f.Program(name="myapp", router={"greet": build_empty("greet")})
+
+        tools = json.loads(invoke(cli, "--llms").stdout)["tools"]
+        assert [tool["name"] for tool in tools] == ["help", "greet"]
+
+    def test_mounts_one_leaf_under_two_keys_and_in_two_programs(self):
+        greet = build_greet()
+        first = f.Program(name="first", router={"greet": greet, "hello": greet})
+        second = f.Program(name="second", router={"hi": greet})
+
+        for cli, key in [(first, "greet"), (first, "hello"), (second, "hi")]:
+            result = invoke(cli, key, "--json", '{"name":"world"}')
+            assert json.loads(result.stdout) == {"greeting": "hello world"}
 
     def test_prints_the_version_through_custom_flags(self):
         cli = f.Program(

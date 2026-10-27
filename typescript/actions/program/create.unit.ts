@@ -393,3 +393,160 @@ describe("f.program renderError", () => {
     expect(JSON.parse(out.stdout)).toEqual({ from: "leaf" })
   })
 })
+
+describe("f.program routing", () => {
+  function buildLeaf(name: string, out: { stdout: string } = { stdout: "" }) {
+    return f
+      .command({
+        name,
+        description: `Runs ${name}`,
+        configureOutput: { writeOut: str => (out.stdout += str) },
+      })
+      .input(z.object({ value: z.string().default(name) }))
+      .output(z.object({ value: z.string() }))
+      .handler(input => input)
+  }
+
+  function buildCapture() {
+    const out = { stdout: "", stderr: "" }
+    const config = {
+      exitOverride: true,
+      configureOutput: {
+        writeOut: (str: string) => (out.stdout += str),
+        writeErr: (str: string) => (out.stderr += str),
+      },
+    }
+    return { out, config }
+  }
+
+  it("mounts one leaf under two keys", async () => {
+    const out = { stdout: "" }
+    const leaf = buildLeaf("run", out)
+
+    const cli = f.program({ name: "myapp" }).router({ run: leaf, go: leaf })
+
+    expect(cli.commands.map(c => c.name())).toEqual(["run", "go"])
+    await cli.parseAsync(["go", "--json"], { from: "user" })
+    expect(JSON.parse(out.stdout)).toEqual({ value: "run" })
+  })
+
+  it("keeps a leaf working in the first program after mounting it in a second", async () => {
+    const out = { stdout: "" }
+    const leaf = buildLeaf("run", out)
+
+    const first = f.program({ name: "first" }).router({ run: leaf })
+    const second = f.program({ name: "second" }).router({ exec: leaf })
+
+    expect(first.commands.map(c => c.name())).toEqual(["run"])
+    expect(second.commands.map(c => c.name())).toEqual(["exec"])
+    await first.parseAsync(["run", "--json"], { from: "user" })
+    await second.parseAsync(["exec", "--json"], { from: "user" })
+    expect(out.stdout.match(/"value"/g)).toHaveLength(2)
+  })
+
+  it("lists a remounted nested program's leaves by their keys in --llms", async () => {
+    const { out, config } = buildCapture()
+    const admin = f.program().router({ reset: buildLeaf("reset") })
+    f.program({ name: "other" }).router({ admin })
+
+    const cli = f.program({ name: "myapp", ...config }).router({ admin, ops: admin })
+
+    await cli.parseAsync(["--llms"], { from: "user" })
+    const names = JSON.parse(out.stdout).tools.map((t: { name: string }) => t.name)
+    expect(names).toEqual(["help", "admin reset", "ops reset"])
+  })
+
+  it.each([{}, { llmsOption: false } as const])(
+    "prints help on stdout for a bare program (%o)",
+    async extra => {
+      const { out, config } = buildCapture()
+      const cli = f.program({ name: "myapp", ...config, ...extra }).router({
+        run: buildLeaf("run"),
+      })
+
+      await expect(cli.parseAsync([], { from: "user" })).rejects.toMatchObject({
+        code: "commander.help",
+        exitCode: 0,
+      })
+      expect(out.stdout).toContain("Usage: myapp")
+      expect(out.stdout).toMatch(/help \[command\]/)
+      expect(out.stderr).toBe("")
+    },
+  )
+
+  it.each([{}, { llmsOption: false } as const])(
+    "fails on an unknown command (%o)",
+    async extra => {
+      const { out, config } = buildCapture()
+      const cli = f.program({ name: "myapp", ...config, ...extra }).router({
+        run: buildLeaf("run"),
+      })
+
+      await expect(cli.parseAsync(["nope"], { from: "user" })).rejects.toMatchObject({
+        code: "commander.unknownCommand",
+        exitCode: 1,
+      })
+      expect(out.stderr).toBe("error: unknown command 'nope'\n")
+    },
+  )
+
+  it("prints a command's help through help <command>", async () => {
+    const { out, config } = buildCapture()
+    const run = f
+      .command({ name: "run" })
+      .input(z.object({}))
+      .output(z.object({}))
+      .handler(() => ({}))
+    const cli = f.program({ name: "myapp", ...config }).router({ run })
+
+    await expect(cli.parseAsync(["help", "run"], { from: "user" })).rejects.toMatchObject(
+      { exitCode: 0 },
+    )
+    expect(out.stdout).toContain("Usage: myapp run")
+  })
+
+  it("keeps a route named help over the implicit help command", async () => {
+    const out = { stdout: "" }
+    const cli = f.program({ name: "myapp" }).router({ help: buildLeaf("help", out) })
+
+    await cli.parseAsync(["help", "--json"], { from: "user" })
+    expect(JSON.parse(out.stdout)).toEqual({ value: "help" })
+    expect(cli.helpInformation().match(/^ {2}help/gm)).toHaveLength(1)
+  })
+
+  it("passes exitOverride and configureOutput down to leaves", async () => {
+    const { out, config } = buildCapture()
+    const leaf = f
+      .command({ name: "need" })
+      .input(z.object({ name: f.argument().string() }))
+      .output(z.object({}))
+      .handler(() => ({}))
+    const cli = f
+      .program({ name: "myapp", ...config })
+      .router({ db: f.program().router({ need: leaf }) })
+
+    await expect(cli.parseAsync(["db", "need"], { from: "user" })).rejects.toMatchObject({
+      code: "commander.missingArgument",
+    })
+    expect(out.stderr).toBe("error: missing required argument 'name'\n")
+  })
+
+  it("keeps a route's own output settings over the program's", async () => {
+    const { out, config } = buildCapture()
+    const inner = { stdout: "", stderr: "" }
+    const leaf = buildLeaf("run", inner)
+    const db = f
+      .program({ configureOutput: { writeErr: str => (inner.stderr += str) } })
+      .router({ run: leaf })
+    const cli = f.program({ name: "myapp", ...config }).router({ db })
+
+    await cli.parseAsync(["db", "run", "--json"], { from: "user" })
+    expect(JSON.parse(inner.stdout)).toEqual({ value: "run" })
+    await expect(
+      cli.parseAsync(["db", "run", "--bad"], { from: "user" }),
+    ).rejects.toThrow()
+    expect(inner.stderr).toContain("error: unknown option '--bad'")
+    expect(out.stdout).toBe("")
+    expect(out.stderr).toBe("")
+  })
+})

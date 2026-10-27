@@ -122,8 +122,8 @@ cli = Program(name="myapp", render_error=render_error, router={"greet": greet})
 
 Click's parse errors (unknown option, bad choice, extra argument) happen
 before the run starts: click prints its usage line and `Error: ...` to
-stderr and exits with code 2. A missing required positional, a
-`conflicts` violation and a CLI value that number parsing or a field's
+stderr and exits with code 2. A missing required positional, an
+unknown subcommand, a `conflicts` violation and a CLI value that number parsing or a field's
 `parse` rejects are reported in commander's wording, with exit code 1 — in
 TypeScript commander rejects them while parsing. None of these reach
 `render_error`.

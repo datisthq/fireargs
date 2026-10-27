@@ -8,6 +8,7 @@ from ...models.config import ProgramConfig
 from ...models.program import Program, Route
 from ..command.compile import LLMS_PARAM, apply_route_config, create_llms_option
 from ..command.manifest import build_manifest
+from ..command.report import fail_input
 
 
 def compile_program(program: Program, router: Mapping[str, Route], config: ProgramConfig):
@@ -22,6 +23,7 @@ def compile_program(program: Program, router: Mapping[str, Route], config: Progr
             raise TypeError(f"route '{key}' is not a fireargs command or program")
         program.routes[key] = route
         program.add_command(route, key)
+    program.help_command = create_help_command(program)
     apply_route_config(program, config)
 
     llms_option = config.get("llms_option", True)
@@ -44,3 +46,27 @@ def compile_program(program: Program, router: Mapping[str, Route], config: Progr
             click.echo(ctx.get_help())
 
     program.callback = invoke
+
+
+def create_help_command(program: Program):
+    """`help [command]`: the program's help, or that command's, as commander's twin."""
+
+    def show_help(command: str | None):
+        ctx = click.get_current_context()
+        parent = ctx.parent or ctx
+        if command is None:
+            click.echo(parent.get_help())
+            return
+        route = program.get_command(parent, command)
+        if route is None:
+            fail_input(ctx, f"error: unknown command '{command}'")
+            return
+        click.echo(route.get_help(click.Context(route, info_name=command, parent=parent)))
+
+    return click.Command(
+        "help",
+        callback=show_help,
+        params=[click.Argument(["command"], required=False)],
+        help="display help for command",
+        add_help_option=False,
+    )

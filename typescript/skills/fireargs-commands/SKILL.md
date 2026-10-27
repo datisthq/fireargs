@@ -139,7 +139,7 @@ Anything commander supports that the config does not surface can be called on th
 
 - Run the command with `--help` and check every argument, option, default, choice and env binding is listed as intended.
 - Run it once at the shell and once with `--json '<value>'`, including a case that omits each optional field. Under `--json`, stdout holds the JSON and nothing else. For a field with `parse`, the shell gets the string syntax and `--json` the parsed value.
-- With `exitOverride: true` and `configureOutput: { writeOut, writeErr }` the command can be driven from a unit test without exiting the process.
+- With `exitOverride: true` and `configureOutput: { writeOut, writeErr }` the command can be driven from a unit test without exiting the process; set on a program, both reach the leaves below.
 
 ## References
 

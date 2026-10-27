@@ -9,6 +9,7 @@ import {
   registerManifestBuilder,
 } from "../command/manifest.ts"
 import { registerErrorHandler } from "../error/handle.ts"
+import { inheritRouteSettings, mountRoute, registerRoute } from "../route/mount.ts"
 
 /**
  * Build a fully-wired `Program` from a program config and a map of routes. Applies all `ProgramConfig` pass-throughs (identity,
@@ -19,13 +20,15 @@ import { registerErrorHandler } from "../error/handle.ts"
 export function compileProgram(config: ProgramConfig, routes: Record<string, Route>) {
   const cmd = new Program(config.name)
   applyProgramConfig(cmd, config)
-  declareLlmsOnProgram(cmd, config, routes)
+  const mounted: Record<string, Route> = {}
   for (const [key, sub] of Object.entries(routes)) {
-    sub.name(key)
-    cmd.addCommand(sub)
+    mounted[key] = mountRoute(cmd, key, sub)
   }
-  registerManifestBuilder(cmd, prefix => collectTools(routes, prefix))
+  wireDispatcher(cmd, config, mounted)
+  registerManifestBuilder(cmd, prefix => collectTools(mounted, prefix))
   if (config.renderError !== undefined) registerErrorHandler(cmd, config.renderError)
+  registerRoute(cmd, () => compileProgram(config, routes), config)
+  inheritRouteSettings(cmd)
   return cmd
 }
 
@@ -99,24 +102,38 @@ function applyProgramConfig(cmd: CommanderCommand, config: ProgramConfig) {
   }
 }
 
-function declareLlmsOnProgram(
+// Any action disables commander's implicit help command, its help on a bare program and
+// its unknown-command error, so the dispatcher brings all three back
+function wireDispatcher(
   cmd: CommanderCommand,
   config: ProgramConfig,
   routes: Record<string, Route>,
 ) {
-  if (config.llmsOption === false) return
-  const flags = config.llmsOption?.flags ?? "--llms"
-  const description =
-    config.llmsOption?.description ??
-    "print the program manifest (subcommand schemas) as JSON for LLM tool-use"
-  cmd.addOption(new Option(flags, description))
+  if (config.helpCommand === undefined && routes.help === undefined) cmd.helpCommand(true)
+  cmd.allowExcessArguments(true)
+  const llms = declareLlmsOption(cmd, config)
 
-  cmd.action((options: { llms?: boolean }) => {
-    if (options.llms !== true) return
+  cmd.action((options: Record<string, unknown>) => {
+    const stray = cmd.args[0]
+    if (stray !== undefined) {
+      cmd.error(`error: unknown command '${stray}'`, { code: "commander.unknownCommand" })
+    }
+    if (llms === undefined || options[llms] !== true) cmd.help()
     const writer = cmd.configureOutput().writeOut ?? (s => process.stdout.write(s))
     const manifest = {
       tools: [buildHelpTool(), ...collectTools(routes, "")],
     }
     writer(`${JSON.stringify(manifest, null, 2)}\n`)
   })
+}
+
+function declareLlmsOption(cmd: CommanderCommand, config: ProgramConfig) {
+  if (config.llmsOption === false) return undefined
+  const flags = config.llmsOption?.flags ?? "--llms"
+  const description =
+    config.llmsOption?.description ??
+    "print the program manifest (subcommand schemas) as JSON for LLM tool-use"
+  const option = new Option(flags, description)
+  cmd.addOption(option)
+  return option.attributeName()
 }

@@ -83,7 +83,7 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 
 ## Errors and exits
 
-- A clap parse error (unknown option, extra argument) prints clap's `error: ...` and usage to stderr and exits with code 1. `--help` and `--version` print to stdout and exit 0.
+- A clap parse error (unknown option, extra argument) prints clap's `error: ...` and usage to stderr and exits with code 1. An unknown subcommand prints only `error: unknown command 'nope'`, as in the twins. `--help` and `--version` print to stdout and exit 0.
 - A missing required positional, a `conflicts` violation and a CLI value rejected by number parsing or a field's `parse` print one `error: ...` line in commander's wording and exit 1; none reaches `render_error`.
 - Without a `render_error` hook, input failures exit 1 the same way: a `--json` value that is not JSON (`error: --json value is not valid JSON: ...`) and input that fails the schema, one line per field — `error: invalid --json input at 'a.b[0]': <message>` in JSON mode, commander's wording at the shell.
 - An error from the handler or an output that fails its schema ends the run: `.run()` prints `error: <message>` and exits 1; `.try_run_from(...)` returns it as `Err`.

@@ -40,7 +40,7 @@ if __name__ == "__main__":
 - **The router key is the subcommand name.** It overrides the command's own name, so `{"users": list_users, "members": list_users}` mounts the same leaf twice.
 - **Routes are `Command | Program`** (exported as the `Route` type). A plain click command is rejected with a `TypeError`: it has no schemas to put in the manifest.
 - **`aliases=["ls"]`** on a command or nested program lets the parent route that name too; aliases are not listed in `--help` and add no `--llms` tools.
-- `myapp` alone prints the help. Options before the subcommand name belong to the program, options after it to the subcommand — click's default, no setting needed.
+- `myapp` alone prints the help, and so does `myapp help`; `myapp help greet` prints that route's. An unknown subcommand prints `error: unknown command 'nope'` to stderr and exits 1. A route keyed `"help"` replaces the help command, which is never a `--llms` tool. Options before the subcommand name belong to the program, options after it to the subcommand — click's default, no setting needed.
 
 ## `ProgramConfig`
 

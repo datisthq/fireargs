@@ -134,9 +134,9 @@ for every failure a caller should see.
 
 Clap's parse errors (unknown option, extra argument) happen before the run
 starts: clap prints `error: ...` and its usage line to stderr and exits
-with code 1. A missing required positional, a `conflicts` violation and a
-CLI value that number parsing or a field's `parse` rejects are reported in
-commander's wording, also with exit code 1. None of these reach
+with code 1. A missing required positional, an unknown subcommand, a
+`conflicts` violation and a CLI value that number parsing or a field's
+`parse` rejects are reported in commander's wording, also with exit code 1. None of these reach
 `render_error`. A value that parses but fails the schema — a bound, a
 choice, a missing required option — does, like `--json` input.
 

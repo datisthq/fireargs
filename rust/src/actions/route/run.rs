@@ -3,7 +3,7 @@ use std::io::Write;
 use std::process::ExitCode;
 
 use clap::ArgMatches;
-use clap::error::ErrorKind;
+use clap::error::{ContextKind, ContextValue, ErrorKind};
 
 use crate::actions::command::compile::LLMS_ID;
 use crate::actions::command::manifest::build_manifest;
@@ -51,6 +51,14 @@ where
                 ErrorKind::DisplayHelp | ErrorKind::DisplayVersion => {
                     write!(out, "{text}")?;
                     Ok(0)
+                }
+                ErrorKind::InvalidSubcommand => {
+                    let name = match error.get(ContextKind::InvalidSubcommand) {
+                        Some(ContextValue::String(name)) => name.as_str(),
+                        _ => "",
+                    };
+                    writeln!(err, "error: unknown command '{name}'")?;
+                    Ok(1)
                 }
                 _ => {
                     write!(err, "{text}")?;

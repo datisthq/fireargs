@@ -36,14 +36,17 @@ cli.parseAsync(process.argv)
 ```
 
 `myapp greet world`, `myapp deploy --env prod`, `myapp --help`,
-`myapp --llms` all work.
+`myapp --llms` all work, and `myapp` alone prints the help.
 
 ## Object key wins as the subcommand name
 
 `.router({ greet: someCmd })` attaches `someCmd` under the name `"greet"`
 even if the leaf was built with `name: "something-else"`. Decoupling the
 program-level routing from each leaf's own naming makes it easy to mount
-the same command twice or rename at attach time.
+the same command twice or rename at attach time. A route already mounted —
+under another key or in another program — is rebuilt from its config for the
+new spot, since a commander `Command` has one parent; changes made to the
+instance after `.handler(...)` don't carry over.
 
 ## Nesting
 
@@ -114,13 +117,16 @@ slots (`helpOption`, `helpCommand`, `configureHelp`, `addHelpText`,
 `addHelpCommand`, `addHelpOption`), behavior toggles, hooks, exit/output
 config, `on` listeners, `executableDir`, and `llmsOption`.
 
-Two of them reach past the program itself:
+A few of them reach past the program itself:
 
 - `version` with `versionOption: { flags: "-v, --version" }` keeps a short
   version flag.
 - `renderError` set on a program covers every leaf below it that has no hook
   of its own, so one hook formats errors for the whole tree (see
   [JSON mode](/typescript/json-mode/#errors)).
+- `exitOverride` and `configureOutput` reach every route below that sets
+  neither, and `configureOutput` merges key by key, so a test can capture
+  a whole tree's output from the root.
 
 ## `enablePositionalOptions` defaults to `true` on programs
 
@@ -137,7 +143,9 @@ behavior.
 Each level keeps its own:
 
 ```bash
+myapp                      # top-level help, the same as --help
 myapp --help               # top-level help, lists subcommands
+myapp help greet           # leaf-level help, the same as greet --help
 myapp greet --help         # leaf-level help, lists args/options
 myapp --llms               # entire tree as a flat MCP tools/list
 myapp greet --llms         # just the greet leaf
@@ -145,3 +153,6 @@ myapp greet --llms         # just the greet leaf
 
 Suppress program-level `--llms` with `llmsOption: false` in the program
 config; subcommands keep theirs.
+
+An unknown subcommand prints `error: unknown command 'nope'` to stderr and
+exits 1, at every level.

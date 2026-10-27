@@ -33,7 +33,7 @@ await cli.parseAsync(process.argv)
 // myapp greet world · myapp db migrate · myapp --help · myapp --llms
 ```
 
-- **The router key is the subcommand name.** It overrides any `name` the command was built with, so `{ users: listUsers, members: listUsers }` mounts the same leaf twice.
+- **The router key is the subcommand name.** It overrides any `name` the command was built with, so `{ users: listUsers, members: listUsers }` mounts the same leaf twice. A leaf already mounted — under another key or in another program — is rebuilt from its config for the new spot, so commander calls made on the instance after `.handler(...)` do not carry over.
 - **Routes are `Command | Program`** (exported as the `Route` type). A raw commander `Command` is rejected at compile time: it has no schemas to put in the manifest.
 - Build every leaf with `f.command(...)` and every group with `f.program(...)`, then attach. Import the types with `import type { Command, Program, Route } from "fireargs"`; alias commander's own `Command` if both are needed.
 
@@ -43,6 +43,8 @@ The same fields as `CommandConfig` (see `fireargs-commands`) without `jsonOption
 
 - `enablePositionalOptions` defaults to `true`, so options before a subcommand belong to the program and options after it belong to the subcommand. Without it, `myapp greet --llms` would be read as the program's `--llms`. Pass `false` only for commander's legacy parsing.
 - `--llms` on a program prints the whole tree; `llmsOption: false` removes it from that level only.
+- A bare program (`myapp`, `myapp db`) prints its help to stdout and exits 0; `myapp help db` prints that route's help. An unknown subcommand prints `error: unknown command 'nope'` to stderr and exits 1, with no "Did you mean" suggestion. A route keyed `help` replaces the help command.
+- `exitOverride` and `configureOutput` reach every route below that did not set its own; `configureOutput` merges key by key, so a leaf's own `writeOut` survives the program's `writeErr`.
 
 Two settings belong on the root program:
 

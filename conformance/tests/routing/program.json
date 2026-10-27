@@ -1,0 +1,39 @@
+[
+  {
+    "description": "a program routes argv to its subcommands",
+    "tests": [
+      {
+        "description": "a bare program prints its help and exits 0",
+        "argv": [],
+        "exitCode": 0
+      },
+      {
+        "description": "a bare nested program prints its help and exits 0",
+        "argv": ["admin"],
+        "exitCode": 0
+      },
+      {
+        "description": "help alone prints the program's help",
+        "argv": ["help"],
+        "exitCode": 0
+      },
+      {
+        "description": "help <command> prints that command's help",
+        "argv": ["help", "echo"],
+        "exitCode": 0
+      },
+      {
+        "description": "an unknown command fails with exit 1",
+        "argv": ["nope"],
+        "exitCode": 1,
+        "stderr": "error: unknown command 'nope'"
+      },
+      {
+        "description": "an unknown command below a nested program fails with exit 1",
+        "argv": ["admin", "nope"],
+        "exitCode": 1,
+        "stderr": "error: unknown command 'nope'"
+      }
+    ]
+  }
+]

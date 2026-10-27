@@ -111,8 +111,8 @@ f.program({
 - It also catches `.render(...)` failures. The nearest hook wins: the leaf's
   own, then each enclosing program's.
 
-Commander parse errors (unknown option, bad choice, missing positional, too
-many arguments) happen before the run starts: they are written to stderr and
+Commander parse errors (unknown option, unknown command, bad choice, missing
+positional, too many arguments) happen before the run starts: they are written to stderr and
 exit with code 1, or throw a `CommanderError` with `exitOverride: true`.
 
 ## Composes with subcommands

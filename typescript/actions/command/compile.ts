@@ -13,6 +13,7 @@ import type { CommandContext, RenderContext } from "../../models/context.ts"
 import type { OptionConfig } from "../../models/option-config.ts"
 import { findErrorHandler, handleError, registerErrorHandler } from "../error/handle.ts"
 import { readFieldMeta } from "../field/read.ts"
+import { registerRoute } from "../route/mount.ts"
 import {
   buildLeafTool,
   buildHelpTool,
@@ -43,6 +44,7 @@ export function compileCommand<I extends z.ZodObject, O extends z.ZodType>(
   wireAction(cmd, fields, input, output, handler, render)
   if (config.renderError !== undefined) registerErrorHandler(cmd, config.renderError)
   registerManifestBuilder(cmd, prefix => [buildLeafTool(cmd, input, output, prefix)])
+  registerRoute(cmd, () => compileCommand(config, input, output, handler, render), config)
   return cmd
 }
 

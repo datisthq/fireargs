@@ -248,3 +248,23 @@ fn an_argument_type_is_positional_and_a_field_can_make_it_an_option() {
     assert!(out.contains("[name]  Who to greet"), "{out}");
     assert!(out.contains("--friend <value>"), "{out}");
 }
+
+#[test]
+fn one_leaf_mounts_under_two_keys_and_in_two_programs() {
+    let leaf = create_tags();
+    let first = fireargs::program()
+        .command("tags", leaf.clone())
+        .command("labels", leaf.clone());
+    let second = fireargs::program().command("marks", leaf);
+    for (program, key) in [(&first, "tags"), (&first, "labels"), (&second, "marks")] {
+        let (mut out, mut err) = (vec![], vec![]);
+        let argv = ["cli", key, "--json", r#"{"rows":[1]}"#];
+        let code =
+            pollster::block_on(program.try_run_from(argv, &mut out, &mut err)).unwrap();
+        assert_eq!(code, 0);
+        assert_eq!(
+            read_json(&String::from_utf8(out).unwrap())["rows"],
+            json!([1])
+        );
+    }
+}

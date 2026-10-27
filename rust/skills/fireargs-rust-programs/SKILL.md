@@ -46,7 +46,7 @@ fn main() -> std::process::ExitCode {
 - **The router key is the subcommand name.** It overrides the command's own `name`, so `.command("users", list.clone()).command("members", list)` mounts the same leaf twice (`Command` and `Program` are `Clone`).
 - **Only fireargs commands and programs mount**, so every leaf has schemas for the manifest. A program forgets each leaf's input and output types, so one program holds commands of any types.
 - **`.alias("ls")`** on a command or nested program lets the parent route that name too; clap lists aliases in `--help` (`[alias: ls]`), and they add no `--llms` tools.
-- `myapp` alone prints the help; clap also adds a `help` subcommand. Options before the subcommand name belong to the program, options after it to the subcommand — clap's default, no setting needed.
+- `myapp` alone prints the help; clap also adds a `help` subcommand (`myapp help greet`), never a `--llms` tool. An unknown subcommand prints `error: unknown command 'nope'` to stderr and exits 1. Options before the subcommand name belong to the program, options after it to the subcommand — clap's default, no setting needed.
 - Build each piece in its own function; a CLI can also live in a `static` behind `std::sync::LazyLock`, since `Program` is `Send + Sync`.
 
 ## Program configuration
