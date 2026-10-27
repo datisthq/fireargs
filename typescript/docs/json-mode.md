@@ -46,6 +46,22 @@ The flag takes an optional value (`--json [value]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 3–5 are identical.
 
+JSON input bypasses commander, so `env` fallbacks, choices checks, a field's
+`parse`, number coercion, `conflicts` and `implies` do not apply — zod's
+`.default(...)` and validation still do. An invariant that must hold in both
+modes belongs in the schema, as a `.refine(...)` on the input object:
+
+```ts
+.input(
+  z
+    .object({
+      rgb: f.option({ conflicts: "cmyk" }).schema(z.boolean().default(false)),
+      cmyk: z.boolean().default(false),
+    })
+    .refine(input => !(input.rgb && input.cmyk), { message: "pick rgb or cmyk" }),
+)
+```
+
 ## Keeping stdout clean
 
 The handler's second argument tells it which mode it runs in. In JSON mode,

@@ -30,7 +30,7 @@ With a value, the run is: `json.loads` the value → `model_validate` it with th
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys the input model does not declare are ignored, not rejected. Keys are field names, or aliases when the model sets them.
-- JSON input skips click, so env vars, choices checks, a field's `parse` and number parsing do not apply — the model's defaults and validators still do. Input is validated in pydantic's strict mode, like zod: send each value in its real type — `["a","b"]`, not `"a,b"`; `3`, not `"3"`. An ISO 8601 `datetime`, a `UUID` and an `Enum` value are still sent as strings.
+- JSON input skips click, so env vars, choices checks, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — the model's defaults and validators still do. An invariant that must hold in both modes belongs in the model: a `@model_validator(mode="after")`. Input is validated in pydantic's strict mode, like zod: send each value in its real type — `["a","b"]`, not `"a,b"`; `3`, not `"3"`. An ISO 8601 `datetime`, a `UUID` and an `Enum` value are still sent as strings.
 - A `X | None = None` output field is left out while `None`, rather than written as `null`.
 
 ## `--llms`: the manifest

@@ -23,8 +23,8 @@ make a field positional, wrap with `f.argument()`:
 ```ts
 .input(
   z.object({
-    name:    f.argument().string(),  // <name> positional
-    verbose: z.boolean(),            // --verbose option (default routing)
+    name:    f.argument().string(),         // <name> positional
+    verbose: z.boolean().default(false), // --verbose option (default routing)
   }),
 )
 ```
@@ -163,15 +163,15 @@ field by its pre-transform type.
     // option with short alias and env fallback
     port: f.option({ short: "p", env: "PORT" }).schema(z.number().default(8080)),
 
-    // boolean with explicit conflicts
-    rgb:  f.option({ conflicts: "cmyk" }).boolean(),
-    cmyk: z.boolean(),
+    // booleans with explicit conflicts
+    rgb:  f.option({ conflicts: "cmyk" }).schema(z.boolean().default(false)),
+    cmyk: z.boolean().default(false),
 
     // hidden internal option
-    secret: f.option({ hidden: true }).string(),
+    secret: f.option({ hidden: true }).schema(z.string().optional()),
 
     // variadic with choices
-    formats: f.option().array(z.enum(["json", "yaml", "toml"])),
+    formats: z.array(z.enum(["json", "yaml", "toml"])).default([]),
   }),
 )
 ```

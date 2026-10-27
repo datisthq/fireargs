@@ -236,15 +236,15 @@ stdout only ever carries the data, so a script can parse it without checking for
 
 ## Learn more
 
-- [Commands](/rust/commands/) — the `fireargs::command()` builder and the leaf it builds.
-- [Inputs](/rust/inputs/) — `#[fireargs::input]` and per-field CLI config in `#[fireargs(...)]`.
-- [Outputs](/rust/outputs/) — `#[fireargs::output]`, serialization, and JSON Schema in `--llms`.
-- [Programs](/rust/programs/) — subcommand trees, nesting, and program-level config.
-- [LLMs mode](/rust/llms-mode/) — `--llms` and the MCP-shaped manifest.
-- [JSON mode](/rust/json-mode/) — `--json` for programmatic and pipeline use.
-- [Composability](/rust/composability/) — reusable `#[fireargs::argument]` / `#[fireargs::option]` types and flattened blocks.
-- [Agent Skills](/rust/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
-- [Contributing](/rust/contributing/) — local setup, conventions, release flow.
+- [Commands](https://fireargs.dev/rust/commands/) — the `fireargs::command()` builder and the leaf it builds.
+- [Inputs](https://fireargs.dev/rust/inputs/) — `#[fireargs::input]` and per-field CLI config in `#[fireargs(...)]`.
+- [Outputs](https://fireargs.dev/rust/outputs/) — `#[fireargs::output]`, serialization, and JSON Schema in `--llms`.
+- [Programs](https://fireargs.dev/rust/programs/) — subcommand trees, nesting, and program-level config.
+- [LLMs mode](https://fireargs.dev/rust/llms-mode/) — `--llms` and the MCP-shaped manifest.
+- [JSON mode](https://fireargs.dev/rust/json-mode/) — `--json` for programmatic and pipeline use.
+- [Composability](https://fireargs.dev/rust/composability/) — reusable `#[fireargs::argument]` / `#[fireargs::option]` types and flattened blocks.
+- [Agent Skills](https://fireargs.dev/rust/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
+- [Contributing](https://fireargs.dev/rust/contributing/) — local setup, conventions, release flow.
 
 ## License
 

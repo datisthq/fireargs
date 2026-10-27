@@ -37,12 +37,16 @@ class InitOutput(BaseModel):
     name: str
 
 
-@command(description="Create a project.")
+def render_error(error: Exception) -> str:
+    return f"error: {error}"
+
+
+@command(description="Create a project.", render_error=render_error)
 def init(input: InitInput, context: Context) -> InitOutput:
     name = input.name
     if name is None:
         if context.json or not sys.stdin.isatty():
-            raise click.UsageError("--name is required when not run in a terminal")
+            raise ValueError("--name is required when not run in a terminal")
         name = click.prompt("Project name", err=True)
     return InitOutput(name=name)
 
@@ -62,12 +66,15 @@ Project name: demo
 Created demo
 $ python init.py --name demo        # the flag skips the prompt
 Created demo
-$ python init.py < /dev/null        # no terminal: fails, exit code 2
-Usage: init.py [OPTIONS]
-Try 'init.py --help' for help.
-
-Error: --name is required when not run in a terminal
+$ python init.py < /dev/null        # no terminal: fails, exit code 1
+error: --name is required when not run in a terminal
 ```
+
+`render_error` turns the raised error into an `error: …` line instead of a
+traceback — see [JSON mode](/python/json-mode/) for its JSON-aware form. Raise
+a plain exception rather than a `click.UsageError`: click reports its own
+exceptions itself, never through the hook — a `UsageError` with click's usage
+text and exit code 2.
 
 click is already installed with fireargs, so `click.prompt` and
 `click.confirm` need no extra dependency; `err=True` sends the question to
@@ -84,7 +91,7 @@ Yes = Annotated[bool, Option(short="y", default=False, description="Skip the pro
 # in the handler
 if not input.yes:
     if context.json or not sys.stdin.isatty():
-        raise click.UsageError("pass --yes to confirm when not run in a terminal")
+        raise ValueError("pass --yes to confirm when not run in a terminal")
     if not click.confirm(f"Delete {input.path}?", err=True):
         return DeleteOutput(deleted=False)
 ```

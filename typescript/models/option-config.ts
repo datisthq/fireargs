@@ -11,9 +11,9 @@ export type OptionConfig<V = unknown> = {
   short?: string
   /** Environment variable to fall back to when the flag is absent. */
   env?: string
-  /** Other option name(s) that conflict with this one. */
+  /** Other option name(s) that conflict with this one; `--json` input skips the check. */
   conflicts?: string | string[]
-  /** Other option values implied when this option is set. */
+  /** Other option values implied when this option is set; `--json` input skips them. */
   implies?: Record<string, unknown>
   /** Hide from `--help` output. */
   hidden?: boolean

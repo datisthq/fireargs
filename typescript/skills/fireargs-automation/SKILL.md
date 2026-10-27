@@ -30,7 +30,7 @@ With a value, the run is: `JSON.parse` the value → parse it with the input sch
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys the input schema does not declare are dropped by zod, not rejected.
-- JSON input skips commander, so `env` fallbacks, choices checks, a field's `parse`, number coercion and commander defaults do not apply — zod's `.default(...)` still does. Send each value in its real type: `["a","b"]`, not `"a,b"`; `3`, not `"3"`.
+- JSON input skips commander, so `env` fallbacks, choices checks, a field's `parse`, number coercion, `conflicts`, `implies` and commander defaults do not apply — zod's `.default(...)` still does. An invariant that must hold in both modes belongs in the schema: `.refine(...)` on the input object. Send each value in its real type: `["a","b"]`, not `"a,b"`; `3`, not `"3"`.
 
 ## `--llms`: the manifest
 

@@ -245,5 +245,5 @@ The macro writes nothing a hand-written struct cannot: derive `Deserialize` and
 with the camelCase keys of the TypeScript `ArgumentConfig` / `OptionConfig`
 (`{"kind": "argument"}`, `{"short": "v", "helpGroup": "Logging"}`), and add an empty
 `impl fireargs::Input for MyInput {}`. Such a struct has no `parse` and does not
-inherit a reusable type's default; a meta with an unknown key panics when the command
-is built, naming the field.
+inherit a reusable type's default; a meta with an unknown key panics when `.handler(...)`
+builds the command — so on every run, `--help` included — naming the field.

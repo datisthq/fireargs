@@ -28,8 +28,8 @@ const paginationParams = z.object({
 })
 
 const verbosityParams = z.object({
-  verbose: f.option({ short: "v" }).boolean(),
-  quiet: f.option({ short: "q" }).boolean(),
+  verbose: f.option({ short: "v" }).schema(z.boolean().default(false)),
+  quiet: f.option({ short: "q" }).schema(z.boolean().default(false)),
 })
 ```
 

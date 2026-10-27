@@ -211,14 +211,14 @@ stdout only ever carries the data, so a script can parse it without checking for
 
 ## Documentation
 
-- [Commands](/typescript/commands/) — the `f.command(...)` chainable builder.
-- [Inputs](/typescript/inputs/) — `f.argument()` / `f.option()` and per-field commander config.
-- [Outputs](/typescript/outputs/) — the output schema, serialization, and JSON Schema in `--llms`.
-- [Programs](/typescript/programs/) — subcommand trees, nesting, and program-level config.
-- [LLMs mode](/typescript/llms-mode/) — `--llms` and the MCP-shaped manifest.
-- [JSON mode](/typescript/json-mode/) — `--json` for programmatic and pipeline use.
-- [Composability](/typescript/composability/) — share common params across commands by composing zod schemas.
-- [Contributing](/typescript/contributing/) — local setup, conventions, release flow.
+- [Commands](https://fireargs.dev/typescript/commands/) — the `f.command(...)` chainable builder.
+- [Inputs](https://fireargs.dev/typescript/inputs/) — `f.argument()` / `f.option()` and per-field commander config.
+- [Outputs](https://fireargs.dev/typescript/outputs/) — the output schema, serialization, and JSON Schema in `--llms`.
+- [Programs](https://fireargs.dev/typescript/programs/) — subcommand trees, nesting, and program-level config.
+- [LLMs mode](https://fireargs.dev/typescript/llms-mode/) — `--llms` and the MCP-shaped manifest.
+- [JSON mode](https://fireargs.dev/typescript/json-mode/) — `--json` for programmatic and pipeline use.
+- [Composability](https://fireargs.dev/typescript/composability/) — share common params across commands by composing zod schemas.
+- [Contributing](https://fireargs.dev/typescript/contributing/) — local setup, conventions, release flow.
 
 ## License
 

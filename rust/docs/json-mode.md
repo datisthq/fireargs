@@ -51,7 +51,8 @@ collected from the regular CLI parse instead. Steps 2–6 are identical.
 
 JSON input bypasses clap, so env vars, a field's `parse`, number parsing,
 `conflicts` and `implies` do not apply — defaults and the schema's validation,
-choices included, still do. Send each value in its real type:
+choices included, still do. An invariant that must hold in both modes belongs
+in the handler, which checks it and returns an `Err`. Send each value in its real type:
 `["a","b"]`, not `"a,b"`; `3`, not `"3"` — the schema rejects a string for
 an integer, like zod does. Strings still carry the types JSON has no literal
 for: a `chrono` date, a `Uuid`, a unit enum variant. Keys the struct does not
@@ -124,6 +125,12 @@ fn cli() -> fireargs::Program {
   yourself.
 - The run then exits with code 1; a hook cannot hand the error back.
 - The nearest hook wins: the leaf's own, then each enclosing program's.
+- `json!` comes from `serde_json`, a dependency of your own here:
+  `cargo add serde_json`.
+
+A handler that panics never reaches the hook: Rust prints the panic message
+to stderr and exits with code 101, with nothing on stdout. Return an `Err`
+for every failure a caller should see.
 
 Clap's parse errors (unknown option, extra argument) happen before the run
 starts: clap prints `error: ...` and its usage line to stderr and exits

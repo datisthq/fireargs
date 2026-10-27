@@ -30,7 +30,7 @@ With a value, the run is: parse the value as JSON → validate it against the in
 
 - Only leaves have `--json`; a program dispatches. Call a nested leaf by its path: `myapp db migrate --json '{}'`.
 - Keys are the camelCase wire keys `#[fireargs::input]` gives (`headerRows`), or a `rename_all`'s. Keys the struct does not declare are ignored, unless it sets `#[serde(deny_unknown_fields)]`.
-- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — defaults and the schema's validation, choices included, still do. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings.
+- JSON input skips clap, so env vars, a field's `parse`, number parsing, `conflicts` and `implies` do not apply — defaults and the schema's validation, choices included, still do. An invariant that must hold in both modes belongs in the handler: check it there and return an `Err`. Send each value in its real type, like zod: `["a","b"]`, not `"a,b"`; `3`, not `"3"`. A `chrono` date, a `Uuid` and a unit enum variant are still sent as strings.
 - An `Option<T>` field of a `#[fireargs::output]` struct is left out while `None`; on a hand-derived output it is written as `null` unless it has `#[serde(skip_serializing_if = "Option::is_none")]`.
 
 ## `--llms`: the manifest
@@ -87,9 +87,12 @@ Every command and program gets `--llms`, which prints a manifest and exits witho
 - A missing required positional, a `conflicts` violation and a CLI value rejected by number parsing or a field's `parse` print one `error: ...` line in commander's wording and exit 1; none reaches `render_error`.
 - Without a `render_error` hook, input failures exit 1 the same way: a `--json` value that is not JSON (`error: --json value is not valid JSON: ...`) and input that fails the schema, one line per field — `error: invalid --json input at 'a.b[0]': <message>` in JSON mode, commander's wording at the shell.
 - An error from the handler or an output that fails its schema ends the run: `.run()` prints `error: <message>` and exits 1; `.try_run_from(...)` returns it as `Err`.
-- `.render_error(|error, context| ...)` on a command, or once on the root program for the whole tree (the nearest hook wins). The closure is `Fn(&fireargs::Error, &Context) -> Option<serde_json::Value>`. Input failures downcast to `fireargs::InputError` (`InvalidJson`, or `Invalid` with `Issue`s), output failures to `fireargs::OutputError`; a handler's error is the one it returned. Under `--json` a returned value is printed as JSON on stdout; otherwise a returned JSON string goes to stderr. The run then exits with code 1. Return `None` to write it yourself.
+- `.render_error(|error, context| ...)` on a command, or once on the root program for the whole tree (the nearest hook wins). The closure is `Fn(&fireargs::Error, &Context) -> Option<serde_json::Value>`. Input failures downcast to `fireargs::InputError` (`InvalidJson`, or `Invalid` with `Issue`s), output failures to `fireargs::OutputError`; a handler's error is the one it returned. Under `--json` a returned value is printed as JSON on stdout; otherwise a returned JSON string goes to stderr. The run then exits with code 1. Return `None` to write it yourself. Building the value with `json!` takes `serde_json` as a dependency of your own (`cargo add serde_json`).
+- A handler that panics bypasses all of this: Rust prints the panic message to stderr and exits with code 101, and no `render_error` hook runs. Return an `Err` for every failure a caller should see.
 
 ```rust
+use serde_json::json;
+
 fn cli() -> fireargs::Program {
     fireargs::program()
         .name("myapp")

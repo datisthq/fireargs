@@ -93,11 +93,17 @@ struct Paginated<T> {
     total: u32,
 }
 
+fn paginate<T>(items: Vec<T>, pagination: &Pagination) -> Paginated<T> {
+    let total = items.len() as u32;
+    let items = items.into_iter().take(*pagination.limit as usize).collect();
+    Paginated { items, total }
+}
+
 fn list_users() -> fireargs::Command<UsersInput, Paginated<User>> {
     fireargs::command()
         .description("List users")
         .handler(async |input: UsersInput, _| {
-            Ok(paginate(fetch_users(input.role).await?, *input.pagination.limit))
+            Ok(paginate(fetch_users(input.role).await?, &input.pagination))
         })
 }
 ```
@@ -107,7 +113,7 @@ fn list_users() -> fireargs::Command<UsersInput, Paginated<User>> {
 - **Choices:** `#[fireargs::option]` (or `argument`) on an enum, kebab-case on the wire (`"admin"`).
 - **Parameter blocks:** `#[fireargs::input]` structs mixed in with `#[fireargs(flatten)]`. Their fields take the flatten's position among the struct's own — the `--help` order and the positional order — and bring their `parse` functions along. serde cannot combine `flatten` with `deny_unknown_fields`.
 - **Output wrappers:** a generic `#[fireargs::output]` struct such as `Paginated<T>`, so every list command shares one wire shape and one manifest schema.
-- **Shared handler code:** plain functions such as `paginate(items, limit)`. Each command keeps its own small handler with concrete types.
+- **Shared handler code:** plain functions such as `paginate(items, &pagination)`. Each command keeps its own small handler with concrete types.
 - `conflicts` and `implies` name sibling fields, so they stay on fields, not on reusable types.
 
 ## Rules of thumb

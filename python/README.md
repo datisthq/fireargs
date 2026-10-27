@@ -221,15 +221,15 @@ stdout only ever carries the data, so a script can parse it without checking for
 
 ## Learn more
 
-- [Commands](/python/commands/) — the `@command(...)` decorator and the leaf it builds.
-- [Inputs](/python/inputs/) — `Argument()` / `Option()` and per-field click config.
-- [Outputs](/python/outputs/) — the output type, serialization, and JSON Schema in `--llms`.
-- [Programs](/python/programs/) — subcommand trees, nesting, and program-level config.
-- [LLMs mode](/python/llms-mode/) — `--llms` and the MCP-shaped manifest.
-- [JSON mode](/python/json-mode/) — `--json` for programmatic and pipeline use.
-- [Composability](/python/composability/) — share common params across commands by composing pydantic models.
-- [Agent Skills](/python/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
-- [Contributing](/python/contributing/) — local setup, conventions, release flow.
+- [Commands](https://fireargs.dev/python/commands/) — the `@command(...)` decorator and the leaf it builds.
+- [Inputs](https://fireargs.dev/python/inputs/) — `Argument()` / `Option()` and per-field click config.
+- [Outputs](https://fireargs.dev/python/outputs/) — the output type, serialization, and JSON Schema in `--llms`.
+- [Programs](https://fireargs.dev/python/programs/) — subcommand trees, nesting, and program-level config.
+- [LLMs mode](https://fireargs.dev/python/llms-mode/) — `--llms` and the MCP-shaped manifest.
+- [JSON mode](https://fireargs.dev/python/json-mode/) — `--json` for programmatic and pipeline use.
+- [Composability](https://fireargs.dev/python/composability/) — share common params across commands by composing pydantic models.
+- [Agent Skills](https://fireargs.dev/python/agent-skills/) — teach your coding agent to write and drive Fireargs CLIs.
+- [Contributing](https://fireargs.dev/python/contributing/) — local setup, conventions, release flow.
 
 ## License
 

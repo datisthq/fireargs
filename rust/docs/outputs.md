@@ -90,6 +90,19 @@ schema is its `JsonSchema`:
 | an enum with data            | serde's representation (tagging)     | `oneOf` the variants                  |
 | a nested struct              | object                               | the struct's schema, inlined          |
 
+`#[fireargs::output]` takes structs only. An enum in an output, unit or with data,
+derives `serde::Serialize`, `serde::Deserialize` and `schemars::JsonSchema` itself,
+so `serde` (with its `derive` feature) and `schemars` 1 become dependencies of yours:
+
+```rust
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+enum Status {
+    Active,
+    Archived,
+}
+```
+
 Types from other crates carry a `JsonSchema` impl behind a schemars feature
 — `chrono04`, `uuid1`, `url2`, `rust_decimal1` and others — and serialize as
 those crates' serde impls do. A type without `JsonSchema` does not compile

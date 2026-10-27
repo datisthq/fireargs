@@ -48,8 +48,10 @@ The flag takes an optional value (`--json [value]`):
 When `--json` is passed alone (no value), step 1 is skipped and input is
 collected from the regular CLI parse instead. Steps 3–5 are identical.
 
-JSON input bypasses click, so env vars, choices checks, a field's `parse` and
-number parsing do not apply — the model's defaults and validation still do.
+JSON input bypasses click, so env vars, choices checks, a field's `parse`,
+number parsing, `conflicts` and `implies` do not apply — the model's defaults
+and validation still do. An invariant that must hold in both modes belongs in
+the model, as a `@model_validator(mode="after")`.
 Send each value in its real type: `["a","b"]`, not `"a,b"`; `3`, not `"3"` —
 strict mode rejects a string for an `int`, like zod does. Strings still
 carry the types JSON has no literal for: an ISO 8601 `datetime`, a `UUID`,

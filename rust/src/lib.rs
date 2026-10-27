@@ -1,6 +1,37 @@
 //! Fireargs builds CLIs from typed structs: typed input and output, JSON I/O and
 //! LLM-ready manifests, on top of clap and serde. The Rust twin of the `fireargs` npm
 //! and PyPI packages.
+//!
+//! ```no_run
+//! #[fireargs::input]
+//! struct GreetInput {
+//!     /// The user's name.
+//!     #[fireargs(argument)]
+//!     name: String,
+//! }
+//!
+//! #[fireargs::output]
+//! struct GreetOutput {
+//!     greeting: String,
+//! }
+//!
+//! fn greet() -> fireargs::Command<GreetInput, GreetOutput> {
+//!     fireargs::command()
+//!         .name("greet")
+//!         .description("Greet someone politely.")
+//!         .handler(async |input: GreetInput, _| {
+//!             Ok(GreetOutput { greeting: format!("hello {}", input.name) })
+//!         })
+//!         .render(|output, _| output.greeting.clone())
+//! }
+//!
+//! fn main() -> std::process::ExitCode {
+//!     greet().run()
+//! }
+//! ```
+//!
+//! `greet world` prints `hello world`, `greet world --json` the output as JSON, and
+//! `greet --llms` the tool manifest. The guides live at <https://fireargs.dev/rust/introduction/>.
 
 mod actions {
     pub(crate) mod command {
