@@ -2,7 +2,7 @@
 title: Composability
 path: /typescript/composability/
 icon: boxes
-order: 9
+order: 10
 description: Share common parameters across commands by composing zod schemas.
 ---
 

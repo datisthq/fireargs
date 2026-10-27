@@ -1,12 +1,12 @@
 ---
-title: Interactive commands
-path: /typescript/interactive-commands/
-icon: message-circle-question
-order: 10
+title: Interactivity
+path: /typescript/interactivity/
+icon: messages-square
+order: 9
 description: Ask for missing values and confirmations without breaking scripts and agents.
 ---
 
-# Interactive commands
+# Interactivity
 
 Fireargs never reads stdin, so the handler is free to prompt the user. The
 same command still serves scripts and LLM agents, which cannot answer a

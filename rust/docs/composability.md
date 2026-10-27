@@ -2,7 +2,7 @@
 title: Composability
 path: /rust/composability/
 icon: boxes
-order: 9
+order: 10
 description: Share arguments, options and parameter blocks across commands with reusable types and flattened structs.
 ---
 

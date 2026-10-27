@@ -2,7 +2,7 @@
 title: Composability
 path: /python/composability/
 icon: boxes
-order: 9
+order: 10
 description: Share common parameters across commands by composing pydantic models.
 ---
 
