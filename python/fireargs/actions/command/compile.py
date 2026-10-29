@@ -210,6 +210,12 @@ def declare_fields(input: type[BaseModel]):
     return specs, params
 
 
+def read_field_alias(info: FieldInfo):
+    if isinstance(info.validation_alias, str):
+        return info.validation_alias
+    return info.alias
+
+
 def declare_argument(key: str, info: FieldInfo, meta: ArgumentMeta):
     shape = read_value_shape(info.annotation, meta.parse)
     name = derive_cli_name(key, meta.name)
@@ -217,6 +223,7 @@ def declare_argument(key: str, info: FieldInfo, meta: ArgumentMeta):
     label = f"{name}..." if shape.variadic else name
     spec = FieldSpec(
         key=key,
+        alias=read_field_alias(info),
         kind="argument",
         name=name,
         flags=name,
@@ -262,6 +269,7 @@ def declare_option(key: str, info: FieldInfo, meta: OptionMeta | None):
     )
     spec = FieldSpec(
         key=key,
+        alias=read_field_alias(info),
         kind="option",
         name=name,
         flags=" ".join(

@@ -33,6 +33,7 @@ class FieldSpec:
     fixed tuple's `items` type each position and `element` types every other value."""
 
     key: str
+    alias: str | None = None
     kind: Literal["argument", "option"]
     name: str
     flags: str

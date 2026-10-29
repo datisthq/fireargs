@@ -60,6 +60,8 @@ copy:
 Wire keys match only when the Python model uses the TypeScript names: give it a camelCase
 `alias` or `alias_generator`. Error frames are fireargs' own and identical in both
 (`actions/command/report.py`); validator details and click's own parser errors are not.
+Input validates `by_alias`, so a pydantic error's `loc` names the alias: match it against
+`FieldSpec.alias` as well as `key`, or an aliased field falls to `error: invalid input`.
 
 ## Conformance
 

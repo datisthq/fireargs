@@ -93,7 +93,10 @@ def format_json_issue(issue: ErrorDetails):
 
 def format_cli_issue(issue: ErrorDetails, fields: Sequence[FieldSpec], raw: CliInput):
     key = issue["loc"][0] if issue["loc"] else None
-    spec = next((spec for spec in fields if spec.key == key), None)
+    spec = next(
+        (spec for spec in fields if key is not None and key in (spec.key, spec.alias)),
+        None,
+    )
     if spec is None:
         return f"error: invalid input. {issue['msg']}"
 

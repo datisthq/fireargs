@@ -280,6 +280,20 @@ class TestCommand:
         assert result.exit_code == 1
         assert result.stderr == "error: required option '--name <value>' not specified\n"
 
+    def test_names_a_missing_aliased_option_by_its_flag(self):
+        class In(BaseModel):
+            to_format: str = Field(alias="toFormat")
+
+        @f.command(name="render")
+        def render(input: In) -> Ok:
+            return Ok()
+
+        result = invoke(render)
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: required option '--to-format <value>' not specified\n"
+        )
+
     def test_reports_validation_errors_from_input_like_commander(self):
         class In(BaseModel):
             count: Annotated[int, Field(ge=10)]
