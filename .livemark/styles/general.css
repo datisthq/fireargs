@@ -4,6 +4,18 @@
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant sidebar-collapsed ([data-slot="sidebar"][data-state="collapsed"] ~ [data-slot="sidebar-inset"] &);
+
+/* The page content's width on a 100rem (1600px) viewport, where it spans from the header
+   nav's first link to the Toc under the search; it stops growing beyond that */
+[data-slot="sidebar-inset"] {
+  --content-max-width: calc(
+    100rem - var(--sidebar-width, 16rem) - var(--toc-width, 14rem) - 13.5rem
+  );
+}
+[data-slot="sidebar"][data-state="collapsed"] ~ [data-slot="sidebar-inset"] {
+  --content-max-width: calc(100rem - var(--toc-width, 14rem) - 13.5rem);
+}
 
 :root {
   --background: oklch(1 0 0);
