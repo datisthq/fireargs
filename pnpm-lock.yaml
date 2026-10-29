@@ -52,8 +52,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       livemark:
-        specifier: 0.32.1
-        version: 0.32.1(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(commander@14.0.3)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.27.7)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
+        specifier: 0.32.2
+        version: 0.32.2(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(commander@14.0.3)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.27.7)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3)
       lucide-react:
         specifier: 0.577.0
         version: 0.577.0(react@19.3.0)
@@ -4486,8 +4486,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  livemark@0.32.1:
-    resolution: {integrity: sha512-tfaTMGdlv4w8iLWv/SttCzBb8tto79nGcUFIgK2LpSJg5BMrpE0MAcdEye1tKnxd685ZaeOPLpZ/uHJ7YHblqg==}
+  livemark@0.32.2:
+    resolution: {integrity: sha512-Q969KoD9pujl/cGv2I0pDqCEFF1x2LaL5aqyZAiEoD4gNGP7qpvYw2U8/qGNl5kcxt9uecBQzaTX5dHCIvAP4w==}
     engines: {node: ^24.11.0, pnpm: ^11.0.0}
     hasBin: true
     peerDependencies:
@@ -10161,7 +10161,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  livemark@0.32.1(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(commander@14.0.3)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.27.7)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
+  livemark@0.32.2(@date-fns/tz@1.4.1)(@emnapi/core@1.11.3)(@emnapi/runtime@1.10.0)(@tanstack/query-core@5.104.2)(@tanstack/router-core@1.171.35)(@types/node@24.2.0)(commander@14.0.3)(csstype@3.2.3)(date-fns@4.1.0)(esbuild@0.27.7)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react-is@19.2.5)(react@19.3.0)(redux@5.0.1)(solid-js@1.9.17)(supports-color@10.2.2)(tsx@4.21.0)(typescript@5.9.3):
     dependencies:
       '@base-ui/react': 1.9.0(@date-fns/tz@1.4.1)(@types/react@19.3.0)(date-fns@4.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clack/prompts': 1.8.1
