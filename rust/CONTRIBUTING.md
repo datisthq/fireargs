@@ -1,8 +1,35 @@
 # Contributing
 
-Fireargs is an open-source project and we'd love your help — whether that's fixing a bug, polishing the docs, or proposing a new feature. This guide walks through everything you need to get a change from your editor into a release.
+> [!WARNING]
+> **We don't accept pull requests from outside contributors.** Pull requests opened by anyone outside the team are closed without review. If you've found a bug or have an idea, open an issue or start a discussion instead, as described below.
 
-## Quick start
+Fireargs is an open-source project developed by the [Datist](https://datist.io) team. Everyone is welcome to help shape it with bug reports, ideas and questions; code changes come from team members.
+
+## Contributors
+
+### Report a bug
+
+Open an issue on [GitHub Issues](https://github.com/datisthq/fireargs/issues). A good report includes:
+
+- the Fireargs version and how you use it
+- the smallest input that reproduces the problem
+- the output you got and the output you expected
+
+### Share an idea or ask a question
+
+Use [GitHub Discussions](https://github.com/datisthq/fireargs/discussions) for anything that isn't a bug:
+
+- [Ideas](https://github.com/datisthq/fireargs/discussions/new?category=ideas): features and improvements you'd like to see
+- [Q&A](https://github.com/datisthq/fireargs/discussions/new?category=q-a): questions about using Fireargs
+- [Show and tell](https://github.com/datisthq/fireargs/discussions/new?category=show-and-tell): projects built with Fireargs
+
+Ideas the team picks up turn into issues.
+
+## Members
+
+The rest of this guide is for Datist team members working on Fireargs.
+
+### Quick start
 
 You'll need [Node.js](https://nodejs.org/) 24+, [pnpm](https://pnpm.io/) 11+, for the Python package [uv](https://docs.astral.sh/uv/), and for the Rust package [rustup](https://rustup.rs/). Then:
 
@@ -19,7 +46,7 @@ pnpm start
 pnpm test
 ```
 
-## Repository layout
+### Repository layout
 
 ```
 fireargs/
@@ -57,7 +84,7 @@ fireargs/
 
 The npm package ships `typescript/build/` (compiled by `tsgo`) and `typescript/skills/`; the PyPI package ships `python/fireargs/` and `python/skills/`; the crate ships `rust/src/` and `rust/skills/`. Everything else is for development. A change to shared behaviour lands in every package, with a `conformance/` case.
 
-## Local commands
+### Local commands
 
 Run these at the repo root; each chains into the language sections with `pnpm -C <section>`.
 
@@ -77,7 +104,7 @@ Run these at the repo root; each chains into the language sections with `pnpm -C
 
 A change is ready to push when `pnpm test` is green.
 
-## Code conventions
+### Code conventions
 
 - **TypeScript**: strict mode is on. Don't use `any`, `as`-casts, or non-null `!` without permission — flag it in the PR.
 - **Imports**: use full ESM paths with the `.ts(x)` extension (`from "./foo.ts"`). `tsgo` rewrites them to `.js` on emit via `rewriteRelativeImportExtensions`.
@@ -88,7 +115,7 @@ A change is ready to push when `pnpm test` is green.
 - **Python**: 3.12+, typed for `ty` without `Any`; tests beside the module as `<module>_unit.py`, run one with `uv run pytest <file>` from `python/`.
 - **Rust**: edition 2024 on the pinned stable toolchain, clippy-clean with no `unwrap`/`expect` in library code; unit tests beside the module as `<module>_unit.rs`, run one with `cargo test <name>` from `rust/`.
 
-## Proposing a change
+### Proposing a change
 
 1. **Open an issue first** for anything bigger than a typo or a small bug. It's easier to align on direction before code.
 2. **Branch from `main`** with a short descriptive name (e.g. `fix-json-default`, `feat-program-hooks`).
@@ -100,14 +127,6 @@ A change is ready to push when `pnpm test` is green.
 4. **Run `pnpm test`** before pushing.
 5. **Open a PR** against `main`. Describe the _why_ (link the issue), include CLI output for any UX-visible change, and call out anything reviewers should pay extra attention to.
 
-## Releases
+### Releases
 
 Releases are driven by [release-please](https://github.com/googleapis/release-please): a `feat` or `fix` landing on `main` opens a Release PR, and merging it cuts the version, tags it and publishes to npm, PyPI and crates.io. Each package has its own version. Maintainers don't bump versions manually.
-
-## Where to find help
-
-- **Bugs and feature requests**: [GitHub Issues](https://github.com/datisthq/fireargs/issues)
-- **Discussion / ideas**: [GitHub Discussions](https://github.com/datisthq/fireargs/discussions)
-- **Source**: [github.com/datisthq/fireargs](https://github.com/datisthq/fireargs)
-
-Thanks for helping make Fireargs better.
