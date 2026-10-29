@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/datisthq/fireargs/compare/python-v0.1.1...python-v0.1.2) (2026-10-29)
+
+
+### Bug Fixes
+
+* **python:** name a missing aliased option by its flag ([e0a0b0e](https://github.com/datisthq/fireargs/commit/e0a0b0eed6e6e9f073c2e62ee025c80893edbe4f))
+
 ## [0.1.1](https://github.com/datisthq/fireargs/compare/python-v0.1.0...python-v0.1.1) (2026-10-27)
 
 
