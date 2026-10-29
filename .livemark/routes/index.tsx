@@ -195,7 +195,7 @@ function readWordClass(word: string, next: string | undefined, lang: Lang) {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border">
+    <section className="relative flex min-h-[calc(100svh-6rem)] items-center overflow-hidden border-b border-border">
       <BackgroundGrid />
       <div className="relative mx-auto w-full max-w-6xl px-6 py-20 md:py-28 lg:pt-8 lg:pb-14 lg:grid lg:grid-cols-[27rem_minmax(0,1fr)] lg:items-center lg:gap-14">
         <div className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700 ease-out">
