@@ -65,6 +65,7 @@ const tk = {
   flag: "text-[#179299] dark:text-[#94e2d5]",
   prompt: "text-[#d20f39] dark:text-[#f38ba8]",
   key: "text-[#1e66f5] dark:text-[#89b4fa]",
+  bullet: "text-[#fe640b] dark:text-[#fab387]",
 }
 
 type Lang = "python" | "typescript" | "rust"
@@ -279,16 +280,10 @@ function HeroActions() {
   )
 }
 
-interface Shot {
-  src: string
-  srcDark: string
-  alt: string
-}
-
 interface Slide {
   id: string
   title: string
-  shot: Shot
+  terminal: string
   source: { file: string; code: ReactNode }
 }
 
@@ -296,11 +291,23 @@ const slides: Slide[] = [
   {
     id: "help",
     title: "Help",
-    shot: {
-      src: "/screenshots/help.webp",
-      srcDark: "/screenshots/help-dark.webp",
-      alt: "The --help output of a fireargs command, with an argument, its choices, short flags, defaults and an env fallback",
-    },
+    terminal: `$ shipit deploy --help
+Usage: shipit deploy [options] <env>
+
+Deploy the current build to an environment.
+
+Arguments:
+  env                   Target environment. (choices: "staging", "production")
+
+Options:
+  --json [value]        write output as JSON; pass a JSON string to also drive
+                        input
+  --llms                print this command's schema (name, input, output) as
+                        JSON for LLM tool-use
+  -r, --region <value>  Cloud region. (default: "eu-west-1", env: SHIPIT_REGION)
+  --replicas <value>    Instances to run. (default: 2)
+  -p, --preview         Plan without applying. (default: false)
+  -h, --help            display help for command`,
     source: {
       file: "deploy.ts",
       code: (
@@ -323,11 +330,24 @@ const slides: Slide[] = [
   {
     id: "json",
     title: "JSON",
-    shot: {
-      src: "/screenshots/json.webp",
-      srcDark: "/screenshots/json-dark.webp",
-      alt: "Commands run with --json, taking flags or a JSON object as input and printing validated JSON output",
-    },
+    terminal: `$ shipit deploy production -r us-east-1 --replicas 4 --json
+{
+  "url": "https://production.shipit.dev",
+  "version": "v2.4.0",
+  "replicas": 4,
+  "status": "live"
+}
+
+$ shipit deploy --json '{"env":"staging","preview":true}' | jq .status
+"planned"
+
+$ shipit db migrate --json
+{
+  "applied": [
+    "0007_add_teams",
+    "0008_index_users"
+  ]
+}`,
     source: {
       file: "deploy.ts",
       code: (
@@ -358,11 +378,23 @@ const slides: Slide[] = [
   {
     id: "llms",
     title: "LLMs",
-    shot: {
-      src: "/screenshots/llms.webp",
-      srcDark: "/screenshots/llms-dark.webp",
-      alt: "The --llms manifest queried with jq, listing the tools and the JSON Schema of an input field",
-    },
+    terminal: `$ shipit --llms | jq '.tools[].name'
+"help"
+"deploy"
+"db migrate"
+
+$ shipit --llms | jq '.tools[1].inputSchema.properties.env'
+{
+  "type": "string",
+  "enum": [
+    "staging",
+    "production"
+  ],
+  "description": "Target environment."
+}
+
+$ shipit --llms | jq -c '.tools[1].outputSchema.required'
+["url","version","replicas","status"]`,
     source: {
       file: "cli.ts",
       code: (
@@ -384,11 +416,23 @@ const slides: Slide[] = [
   {
     id: "agent",
     title: "Agent",
-    shot: {
-      src: "/screenshots/agent.webp",
-      srcDark: "/screenshots/agent-dark.webp",
-      alt: "An agent reading the --llms manifest, previewing a deploy through --json and then running it",
-    },
+    terminal: `› Ship the current build to staging, but preview it first.
+
+● Checking which tools shipit exposes.
+  $ shipit --llms
+  ⎿ tools/list: help, deploy, db migrate
+
+● Previewing the staging rollout.
+  $ shipit deploy --json '{"env":"staging","preview":true}'
+  ⎿ {"url":"https://staging.shipit.dev","version":"v2.4.0",
+    "replicas":2,"status":"planned"}
+
+● Plan looks right: 2 replicas, nothing applied. Deploying.
+  $ shipit deploy --json '{"env":"staging"}'
+  ⎿ {"url":"https://staging.shipit.dev","version":"v2.4.0",
+    "replicas":2,"status":"live"}
+
+● Done. Staging runs v2.4.0 at https://staging.shipit.dev`,
     source: {
       file: "deploy.ts",
       code: (
@@ -493,7 +537,7 @@ function HeroCarousel(props: { slides: Slide[] }) {
                 index === active ? "opacity-100" : "pointer-events-none opacity-0",
               )}
             >
-              <ShotPicture shot={slide.shot} className="aspect-[16/10] w-full" />
+              <TerminalPanel terminal={slide.terminal} />
             </div>
           ))}
         </div>
@@ -538,21 +582,77 @@ function SourceChip(props: { source: Slide["source"] }) {
   )
 }
 
-function ShotPicture(props: { shot: Shot; className?: string }) {
+function TerminalPanel(props: { terminal: string }) {
+  return (
+    <pre className="overflow-x-auto p-5 font-mono text-xs leading-relaxed sm:text-sm lg:pb-36 xl:p-8 xl:pb-36">
+      <code className={tk.body}>{highlightTerminal(props.terminal)}</code>
+    </pre>
+  )
+}
+
+function highlightTerminal(terminal: string) {
+  return terminal.split("\n").map((line, i) => {
+    const indent = line.match(/^\s*/)?.[0] ?? ""
+    const text = line.slice(indent.length)
+    return (
+      <span key={i}>
+        {indent}
+        {text.startsWith("$ ") ? (
+          highlightCommand(text)
+        ) : text.startsWith("› ") ? (
+          <>
+            <span className={tk.keyword}>›</span>
+            <span className="font-semibold">{text.slice(1)}</span>
+          </>
+        ) : text.startsWith("● ") ? (
+          <>
+            <span className={tk.bullet}>●</span>
+            {text.slice(1)}
+          </>
+        ) : text.startsWith("⎿ ") ? (
+          <>
+            <span className={tk.dim}>⎿ </span>
+            {text.startsWith("⎿ {") ? (
+              highlightJson(text.slice(2))
+            ) : (
+              <span className={tk.dim}>{text.slice(2)}</span>
+            )}
+          </>
+        ) : /^[A-Z]\w*:/.test(text) ? (
+          highlightHelpHeading(text)
+        ) : /^-|^\w+ {2,}/.test(text) && indent ? (
+          highlightHelpRow(text)
+        ) : /^["{}[\]]/.test(text) ? (
+          highlightJson(text)
+        ) : (
+          text
+        )}
+        {"\n"}
+      </span>
+    )
+  })
+}
+
+function highlightHelpHeading(line: string) {
+  const [heading = "", rest = ""] = line.split(/(?<=:)/, 2)
   return (
     <>
-      <img
-        src={props.shot.src}
-        alt={props.shot.alt}
-        decoding="async"
-        className={cn("block object-cover object-top dark:hidden", props.className)}
-      />
-      <img
-        src={props.shot.srcDark}
-        alt={props.shot.alt}
-        decoding="async"
-        className={cn("hidden object-cover object-top dark:block", props.className)}
-      />
+      <span className={cn(tk.keyword, "font-semibold")}>{heading}</span>
+      {rest}
+    </>
+  )
+}
+
+const HELP_ROW = /^(\S.*?)( {2,})(.*?)( \((?:choices|default):.*\))?$/
+
+function highlightHelpRow(line: string) {
+  const [, name = "", gap = "", description = "", hint = ""] = line.match(HELP_ROW) ?? []
+  return (
+    <>
+      <span className={name.startsWith("-") ? tk.flag : tk.type}>{name}</span>
+      {gap}
+      {description}
+      <span className={tk.dim}>{hint}</span>
     </>
   )
 }
@@ -1185,11 +1285,11 @@ function TerminalSample() {
   )
 }
 
-const COMMAND_TOKEN = /(^\$)|('[^']*')|(--[\w-]+)|((?<=^\$ )\S+)|(\s+|\S+)/g
+const COMMAND_TOKEN = /(^\$)|('[^']*')|(--?[\w-]+)|((?<=^\$ |\| )\S+)|(\|)|(\s+|\S+)/g
 
 function highlightCommand(line: string) {
   return [...line.matchAll(COMMAND_TOKEN)].map(match => {
-    const [text, prompt, string, flag, program] = match
+    const [text, prompt, string, flag, program, pipe] = match
     const className = prompt
       ? tk.prompt
       : string
@@ -1198,7 +1298,9 @@ function highlightCommand(line: string) {
           ? tk.flag
           : program
             ? tk.func
-            : undefined
+            : pipe
+              ? tk.dim
+              : undefined
     return className ? (
       <span key={match.index} className={className}>
         {text}

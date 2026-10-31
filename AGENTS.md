@@ -44,7 +44,7 @@ Repo skills live in `.agents/skills/` (reached by Claude Code through the `.clau
 | `change-verification` | checking a change works — the smallest lint/type/unit slice and a look   |
 | `human-documentation` | the docs-truth pass before a commit, and where a fact belongs            |
 | `issue-resolution`    | taking one issue or bug report to one tested commit in a worktree        |
-| `landing-screenshots` | changing the landing hero carousel or regenerating its screenshots       |
+| `landing-carousel`    | changing the landing hero carousel — its terminal slides and chips       |
 | `python-development`  | working in `python/` — layout, uv commands, typing, the conformance twin |
 | `rust-development`    | working in `rust/` — layout, cargo commands, meta, the conformance suite |
 | `worktree-workflow`   | starting, running and landing a `.worktrees/<name>` branch               |

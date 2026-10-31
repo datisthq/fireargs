@@ -75,7 +75,7 @@ fireargs/
 │   └── skills/          #   shipped agent skills for Rust users
 ├── conformance/         # language-neutral cases every package must pass
 ├── .agents/skills/      # repo skills for coding agents (see AGENTS.md)
-├── .livemark/           # docs-site escapes (theme, landing, screenshots)
+├── .livemark/           # docs-site escapes (theme, landing)
 ├── .scripts/            # repo-wide guards and the `pnpm squash` script
 ├── livemark.config.ts   # config for the docs site
 ├── tsconfig.json
