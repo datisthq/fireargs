@@ -3,8 +3,11 @@ import {
   BookOpen,
   Bot,
   Boxes,
+  Braces,
   CheckCircle2,
+  CircleQuestionMark,
   FileJson,
+  FileText,
   Github,
   Layers,
   Network,
@@ -16,6 +19,7 @@ import {
 } from "lucide-react"
 import {
   type ComponentType,
+  type KeyboardEvent,
   type ReactNode,
   type SVGProps,
   createContext,
@@ -283,6 +287,7 @@ function HeroActions() {
 interface Slide {
   id: string
   title: string
+  icon: ComponentType<SVGProps<SVGSVGElement>>
   terminal: string
   source: { file: string; code: ReactNode }
 }
@@ -290,6 +295,7 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: "help",
+    icon: CircleQuestionMark,
     title: "Help",
     terminal: `$ shipit deploy --help
 Usage: shipit deploy [options] <env>
@@ -329,6 +335,7 @@ Options:
   },
   {
     id: "json",
+    icon: Braces,
     title: "JSON",
     terminal: `$ shipit deploy production -r us-east-1 --replicas 4 --json
 {
@@ -377,6 +384,7 @@ $ shipit db migrate --json
   },
   {
     id: "llms",
+    icon: FileText,
     title: "LLMs",
     terminal: `$ shipit --llms | jq '.tools[].name'
 "help"
@@ -415,6 +423,7 @@ $ shipit --llms | jq -c '.tools[1].outputSchema.required'
   },
   {
     id: "agent",
+    icon: Bot,
     title: "Agent",
     terminal: `› Ship the current build to staging, but preview it first.
 
@@ -462,6 +471,28 @@ function HeroCarousel(props: { slides: Slide[] }) {
   const [paused, setPaused] = useState(false)
   const [stopped, setStopped] = useState(false)
   const stoppedRef = useRef(false)
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const selectSlide = (index: number) => {
+    stoppedRef.current = true
+    setActive(index)
+    setStopped(true)
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const count = props.slides.length
+    const targets: Record<string, number> = {
+      ArrowRight: (active + 1) % count,
+      ArrowLeft: (active - 1 + count) % count,
+      Home: 0,
+      End: count - 1,
+    }
+    const next = targets[event.key]
+    if (next === undefined) return
+    event.preventDefault()
+    selectSlide(next)
+    tabRefs.current[next]?.focus()
+  }
 
   return (
     <div
@@ -478,19 +509,26 @@ function HeroCarousel(props: { slides: Slide[] }) {
             <span className="size-2.5 rounded-full bg-yellow-400/60" />
             <span className="size-2.5 rounded-full bg-green-400/60" />
           </span>
-          <div role="tablist" className="flex min-w-0 gap-1">
+          <div
+            role="tablist"
+            aria-label="Example commands"
+            onKeyDown={handleKeyDown}
+            className="flex min-w-0 gap-1 overflow-x-auto"
+          >
             {props.slides.map((slide, index) => (
               <button
                 key={slide.id}
                 type="button"
+                ref={element => {
+                  tabRefs.current[index] = element
+                }}
+                id={`hero-tab-${slide.id}`}
                 role="tab"
+                tabIndex={index === active ? 0 : -1}
                 aria-selected={index === active}
                 aria-controls={`hero-slide-${slide.id}`}
-                onClick={() => {
-                  stoppedRef.current = true
-                  setActive(index)
-                  setStopped(true)
-                }}
+                title={slide.title}
+                onClick={() => selectSlide(index)}
                 className={cn(
                   "relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-control px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
                   index === active
@@ -498,12 +536,11 @@ function HeroCarousel(props: { slides: Slide[] }) {
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <span
-                  className={cn("font-mono text-xs", index === active && "text-primary")}
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className={index === active ? undefined : "hidden sm:inline"}>
+                <slide.icon
+                  aria-hidden
+                  className={cn("size-4 shrink-0", index === active && "text-primary")}
+                />
+                <span className={index === active ? undefined : "sr-only sm:not-sr-only"}>
                   {slide.title}
                 </span>
                 {index === active ? (
@@ -531,6 +568,7 @@ function HeroCarousel(props: { slides: Slide[] }) {
               key={slide.id}
               id={`hero-slide-${slide.id}`}
               role="tabpanel"
+              aria-labelledby={`hero-tab-${slide.id}`}
               aria-hidden={index !== active}
               className={cn(
                 "[grid-area:1/1] transition-opacity duration-700 motion-reduce:transition-none",
