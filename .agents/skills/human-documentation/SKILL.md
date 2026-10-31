@@ -54,11 +54,7 @@ Work through the diff asking each of these:
 
 ### Where a fact belongs
 
-`AGENTS.md` loads into every session, so it carries only what must hold before anyone knows which
-area they are in: hard rules, invariants that fail silently, terminology, one line per command and
-per source folder, and the skills tables. Procedure, rationale and an area's traps go in that
-area's skill, with at most a one-line pointer left in `AGENTS.md`. When a paragraph grows there,
-move it. Keep `AGENTS.md` near 10 KB.
+Whether a rule or lesson for agents goes in `AGENTS.md` or a skill: **`agent-documentation`**.
 
 - How to **use** Fireargs (builders, field config, JSON and LLM modes) → the matching
   `typescript/docs/` page and the shipped skill in `typescript/skills/`, kept in step, and
