@@ -27,6 +27,8 @@ minimumReleaseAgeExclude:
   - fairspec-extension
   - fireargs
   - livemark
+  - textlane
+  - "@textlane/*"
   - testdocs
   - uptask
   - vitest-polly
