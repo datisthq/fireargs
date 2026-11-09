@@ -31,3 +31,7 @@ theme and stays crisp.
   `TerminalPanel` pads its bottom; the tallest slide sets the height for all of them. After a
   change, look at every slide at 1280 and 1440 px wide, in both themes, for text under the
   chip.
+- **Stacked slides need `grid-cols-1`.** A bare `grid` has an auto track that grows to its
+  widest snippet, so on a phone the chip overflows the page and the terminal clips with
+  nothing to scroll. From `lg` the chip's fixed width must fit the widest snippet, or it
+  scrolls. After a change, also look at 375 px.
