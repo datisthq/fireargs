@@ -2,6 +2,15 @@ import { defineConfig } from "livemark"
 
 export default defineConfig({
   site: "https://fireargs.dev",
+  head: {
+    scripts: [
+      {
+        src: "https://counter.datist.io/api/script.js",
+        "data-site-id": "7",
+        defer: "true",
+      },
+    ],
+  },
   title: "Fireargs",
   description: "Modern CLI builder",
   logo: "/logo.svg",
